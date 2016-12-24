@@ -1,0 +1,15 @@
+this is a sprite renderer/editor
+
+you can design buildings with convex hulls, import milkshape 3d models
+
+render instructions like tile orientations (for inclines) and 
+gradience over several tiles (by cutting up a large texture), 
+render animation frame ranges,
+render from 8 different angles,
+save your sprite projects, etc.
+uses diffuse, specular, normal/bump mapping
+and generates team colour map
+
+also thinking about adding particle effect animation sprite rendering
+
+all sprites are saved in .png format with transparency and .txt file with x,y offsets
