@@ -1325,7 +1325,7 @@ lasti=(i>lasti)?i:lasti;
 				lastvs[0] = new SurfPt;
 				lastvs[1] = new SurfPt;
 				lastvs[2] = new SurfPt;
-				Tet* tet = new Tet;
+				Tet* tet = new Tet();
 
 				GenTexEq(tet, tr, txc);
 

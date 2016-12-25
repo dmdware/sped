@@ -1064,7 +1064,39 @@ SurfPt* CopyPt(SurfPt *sp, Tet *totet)
 	}
 	return NULL;
 }
-void GenTexEq(Tet *tet, Vec3f tri[3], Vec3f txc[3])
+void GenTexEq1(
+	float &a,
+	float &b,
+	float &c,
+	float &d,
+	
+	float &A,
+	float &B,
+	float &C,
+	
+	float &D,
+	float &E,
+	float &F,
+	
+	float &G,
+	float &H,
+	float &I,
+	
+	float &J,
+	float &K,
+	float &L)
+{
+	d=0;
+
+	c = ((A*F-A*E+B*D)*d+(B*C*D-A*C*E)*a+(A*E-B*D)*L-A*F*K+B*F*J)/
+		((A*E-B*D)*I-A*F*H+B*F*G+B*F);
+
+	b=-(A*d+(A*H-B*G-B)*c-A*K+B*J)/(A*E-B*D);
+
+	a=-(d+G*c+D*b-J)/A;
+}
+
+void GenTexEq(Tet *tet, Vec3f tri[3], Vec2f txc[3])
 {
 	//Vec3f uline[2];
 	//Vec3f vline[2];
@@ -1076,6 +1108,43 @@ void GenTexEq(Tet *tet, Vec3f tri[3], Vec3f txc[3])
 	//J = aA+bD+cG+d
 	//K = aB+bE+cH+d
 	//L = aC+bF+cI+d
+
+	//tet->texceq[0]
+	GenTexEq1(
+		tet->texceq[0].m_normal.x,
+		tet->texceq[0].m_normal.y,
+		tet->texceq[0].m_normal.z,
+		tet->texceq[0].m_d,
+		tri[0].x,
+		tri[1].x,
+		tri[2].x,
+		tri[0].y,
+		tri[1].y,
+		tri[2].y,
+		tri[0].z,
+		tri[1].z,
+		tri[2].z,
+		txc[0].x,
+		txc[1].x,
+		txc[2].x);
+	
+	GenTexEq1(
+		tet->texceq[1].m_normal.x,
+		tet->texceq[1].m_normal.y,
+		tet->texceq[1].m_normal.z,
+		tet->texceq[1].m_d,
+		tri[0].x,
+		tri[1].x,
+		tri[2].x,
+		tri[0].y,
+		tri[1].y,
+		tri[2].y,
+		tri[0].z,
+		tri[1].z,
+		tri[2].z,
+		txc[0].y,
+		txc[1].y,
+		txc[2].y);
 
 	/*
 	c = ((A*F-A*E+B*D)*d+(B*C*D-A*C*E)*a+(A*E-B*D)*L-A*F*K+B*F*J)/
@@ -1091,8 +1160,6 @@ void GenTexEq(Tet *tet, Vec3f tri[3], Vec3f txc[3])
 	/*
 	a=-(d+G*c+D*b-J)/A
 	*/
-
-	
 
 //get:a,b,c,d
 	//given: u1,u2,u3,x1,x2,x3,y1,y2,y3,z1,z2,z3
@@ -1148,7 +1215,7 @@ void GenTexEq(Tet *tet, Vec3f tri[3], Vec3f txc[3])
 }
 void CopyTet(Surf *surf, Tet *fromtet)	//just copies tet, not pt's, which will be handled differently
 {
-	Tet *newtet = new Tet;
+	Tet *newtet = new Tet();
 	surf->tets2.push_back(newtet);
 
 	newtet->level = fromtet->level+1;
@@ -1171,7 +1238,7 @@ void FreeTet(Tet *tet, bool freepts)	//entry must be freed from surf also
 		//if no other holder owns these pt's
 		for(int vi=0; vi<4; ++vi)
 		{
-			delete tet->neib[4];
+			delete tet->neib[vi];
 		}
 	}
 	delete tet;
@@ -1205,6 +1272,32 @@ void SplitTris(Surf *surf, Tet *fourtet)
 		}
 	}
 	FreeTet(fourtet, true);
+	//remember to remove fourtet from tets2 list
+	//
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		if(*tit == fourtet)
+		{
+			surf->tets2.erase(tit);
+			return;
+		}
+	}
+}
+
+bool VerifyTet(Surf *surf,
+			   std::list<Tet*>::iterator tit)
+{
+	for(int vin=0; vin<3; ++vin)
+	{
+		if(!(*tit)->neib[vin])
+		{
+			surf->tets2.erase(tit);
+			return false;
+		}
+	}
+	return true;
 }
 
 /*
@@ -1222,16 +1315,39 @@ again:
 		tit!=surf->tets2.end();
 		++tit)
 	{
-		for(std::list<Tet*>::iterator fulltit=fullsurf->tets2.begin();
-			fulltit!=fullsurf->tets2.end();
+		if(!VerifyTet(surf, tit))
+			goto again;
+
+		Tet *in = *tit;
+		//for(std::list<Tet*>::iterator fulltit=fullsurf->tets2.begin();
+		//	fulltit!=fullsurf->tets2.end();
+		//	++fulltit)
+
+		Vec3f tri1[3];
+		tri1[0] = (*tit)->neib[0]->pos;
+		tri1[1] = (*tit)->neib[1]->pos;
+		tri1[2] = (*tit)->neib[2]->pos;
+		Vec3f norm1 = Normal(tri1);
+		
+		for(std::list<Tet*>::iterator fulltit=surf->tets2.begin();
+			fulltit!=surf->tets2.end();
 			++fulltit)
 		{
-			Tet *in = *tit;
+			if(!VerifyTet(surf, fulltit))
+				goto again;
+
+			if(*fulltit == *tit)
+				continue;
+
 			Vec3f fulltri[3];
 			fulltri[0] = (*fulltit)->neib[0]->pos;
 			fulltri[1] = (*fulltit)->neib[1]->pos;
 			fulltri[2] = (*fulltit)->neib[2]->pos;
 			Vec3f fullnorm = Normal(fulltri);
+
+			if(fullnorm == norm1)
+				continue;
+
 			Plane3f split;
 			MakePlane(&split.m_normal, &split.m_d, (fulltri[0]+fulltri[1]+fulltri[2])/3.0f,
 				fullnorm);
@@ -1303,6 +1419,9 @@ again:
 
 			for (i=0 ; i<3 ; i++)
 			{
+				if(!in->neib[i])
+					ErrMess("44","44");
+
 				//p1 = in->points[i];
 				p1 = in->neib[i];
 
@@ -1311,8 +1430,10 @@ again:
 					//VectorCopy (p1, neww->points[neww->numpoints]);
 					//neww->numpoints++;
 
-					CopyPt(p1, neww);
-					CopyPt(p1, backw);
+					if(!CopyPt(p1, neww))
+						ErrMess("123","12347");
+					if(!CopyPt(p1, backw))
+						ErrMess("123","12348");
 
 					newvi++;
 					backvi++;
@@ -1324,7 +1445,8 @@ again:
 				{
 					//VectorCopy (p1, neww->points[neww->numpoints]);
 					//neww->numpoints++;
-					CopyPt(p1, neww);
+					if(!CopyPt(p1, neww))
+						ErrMess("123","1234");
 					newvi++;
 				}
 
@@ -1332,7 +1454,8 @@ again:
 				{
 					//VectorCopy (p1, neww->points[neww->numpoints]);
 					//neww->numpoints++;
-					CopyPt(p1, backw);
+					if(!CopyPt(p1, backw))
+						ErrMess("123","12346");
 					backvi++;
 				}
 
@@ -1358,8 +1481,16 @@ again:
 				SurfPt *news1 = CopyPt(p2, neww);
 				SurfPt *news2 = CopyPt(p2, backw);
 
+				if(!news1)
+					ErrMess("1","1");
+				if(!news2)
+					ErrMess("12","12");
+
 				news1->pos = mid;
 				news2->pos = mid;
+				
+				SepPt(in, news1, NULL);
+				SepPt(in, news2, NULL);
 			}
 
 			//if (neww->numpoints > maxpts)
@@ -1368,7 +1499,33 @@ again:
 			// free the original winding
 			//FreeWinding (in);
 			FreeTet(in, true);
-			surf->tets2.erase(tit);
+			//surf->tets2.erase(tit);	//tit invalided by CopyPt etc.
+
+			for(tit=surf->tets2.begin();
+				tit!=surf->tets2.end();
+				++tit)
+			{
+				if(*tit == in)
+				{
+					surf->tets2.erase(tit);
+					break;
+				}
+			}
+
+			std::list<Tet*>::iterator backwtit=surf->tets2.end();
+			backwtit--;
+			std::list<Tet*>::iterator newwtit=backwtit;
+			newwtit--;
+
+			if(VerifyTet(surf, newwtit))
+				SplitTris(surf, neww);
+			else
+			{
+				backwtit=surf->tets2.end();
+				backwtit--;
+			}
+			if(VerifyTet(surf, backwtit))
+				SplitTris(surf, backw);
 
 			//return neww;
 			goto again;
@@ -2422,10 +2579,23 @@ void OutTex(Surf *surf, LoadedTex *out)
 		Tet* tet = *tit;
 		Texture *diff = tet->tex;
 
+		Vec3f tri3[3];
+		tri3[0] = tet->neib[0]->pos;
+		tri3[1] = tet->neib[1]->pos;
+		tri3[2] = tet->neib[2]->pos;
+
+		Vec2f txc[3];
+		txc[0] = tet->neib[0]->texc;
+		txc[1] = tet->neib[1]->texc;
+		txc[2] = tet->neib[2]->texc;
+
 		Vec2f tri[3];
 		tri[0] = tet->neib[0]->orc * BIGTEX;
 		tri[1] = tet->neib[1]->orc * BIGTEX;
 		tri[2] = tet->neib[2]->orc * BIGTEX;
+
+		float fminz3 = fmin(tri3[0].z, fmin(tri3[1].z, tri3[2].z));
+		float fmaxz3 = fmax(tri3[0].z, fmax(tri3[1].z, tri3[2].z));
 
 		float fminxout = fmin(tri[0].x, fmin(tri[1].x, tri[2].x));
 		float fmaxxout = fmax(tri[0].x, fmax(tri[1].x, tri[2].x));
@@ -2443,9 +2613,9 @@ void OutTex(Surf *surf, LoadedTex *out)
 		int iminyout = (int)(fminyout);
 		int imaxyout = (int)(fmaxyout);
 
-		if(imaxxout < iminx)
+		if(imaxxout < iminxout)
 			imaxxout += BIGTEX;
-		if(imaxyout < iminy)
+		if(imaxyout < iminyout)
 			imaxyout += BIGTEX;
 #endif
 
@@ -2460,71 +2630,63 @@ void OutTex(Surf *surf, LoadedTex *out)
 				
 				LoadedTex* difpx = diff->pixels;
 
+				//Vec2f ratio = Vec2f(pxout,pyout)/(float)BIGTEX;
 
-#if 0
-						// compute vectors
-						Vec2f v0 = tri[1] - tri[0], 
-							v1 = tri[2] - tri[0],
-							v2 = pout - tri[0];
+				// compute vectors
+				Vec2f v0 = tri[1] - tri[0], 
+					v1 = tri[2] - tri[0],
+					v2 = pout - tri[0];
 
-						// do bounds test for each position
-						double f00 = Dot( v0, v0 );
-						double f01 = Dot( v0, v1 );
-						double f11 = Dot( v1, v1 );
+				// do bounds test for each position
+				double f00 = Dot( v0, v0 );
+				double f01 = Dot( v0, v1 );
+				double f11 = Dot( v1, v1 );
 
-						double f02 = Dot( v0, v2 );
-						double f12 = Dot( v1, v2 );
+				double f02 = Dot( v0, v2 );
+				double f12 = Dot( v1, v2 );
 
-						// Compute barycentric coordinates
-						double invDenom = 1 / ( f00 * f11 - f01 * f01 );
-						double fU = ( f11 * f02 - f01 * f12 ) * invDenom;
-						double fV = ( f00 * f12 - f01 * f02 ) * invDenom;
+				// Compute barycentric coordinates
+				double invDenom = 1 / ( f00 * f11 - f01 * f01 );
+				double fU = ( f11 * f02 - f01 * f12 ) * invDenom;
+				double fV = ( f00 * f12 - f01 * f02 ) * invDenom;
 
-						// Check if point is in triangle
-						///if( ( fU >= 0 ) && ( fV >= 0 ) && ( fU + fV <= 1 ) )
-						///	goto dotex;
-						//	return true;
+				// Check if point is in triangle
+				///if( ( fU >= 0 ) && ( fV >= 0 ) && ( fU + fV <= 1 ) )
+				///	goto dotex;
+				//	return true;
 
-						float ffU = txc[0].x * (1 - fU - fV) + 
-							txc[1].x * (fU) + 
-							txc[2].x * (fV);
-						
-						float ffV = txc[0].y * (1 - fU - fV) + 
-							txc[1].y * (fU) + 
-							txc[2].y * (fV);
+				float ffU = txc[0].x * (1 - fU - fV) + 
+					txc[1].x * (fU) + 
+					txc[2].x * (fV);
 
-						retexc->x = ffU;
-						retexc->y = ffV;
+				float ffV = txc[0].y * (1 - fU - fV) + 
+					txc[1].y * (fU) + 
+					txc[2].y * (fV);
 
-						int tx = ffU * difpx->sizex;
-						int ty = ffV * difpx->sizey;
-						
-						int stx = ffU * specpx->sizex;
-						int sty = ffV * specpx->sizey;
-						
-						int ntx = ffU * normpx->sizex;
-						int nty = ffV * normpx->sizey;
+				int intx = ffU * difpx->sizex;
+				int inty = ffV * difpx->sizey;
 
-						while(tx < 0)
-							tx += difpx->sizex;
-						while(tx >= difpx->sizex)
-							tx %= difpx->sizex;
-						while(ty < 0)
-							ty += difpx->sizey;
-						while(ty >= difpx->sizey)
-							ty %= difpx->sizey;
+				while(intx < 0)
+					intx += difpx->sizex;
+				while(intx >= difpx->sizex)
+					intx %= difpx->sizex;
+				while(inty < 0)
+					inty += difpx->sizey;
+				while(inty >= difpx->sizey)
+					inty %= difpx->sizey;
 
-						LoadedTex* difpx = diff->pixels;
+				int pxin = (intx + difpx->sizex * inty);
 
-						int pxin = (tx + difpx->sizex * ty);
+				Vec4f rgba;
 
-						Vec4f rgba;
+				rgba.x = difpx->data[ pxin * difpx->channels + 0 ];
+				rgba.y = difpx->data[ pxin * difpx->channels + 1 ];
+				rgba.z = difpx->data[ pxin * difpx->channels + 2 ];
+				rgba.w = 255;
 
-						rgba.x = difpx->data[ pxin * difpx->channels + 0 ];
-						rgba.y = difpx->data[ pxin * difpx->channels + 1 ];
-						rgba.z = difpx->data[ pxin * difpx->channels + 2 ];
-						rgba.w = 255;
-#endif
+				out->data[ out->channels * ( pxout + pyout * out->sizex ) + 0 ] = (int)rgba.x;
+				out->data[ out->channels * ( pxout + pyout * out->sizex ) + 1 ] = (int)rgba.y;
+				out->data[ out->channels * ( pxout + pyout * out->sizex ) + 2 ] = (int)rgba.z;
 			}
 		}
 	}
