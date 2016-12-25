@@ -37,6 +37,6 @@ void DrawDrag(EdMap* map, Matrix* mvp, int w, int h, bool persp);
 bool SelectDrag(EdMap* map, Matrix* mvp, int w, int h, int x, int y, Vec3f eye, bool persp);
 void SelectBrush(EdMap* map, Vec3f line[], Vec3f vmin, Vec3f vmax);
 bool PruneB(EdMap* map, Brush* b);
-bool PruneB2(Brush* b, Plane* p, float epsilon=-CLOSE_EPSILON*2);
+bool PruneB2(Brush* b, Plane3f* p, float epsilon=-CLOSE_EPSILON*2);
 
 #endif

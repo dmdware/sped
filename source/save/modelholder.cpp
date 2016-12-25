@@ -366,7 +366,7 @@ void ModelHolder::addclipmesh(Surf *surf)
 	if(g_renderframes <= 0)
 		g_renderframes = 1;
 
-	return model.addclipmesh(surf,
+	model.addclipmesh(surf,
 		(g_renderframe % g_renderframes),
 		translation, modeli,
 		scale, rotationmat);

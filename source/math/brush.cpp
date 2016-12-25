@@ -73,6 +73,7 @@ moved and the "nearest" point has to be from the moved position.
 #include "../sim/map.h"
 #include "../save/edmap.h"
 #include "../texture.h"
+#include "../tool/rendertopo.h"
 
 Brush& Brush::operator=(const Brush& original)
 {
@@ -179,7 +180,7 @@ bool Brush::addclipmesh(Surf *surf)
 	{
 		BrushSide* s = &m_sides[i];
 
-		for(int ti=0; ti<s->m_ntries; ++ti)
+		for(int ti=0; ti<s->m_ntris; ++ti)
 		{
 			Triangle2 *t = &s->m_tris[ti];
 
@@ -213,6 +214,8 @@ bool Brush::addclipmesh(Surf *surf)
 			lastvs[1] = new SurfPt;
 			lastvs[2] = new SurfPt;
 			Tet* tet = new Tet;
+			
+			GenTexEq(tet, tr, txc);
 
 			tet->approved = false;
 			tet->hidden = false;
@@ -1361,7 +1364,7 @@ bool HullsIntersect(Vec3f* hull1norms, float* hull1dist, int hull1planes, Vec3f*
 }
 
 // line intersects convex hull?
-bool LineInterHull(const Vec3f* line, Plane* planes, const int numplanes)
+bool LineInterHull(const Vec3f* line, Plane3f* planes, const int numplanes)
 {
 	for(int i=0; i<numplanes; i++)
     {

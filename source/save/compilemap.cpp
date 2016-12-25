@@ -24,7 +24,7 @@ void ToCutSide(CutBrushSide* cuts, BrushSide* eds)
 class BrushSide
 {
 public:
-	Plane m_plane;
+	Plane3f m_plane;
 	VertexArray m_drawva;
 	unsigned int m_diffusem;
 	unsigned int m_specularm;
@@ -35,7 +35,7 @@ class BrushSide : public BrushSide
 public:
 	int m_ntris;
 	Triangle2* m_tris;
-	Plane m_tceq[2];	//tex coord uv equations
+	Plane3f m_tceq[2];	//tex coord uv equations
 	Polyg m_outline;
 	int* m_vindices;	//indices into parent brush's shared vertex array; only stores unique vertices as defined by polygon outline
 	Vec3f m_centroid;
@@ -48,7 +48,7 @@ public:
 	unsigned int m_diffusem;
 	unsigned int m_specularm;
 	unsigned int m_normalm;
-	Plane m_tceq[2];
+	Plane3f m_tceq[2];
 	std::list<Triangle> m_frag;
 	*/
 
@@ -77,7 +77,7 @@ bool BrushTouch(Brush* b1, Brush* b2)
 	for(int i=0; i<b1->m_nsides; i++)
 	{
 		BrushSide* s = &b1->m_sides[i];
-		Plane p = s->m_plane;
+		Plane3f p = s->m_plane;
 		p.m_d += EPSILON;
 		bool found = false;
 
@@ -127,7 +127,7 @@ void RemoveHiddenFrags(CutBrush* cutb, Brush* edb)
 			for(int k=0; k<edb->m_nsides; k++)
 			{
 				BrushSide* s = &edb->m_sides[k];
-				Plane* p = &s->m_plane;
+				Plane3f* p = &s->m_plane;
 
 				if(!PointOnOrBehindPlane(j->m_vertex[0], *p))
 				{

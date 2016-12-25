@@ -10,7 +10,7 @@ public:
 	unsigned int m_diffusem;
 	unsigned int m_specularm;
 	unsigned int m_normalm;
-	Plane m_tceq[2];
+	Plane3f m_tceq[2];
 	std::list<Triangle> m_frag;
 };
 

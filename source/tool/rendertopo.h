@@ -4,14 +4,17 @@
 #define RENDERTOPO_H
 
 #include "../math/vec3f.h"
+#include "../math/plane3f.h"
 
 extern int g_rendlon;
 extern int g_rendlat;
 
+class Texture;
+class Tet;
+
 void PrepareTopo(const char* fullpath, int rendtype);
 void OrRender(int rendstage, Vec3f offset);
-
-class Texture;
+void GenTexEq(Tet *tet, Vec3f tri[3], Vec3f txc[3]);
 
 class SurfPt
 {

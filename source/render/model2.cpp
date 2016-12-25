@@ -1144,7 +1144,7 @@ bool Model2::addclipmesh(Surf *surf,
 	Transpose(modelview, modelview);
 	Inverse2(modelview, modelviewinv);
 	//Transpose(modelviewinv, modelviewinv);
-	glUniformMatrix4fv(s->m_slot[SSLOT_NORMALMAT], 1, 0, modelviewinv.m_matrix);
+//	glUniformMatrix4fv(s->m_slot[SSLOT_NORMALMAT], 1, 0, modelviewinv.m_matrix);
 
 	//perform frame transformation on-the-fly
 	std::vector<Matrix> BoneTransforms;
@@ -1326,6 +1326,8 @@ lasti=(i>lasti)?i:lasti;
 				lastvs[1] = new SurfPt;
 				lastvs[2] = new SurfPt;
 				Tet* tet = new Tet;
+
+				GenTexEq(tet, tr, txc);
 
 				tet->approved = false;
 				tet->hidden = false;

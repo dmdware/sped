@@ -689,7 +689,7 @@ bool ViewportRDown(int which, int relx, int rely, int width, int height)
 	return true;
 }
 
-void CutBrushes(Plane cuttingp)
+void CutBrushes(Plane3f cuttingp)
 {
 	EdMap* map = &g_edmap;
 
@@ -800,7 +800,7 @@ void ViewportLUp_CutBrush(int which, int relx, int rely, int width, int height)
 		Vec3f crossaxis[2];
 		crossaxis[0] = Normalize(cur - last);
 		crossaxis[1] = Normalize(t->m_offset);
-		Plane cuttingp;
+		Plane3f cuttingp;
 		cuttingp.m_normal = Normalize( Cross(crossaxis[0], crossaxis[1]) );
 		cuttingp.m_d = PlaneDistance(cuttingp.m_normal, last);
 		CutBrushes(cuttingp);

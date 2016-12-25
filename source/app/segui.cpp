@@ -1233,7 +1233,7 @@ void RedoBSideGUI()
 	EditBox* uwidg = (EditBox*)g_gui.get("brush side edit")->get("left panel")->get("u equation");
 	EditBox* vwidg = (EditBox*)g_gui.get("brush side edit")->get("left panel")->get("v equation");
 
-	Plane* tceq = g_sel1b->m_sides[g_dragS].m_tceq;
+	Plane3f* tceq = g_sel1b->m_sides[g_dragS].m_tceq;
 
 	char tceqstr[256];
 	sprintf(tceqstr, "%f %f %f %f", tceq[0].m_normal.x, tceq[0].m_normal.y, tceq[0].m_normal.z, tceq[0].m_d);
@@ -1267,7 +1267,7 @@ void Change_TexEq(unsigned int key, unsigned int scancode, bool down, int parm)
 
 	sscanf(uwidg->m_value.rawstr().c_str(), "%f %f %f %f", &A, &B, &C, &D);
 
-	Plane* tceq = g_sel1b->m_sides[g_dragS].m_tceq;
+	Plane3f* tceq = g_sel1b->m_sides[g_dragS].m_tceq;
 	tceq[0].m_normal.x = A;
 	tceq[0].m_normal.y = B;
 	tceq[0].m_normal.z = C;
@@ -1423,7 +1423,7 @@ void Click_SetDoor()
 	for(int i=0; i<door->m_nsides; i++)
 	{
 		Log("side "<<i<<std::endl;
-		Plane* p = &door->m_sides[i].m_plane;
+		Plane3f* p = &door->m_sides[i].m_plane;
 
 		Log("plane = "<<p->m_normal.x<<","<<p->m_normal.y<<","<<p->m_normal.z<<",d="<<p->m_d<<std::endl;
 	}

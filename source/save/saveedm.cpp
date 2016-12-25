@@ -16,14 +16,14 @@
 
 void SaveEdBrushSide(FILE* fp, BrushSide* s, int* texrefs)
 {
-	fwrite(&s->m_plane, sizeof(Plane), 1, fp);
+	fwrite(&s->m_plane, sizeof(Plane3f), 1, fp);
 
 	SaveVertexArray(fp, &s->m_drawva);
 
 	fwrite(&texrefs[ s->m_diffusem ], sizeof(int), 1, fp);
 	fwrite(&s->m_ntris, sizeof(int), 1, fp);
 	fwrite(s->m_tris, sizeof(Triangle2), s->m_ntris, fp);
-	fwrite(s->m_tceq, sizeof(Plane), 2, fp);
+	fwrite(s->m_tceq, sizeof(Plane3f), 2, fp);
 
 	SavePolygon(fp, &s->m_outline);
 
@@ -39,14 +39,14 @@ void SaveEdBrushSides(FILE* fp, Brush* b, int* texrefs)
 	for(int i=0; i<nsides; i++)
 	{
 		/*
-	Plane m_plane;
+	Plane3f m_plane;
 	VertexArray m_drawva;
 	unsigned int m_diffusem;
 		*/
 	/*
 	int m_ntris;
 	Triangle2* m_tris;
-	Plane m_tceq[2];	//tex coord uv equations
+	Plane3f m_tceq[2];	//tex coord uv equations
 	Polyg m_outline;
 	int* m_vindices;	//indices into parent brush's shared vertex array
 	Vec3f m_centroid;
@@ -59,7 +59,7 @@ void SaveEdBrushSides(FILE* fp, Brush* b, int* texrefs)
 
 void ReadBrushSide(FILE* fp, BrushSide* s, TexRef* texrefs)
 {
-	fread(&s->m_plane, sizeof(Plane), 1, fp);
+	fread(&s->m_plane, sizeof(Plane3f), 1, fp);
 
 #ifdef LOADMAP_DEBUG
 	Log("s->m_plane = "<<s->m_plane.m_normal.x<<","<<s->m_plane.m_normal.y<<","<<s->m_plane.m_normal.z<<","<<s->m_plane.m_d<<std::endl;
@@ -88,7 +88,7 @@ void ReadBrushSide(FILE* fp, BrushSide* s, TexRef* texrefs)
 
 	s->m_tris = new Triangle2[ s->m_ntris ];
 	fread(s->m_tris, sizeof(Triangle2), s->m_ntris, fp);
-	fread(s->m_tceq, sizeof(Plane), 2, fp);
+	fread(s->m_tceq, sizeof(Plane3f), 2, fp);
 
 #ifdef LOADMAP_DEBUG
 	Log("load ed brush side 3");
@@ -180,7 +180,7 @@ void SaveEdDoor(FILE* fp, EdDoor* door, int* texrefs)
 	for(int i=0; i<door->m_nsides; i++)
 	{
 		Log("side "<<i<<std::endl;
-		Plane* p = &door->m_sides[i].m_plane;
+		Plane3f* p = &door->m_sides[i].m_plane;
 
 		Log("plane = "<<p->m_normal.x<<","<<p->m_normal.y<<","<<p->m_normal.z<<",d="<<p->m_d<<std::endl;
 	}
@@ -224,7 +224,7 @@ void ReadEdDoor(FILE* fp, EdDoor* door, TexRef* texrefs)
 	for(int i=0; i<door->m_nsides; i++)
 	{
 		Log("side "<<i<<std::endl;
-		Plane* p = &door->m_sides[i].m_plane;
+		Plane3f* p = &door->m_sides[i].m_plane;
 
 		Log("plane = "<<p->m_normal.x<<","<<p->m_normal.y<<","<<p->m_normal.z<<",d="<<p->m_d<<std::endl;
 	}

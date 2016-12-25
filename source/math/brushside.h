@@ -24,7 +24,7 @@ class CutBrushSide;
 class BrushSide
 {
 public:
-	Plane m_plane;
+	Plane3f m_plane;
 	VertexArray m_drawva;
 	unsigned int m_diffusem;
 	unsigned int m_specularm;
@@ -32,7 +32,7 @@ public:
 	unsigned int m_ownerm;	//team colour map
 	int m_ntris;
 	Triangle2* m_tris;
-	Plane m_tceq[2];	//tex coord uv equations
+	Plane3f m_tceq[2];	//tex coord uv equations
 	Polyg m_outline;
 	int* m_vindices;	//indices into parent brush's shared vertex array; only stores unique vertices as defined by polygon outline
 	Vec3f m_centroid;

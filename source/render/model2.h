@@ -12,6 +12,7 @@
 //class VertexArray;
 class MS3DModel;
 class Shader;
+class Surf;
 
 class Material
 {

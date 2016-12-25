@@ -12,7 +12,7 @@
 #include "../app/segui.h"
 #include "../app/sesim.h"
 
-void MakeCrater(Vec3f center, std::list<Plane> &crater, float radius, int sides)
+void MakeCrater(Vec3f center, std::list<Plane3f> &crater, float radius, int sides)
 {
 	BrushSide down(Vec3f(0.0f, -1.0f, 0.0f), center + Vec3f(0, -radius, 0));
 
@@ -21,18 +21,18 @@ void MakeCrater(Vec3f center, std::list<Plane> &crater, float radius, int sides)
 	for(int y=1; y<sides; y++)
 		for(int x=1; x<sides; x++)
 		{
-			Plane transformed(down.m_plane);
+			Plane3f transformed(down.m_plane);
 			RotatePlane(transformed, center, DEGTORAD((360*y/(sides))), Vec3f(0,0,1));
 			RotatePlane(transformed, center, DEGTORAD((360*x/(sides))), Vec3f(0,1,0));
 			crater.push_back(transformed);
 		}
 }
 
-bool BrushInCrater(Brush* b, std::list<Plane> &crater)
+bool BrushInCrater(Brush* b, std::list<Plane3f> &crater)
 {
 	bool intersect = true;
 
-	for(std::list<Plane>::iterator ep=crater.begin(); ep!=crater.end(); ep++)
+	for(std::list<Plane3f>::iterator ep=crater.begin(); ep!=crater.end(); ep++)
 	{
 		bool outall = true;
 
@@ -104,7 +104,7 @@ void ExplodeCrater(EdMap* map, Vec3f line[], Vec3f vmin, Vec3f vmax)
 	if(!hitB)
 		return;
 
-	std::list<Plane> crater;
+	std::list<Plane3f> crater;
 	MakeCrater(line[1], crater, 100.0f, 6);
 
 	std::list<Brush> hitBs;
@@ -150,7 +150,7 @@ void ExplodeCrater(EdMap* map, Vec3f line[], Vec3f vmin, Vec3f vmax)
 
 		infrags.push_back(*b);
 
-		for(std::list<Plane>::iterator ep=crater.begin(); ep!=crater.end(); ep++)
+		for(std::list<Plane3f>::iterator ep=crater.begin(); ep!=crater.end(); ep++)
 		{
 			Vec3f pop = PointOnPlane(*ep);
 			std::list<Brush> nextoutfrags;
@@ -250,7 +250,7 @@ void ExplodeCrater(EdMap* map, Vec3f line[], Vec3f vmin, Vec3f vmax)
 		{
 			bool binall = true;
 
-			for(std::list<Plane>::iterator ep=crater.begin(); ep!=crater.end(); ep++)
+			for(std::list<Plane3f>::iterator ep=crater.begin(); ep!=crater.end(); ep++)
 			{
 				Vec3f pop = PointOnPlane(*ep);
 

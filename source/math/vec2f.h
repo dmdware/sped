@@ -14,6 +14,26 @@ public:
 	{
 		x = X; y = Y;
 	}
+	
+	Vec2f operator+(const Vec2f vVector) const
+	{
+		return Vec2f(vVector.x + x, vVector.y + y);
+	}
+
+	Vec2f operator-(const Vec2f vVector) const
+	{
+		return Vec2f(x - vVector.x, y - vVector.y);
+	}
+	
+	Vec2f operator*(const float num) const
+	{
+		return Vec2f(x * num, y * num);
+	}
+
+	Vec2f operator/(const float num) const
+	{
+		return Vec2f(x / num, y / num);
+	}
 };
 
 #endif

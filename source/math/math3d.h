@@ -7,6 +7,7 @@
 
 #include "../platform.h"
 #include "vec3f.h"
+#include "vec2f.h"
 
 #define DEGTORAD(a)		(M_PI * a / 180)
 #define RADTODEG(a)		(180 * a / M_PI)
@@ -17,7 +18,7 @@
 
 #define CAMERA_SPEED	5.0f
 
-class Plane;
+class Plane3f;
 class Vec3f;
 class Camera;
 class Matrix;
@@ -32,6 +33,7 @@ float Magnitude3(Vec3f vNormal);
 Vec3f Normalize(Vec3f vNormal);
 Vec3f Cross(Vec3f vVector1, Vec3f vVector2);
 float Dot(Vec3f vVector1, Vec3f vVector2);
+float Dot(Vec2f vVector1, Vec2f vVector2);
 Vec3f Vector(Vec3f vPoint1, Vec3f vPoint2);
 Vec3f Normal(Vec3f vTriangle[]);
 Vec3f Normal2(Vec3f vTriangle[]);
@@ -40,7 +42,7 @@ bool WithinYaw(Camera* c, Vec3f p, float angle);
 float DYaw(Camera* c, Vec3f p);
 double AngleBetweenVectors(Vec3f Vector1, Vec3f Vector2);
 Vec3f IntersectionPoint(Vec3f vNormal, Vec3f vLine[], double distance);
-bool Intersection(Vec3f l0, Vec3f l, Plane p, Vec3f& inter);
+bool Intersection(Vec3f l0, Vec3f l, Plane3f p, Vec3f& inter);
 Vec3f OnNear(int x, int y, int width, int height, Vec3f posvec, Vec3f sidevec, Vec3f upvec);
 Vec3f OnNearPersp(int x, int y, int width, int height, Vec3f posvec, Vec3f sidevec, Vec3f upvec, Vec3f viewdir, float fov, float mind);
 Vec3f ScreenPerspRay(int x, int y, int width, int height, Vec3f posvec, Vec3f sidevec, Vec3f upvec, Vec3f viewdir, float fov);

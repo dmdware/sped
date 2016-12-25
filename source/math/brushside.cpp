@@ -60,8 +60,8 @@ BrushSide::BrushSide(const BrushSide& original)
 
 	m_ntris = 0;
 	m_tris = NULL;
-	m_tceq[0] = Plane(0.1f,0.1f,0.1f,0);
-	m_tceq[1] = Plane(0.1f,0.1f,0.1f,0);
+	m_tceq[0] = Plane3f(0.1f,0.1f,0.1f,0);
+	m_tceq[1] = Plane3f(0.1f,0.1f,0.1f,0);
 	m_diffusem = 0;
 	m_vindices = NULL;
 	m_centroid = Vec3f(0,0,0);
@@ -75,7 +75,7 @@ BrushSide::BrushSide(const BrushSide& original)
 	/*
 	int m_ntris;
 	Triangle2* m_tris;
-	Plane m_tceq[2];	//tex coord uv equations
+	Plane3f m_tceq[2];	//tex coord uv equations
 	*/
 	/*
 	m_ntris = original.m_ntris;
@@ -101,8 +101,8 @@ BrushSide::BrushSide()
 
 	m_ntris = 0;
 	m_tris = NULL;
-	m_tceq[0] = Plane(0.1f,0.1f,0.1f,0);
-	m_tceq[1] = Plane(0.1f,0.1f,0.1f,0);
+	m_tceq[0] = Plane3f(0.1f,0.1f,0.1f,0);
+	m_tceq[1] = Plane3f(0.1f,0.1f,0.1f,0);
 	m_diffusem = 0;
 	m_vindices = NULL;
 	m_centroid = Vec3f(0,0,0);
@@ -163,8 +163,8 @@ void BrushSide::gentexeq()
 	Vec3f uaxis = Normalize(Cross(PlaneCrossAxis(m_plane.m_normal), m_plane.m_normal)) / STOREY_HEIGHT;
 	Vec3f vaxis = Normalize(Cross(uaxis, m_plane.m_normal)) / STOREY_HEIGHT;
 
-	m_tceq[0] = Plane(uaxis.x, uaxis.y, uaxis.z, 0);
-	m_tceq[1] = Plane(vaxis.x, vaxis.y, vaxis.z, 0);
+	m_tceq[0] = Plane3f(uaxis.x, uaxis.y, uaxis.z, 0);
+	m_tceq[1] = Plane3f(vaxis.x, vaxis.y, vaxis.z, 0);
 }
 
 //#define FITTEX_DEBUG
@@ -323,10 +323,10 @@ BrushSide::BrushSide(Vec3f normal, Vec3f point)
 {
 	m_ntris = 0;
 	m_tris = NULL;
-	//m_tceq[0] = Plane(1,1,1,0);
-	//m_tceq[1] = Plane(1,1,1,0);
+	//m_tceq[0] = Plane3f(1,1,1,0);
+	//m_tceq[1] = Plane3f(1,1,1,0);
 	m_diffusem = 0;
-	m_plane = Plane(normal.x, normal.y, normal.z, PlaneDistance(normal, point));
+	m_plane = Plane3f(normal.x, normal.y, normal.z, PlaneDistance(normal, point));
 
 	gentexeq();
 

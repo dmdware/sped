@@ -148,7 +148,7 @@ bool IntersectedPlane(Vec3f vPoly[], Vec3f vLine[], Vec3f &vNormal, float &origi
 //#define MATH_DEBUG
 
 // http://en.wikipedia.org/wiki/Line-plane_intersection
-bool Intersection(Vec3f l0, Vec3f l, Plane p, Vec3f& inter)
+bool Intersection(Vec3f l0, Vec3f l, Plane3f p, Vec3f& inter)
 {
 	float denom = Dot(l, p.m_normal);
 
@@ -177,6 +177,10 @@ bool Intersection(Vec3f l0, Vec3f l, Plane p, Vec3f& inter)
 float Dot(Vec3f vVector1, Vec3f vVector2)
 {
 	return ( (vVector1.x * vVector2.x) + (vVector1.y * vVector2.y) + (vVector1.z * vVector2.z) );
+}
+float Dot(Vec2f vVector1, Vec2f vVector2)
+{
+	return ( (vVector1.x * vVector2.x) + (vVector1.y * vVector2.y) );
 }
 
 double AngleBetweenVectors(Vec3f Vector1, Vec3f Vector2)

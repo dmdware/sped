@@ -1422,7 +1422,7 @@ bool SelectDrag(EdMap* map, Matrix* mvp, int w, int h, int x, int y, Vec3f eye, 
 	return false;
 }
 
-bool PruneB2(Brush* b, Plane* p, float epsilon)
+bool PruneB2(Brush* b, Plane3f* p, float epsilon)
 {
 	for(int svi=0; svi<b->m_nsharedv; svi++)
 	{

@@ -91,7 +91,7 @@ bool InsidePolygon(Vec3f vIntersection, Vec3f Poly[], long verticeCount)
 	return false;								// If you get here, it obviously wasn't inside the polygon, so Return FALSE
 }
 
-/*! @param PIP Point-in-Plane */
+/*! @param PIP Point-in-Plane3f */
 bool testRayThruTriangle( Vec3f tri[3], Vec3f line[2], Vec3f *PIP)
 {  
 	Vec3f n, IntersectPos;
