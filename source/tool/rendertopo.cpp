@@ -1024,7 +1024,7 @@ bool AddClipMesh(Surf *surf, Surf *fullsurf)
 		++mit)
 	{
 		mit->addclipmesh(surf);
-		mit->addclipmesh(fullsurf);
+		//mit->addclipmesh(fullsurf);
 	}
 
 	for(std::list<Brush>::iterator bit=g_edmap.m_brush.begin();
@@ -1032,7 +1032,7 @@ bool AddClipMesh(Surf *surf, Surf *fullsurf)
 		++bit)
 	{
 		bit->addclipmesh(surf);
-		bit->addclipmesh(fullsurf);
+		//bit->addclipmesh(fullsurf);
 	}
 
 	return true;
@@ -1046,13 +1046,13 @@ SurfPt* CopyPt(SurfPt *sp, Tet *totet)
 		{
 			SurfPt* sp2 = new SurfPt;
 			totet->neib[vi] = sp2;
-			sp2->gen = sp->gen+1;
+	//		sp2->gen = sp->gen+1;
 			sp2->holder.push_back(totet);
-			sp2->norm = sp->norm;
+	//		sp2->norm = sp->norm;
 			sp2->pos = sp->pos;
-			sp2->tex = sp->tex;
-			sp2->stex = sp->stex;
-			sp2->ntex = sp->ntex;
+	//		sp2->tex = sp->tex;
+	//		sp2->stex = sp->stex;
+	//		sp2->ntex = sp->ntex;
 
 			for(std::list<Tet*>::iterator hit=sp->holder.begin();
 				hit!=sp->holder.end();
@@ -1218,7 +1218,7 @@ void CopyTet(Surf *surf, Tet *fromtet)	//just copies tet, not pt's, which will b
 	Tet *newtet = new Tet();
 	surf->tets2.push_back(newtet);
 
-	newtet->level = fromtet->level+1;
+	//newtet->level = fromtet->level+1;
 	newtet->neib[0] = NULL;
 	newtet->neib[1] = NULL;
 	newtet->neib[2] = NULL;
@@ -1226,8 +1226,8 @@ void CopyTet(Surf *surf, Tet *fromtet)	//just copies tet, not pt's, which will b
 	newtet->hidden = false;
 	newtet->approved = false;
 	newtet->tex = fromtet->tex;
-	newtet->stex = fromtet->stex;
-	newtet->ntex = fromtet->ntex;
+	//newtet->stex = fromtet->stex;
+	//newtet->ntex = fromtet->ntex;
 	newtet->texceq[0] = fromtet->texceq[0];
 	newtet->texceq[1] = fromtet->texceq[1];
 }
@@ -1263,12 +1263,14 @@ void SplitTris(Surf *surf, Tet *fourtet)
 		if(vi)
 		{
 			//tet2->neib[vi-1] = new SurfPt;
-			CopyPt(fourtet->neib[vi], tet2);
+			SurfPt* newp = CopyPt(fourtet->neib[vi], tet2);
+			SepPt(fourtet, newp, NULL);
 		}
 		if(vi!=3)
 		{
 			//tet1->neib[vi] = new SurfPt;
-			CopyPt(fourtet->neib[vi], tet1);
+			SurfPt* newp = CopyPt(fourtet->neib[vi], tet1);
+			SepPt(fourtet, newp, NULL);
 		}
 	}
 	FreeTet(fourtet, true);
@@ -1315,8 +1317,8 @@ again:
 		tit!=surf->tets2.end();
 		++tit)
 	{
-		if(!VerifyTet(surf, tit))
-			goto again;
+		//if(!VerifyTet(surf, tit))
+		//	goto again;
 
 		Tet *in = *tit;
 		//for(std::list<Tet*>::iterator fulltit=fullsurf->tets2.begin();
@@ -1333,8 +1335,8 @@ again:
 			fulltit!=surf->tets2.end();
 			++fulltit)
 		{
-			if(!VerifyTet(surf, fulltit))
-				goto again;
+			//if(!VerifyTet(surf, fulltit))
+			//	goto again;
 
 			if(*fulltit == *tit)
 				continue;
@@ -1377,7 +1379,7 @@ again:
 				dot = Dot (in->neib[i]->pos, split.m_normal);
 				dot -= split.m_d;
 				dists[i] = dot;
-#define ON_EPSILON	0.1f
+#define ON_EPSILON	0.3f
 				if (dot > ON_EPSILON)
 					sides[i] = SIDE_FRONT;
 				else if (dot < -ON_EPSILON)
@@ -1404,6 +1406,8 @@ again:
 			}
 			//if (!counts[1])
 			//	continue;	//don't know enough to say that it is truly hidden or if just random tri in front
+			if(!counts[2])
+				continue;
 
 			maxpts = 3+4;	// can't use counts[0]+2 because
 			// of fp grouping errors
@@ -1537,7 +1541,7 @@ again:
 
 void MergePt(SurfPt *topt, SurfPt *frompt)
 {
-	topt->gen++;
+//	topt->gen++;
 
 	for(std::list<Tet*>::iterator hit=frompt->holder.begin();
 		hit!=frompt->holder.end();
@@ -2698,28 +2702,51 @@ void OrRender(int rendstage, Vec3f offset)
 	//SurfPt *p1;
 	//StartRay(&surf, tet, Vec3f(0,30000,0), &p1);
 
+	fprintf(g_applog, "\r\n111\r\n");
+	fflush(g_applog);
+
 	if(!AddClipMesh(&surf, &fullsurf))
 		return;
+	
+	fprintf(g_applog, "\r\n222\r\n");
+	fflush(g_applog);
 
 	do
 	{
 		if(!ClipTris(&surf, &fullsurf))
 			break;
+	fprintf(g_applog, "\r\n333\r\n");
+	fflush(g_applog);
 		if(!JoinPts(&surf, &fullsurf))
 			break;
+	fprintf(g_applog, "\r\n444\r\n");
+	fflush(g_applog);
 		if(!RemFloaters(&surf, &fullsurf))
 			break;
+	fprintf(g_applog, "\r\n555\r\n");
+	fflush(g_applog);
 		if(MarkVis(&surf, &fullsurf))
 			break;
+	fprintf(g_applog, "\r\n666\r\n");
+	fflush(g_applog);
 		if(!RemHidden(&surf, &fullsurf))
 			break;
+	fprintf(g_applog, "\r\n777\r\n");
+	fflush(g_applog);
 		Vec2f vmin(0.0f,0.0f), vmax(1,1);
 		if(!GrowMapMesh(&surf, &fullsurf, &vmin, &vmax))
 			break;
+	fprintf(g_applog, "\r\n888\r\n");
+	fflush(g_applog);
 		if(!BalanceMesh(&surf, &fullsurf, &vmin, &vmax))
 			break;
+	fprintf(g_applog, "\r\n999\r\n");
+	fflush(g_applog);
 		break;
 	}while(true);
+
+	fprintf(g_applog, "\r\n000\r\n");
+	fflush(g_applog);
 
 	LoadedTex outtex;
 	AllocTex(&outtex, BIGTEX, BIGTEX, 3);

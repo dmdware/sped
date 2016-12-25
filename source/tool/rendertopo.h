@@ -27,23 +27,23 @@ class SurfPt
 public:
 	Vec3f pos;
 	Vec2f texc;
-	Vec3f norm;
-	Texture *tex, *stex, *ntex;
+	//Vec3f norm;
+	//Texture *tex, *stex, *ntex;
 	//std::vector<SurfPt*> neib;
 	//std::vector<Vec3f> off;
-	std::list<SurfPt*> neibs;
-	int gen;	//rim generation layer
+	//std::list<SurfPt*> neibs;
+	//int gen;	//rim generation layer
 	std::list<Tet*> holder;
 	Vec2f orc;	//orientability map texture coord
 	bool placed;
 
 	bool hasneib(SurfPt *neib)
 	{
-		for(std::list<SurfPt*>::iterator nit=neibs.begin();
-			nit!=neibs.end();
-			++nit)
-			if(*nit == neib)
-				return true;
+		//for(std::list<SurfPt*>::iterator nit=neibs.begin();
+		//	nit!=neibs.end();
+		//	++nit)
+		//	if(*nit == neib)
+		//		return true;
 		return false;
 	}
 
@@ -74,9 +74,9 @@ public:
 		//neib[1] = NULL;
 		//neib[2] = NULL;
 		//neib[3] = NULL;
-		tex = NULL;
-		stex = NULL;
-		ntex = NULL;
+		//tex = NULL;
+		//stex = NULL;
+		//ntex = NULL;
 		placed = false;
 	}
 };
@@ -84,14 +84,14 @@ public:
 class Tet
 {
 public:
-	int level;
+	//int level;
 	SurfPt* neib[4];
 	Plane3f texceq[2];
-	Texture *tex, *stex, *ntex;
-	Vec3f norm;
+	Texture *tex;//, *stex, *ntex;
+	//Vec3f norm;
 	bool hidden;
 	bool approved;
-	float ormaparea, drawarea;
+	//float ormaparea, drawarea;
 	float edgeorarea[3], edgedrawarea[3];
 	bool placed;
 };

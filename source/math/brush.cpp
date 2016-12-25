@@ -238,17 +238,17 @@ bool Brush::addclipmesh(Surf *surf)
 			lastvs[1]->texc = txc[1];
 			lastvs[2]->texc = txc[2];
 
-			lastvs[0]->norm = vnorm[0];
-			lastvs[1]->norm = vnorm[1];
-			lastvs[2]->norm = vnorm[2];
+//			lastvs[0]->norm = vnorm[0];
+///			lastvs[1]->norm = vnorm[1];
+//			lastvs[2]->norm = vnorm[2];
 
 			lastvs[0]->holder.push_back(tet);
 			lastvs[1]->holder.push_back(tet);
 			lastvs[2]->holder.push_back(tet);
 
 			tet->tex = diff;
-			tet->stex = spec;
-			tet->ntex = norm;
+//			tet->stex = spec;
+//			tet->ntex = norm;
 		}
 	}
 
