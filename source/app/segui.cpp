@@ -241,8 +241,10 @@ void Click_LoadEdMap()
 	FullPath("projects\\project", filepath);
 	CorrectSlashes(filepath);
 
-	if(!OpenFileDialog(initdir, filepath))
-		return;
+	///if(!OpenFileDialog(initdir, filepath))
+	///	return;
+	//strcpy(filepath, "projects/2016/11/geom-aaa007-v0");
+	FullPath("projects/2016/11/geom-aaa007-v0", filepath);
 
 	//CorrectSlashes(filepath);
 	FreeEdMap(&g_edmap);
@@ -355,8 +357,9 @@ void Click_ExportTopo()
 	FullPath("topologies\\sprite base name", filepath);
 	CorrectSlashes(filepath);
 
-	if(!SaveFileDialog(initdir, filepath))
-		return;
+	//if(!SaveFileDialog(initdir, filepath))
+	//	return;
+	FullPath("render/hdfssdfg", filepath);
 
 	//CorrectSlashes(filepath);
 	//CompileMap(filepath, &g_edmap);

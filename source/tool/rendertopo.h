@@ -13,6 +13,7 @@ extern int g_rendlat;
 class Texture;
 class Tet;
 class SurfPt;
+class Surf;
 
 void PrepareTopo(const char* fullpath, int rendtype);
 void OrRender(int rendstage, Vec3f offset);
@@ -21,10 +22,13 @@ void GenTexEq(Tet *tet, Vec3f tri[3], Vec2f txc[3]);
 void SepPt(Tet *tet,
 		   SurfPt *sp,
 		   std::list<Tet*>* checkremove);
+bool UniqueTet(Tet *a, Tet *b);
+bool Test(Surf *surf);
 
 class SurfPt
 {
 public:
+	bool gone;
 	Vec3f pos;
 	Vec2f texc;
 	//Vec3f norm;
@@ -78,6 +82,7 @@ public:
 		//stex = NULL;
 		//ntex = NULL;
 		placed = false;
+		gone = false;
 	}
 };
 
@@ -99,9 +104,9 @@ public:
 class Surf
 {
 public:
-	std::list<SurfPt> pts;
+	//std::list<SurfPt> pts;
 	std::list<SurfPt*> pts2;
-	std::list<Tet> tets;
+	//std::list<Tet> tets;
 	std::list<Tet*> tets2;
 };
 

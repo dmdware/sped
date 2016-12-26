@@ -1113,7 +1113,7 @@ bool Model2::InitMaterials(const aiScene* pScene, const std::string& Filename)
 bool Model2::addclipmesh(Surf *surf,
 					  int frame, Vec3f pos, int origmodeli, Vec3f scale, Matrix rotmat)
 {
-	int lastvi = surf->pts.size();
+//	int lastvi = surf->pts.size();
 
 
 	Matrix modelmat;

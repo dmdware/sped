@@ -76,7 +76,8 @@ void PrepareTopo(const char* fullpath, int rendtype)
 		fprintf(fp, "rotations %d %d\r\n", g_dorots ? 1 : 0, g_nrendsides);
 	if(g_doinclines)
 		fprintf(fp, "inclines %d\r\n", g_doinclines ? 1 : 0);
-	fclose(fp);
+	if(fp)
+		fclose(fp);
 }
 
 #if 0
@@ -1042,7 +1043,7 @@ SurfPt* CopyPt(SurfPt *sp, Tet *totet)
 {
 	for(int vi=0; vi<4; ++vi)
 	{
-		if(!totet->neib[vi])
+		if(!totet->neib[vi])//remember remove parents of sp from sp2
 		{
 			SurfPt* sp2 = new SurfPt;
 			totet->neib[vi] = sp2;
@@ -1059,9 +1060,12 @@ SurfPt* CopyPt(SurfPt *sp, Tet *totet)
 				++hit)
 				sp2->holder.push_back(*hit);
 
+			sp2->holder.unique(UniqueTet);
+
 			return sp2;
 		}
 	}
+	ErrMess("!4","!4");
 	return NULL;
 }
 void GenTexEq1(
@@ -1231,14 +1235,35 @@ void CopyTet(Surf *surf, Tet *fromtet)	//just copies tet, not pt's, which will b
 	newtet->texceq[0] = fromtet->texceq[0];
 	newtet->texceq[1] = fromtet->texceq[1];
 }
-void FreeTet(Tet *tet, bool freepts)	//entry must be freed from surf also
+void FreeTet(Surf *surf, Tet *tet, bool freepts)	//entry must be freed from surf also
 {
 	if(freepts)
 	{
 		//if no other holder owns these pt's
 		for(int vi=0; vi<4; ++vi)
 		{
-			delete tet->neib[vi];
+			if(tet->neib[vi])
+			{
+				SepPt(tet, tet->neib[vi], NULL);
+				if(!tet->neib[vi]->holder.size())
+				{
+					if((tet)->neib[vi]->gone)
+						ErrMess("g1","g1");
+					tet->neib[vi]->gone=true;
+					delete tet->neib[vi];
+
+					std::list<SurfPt*>::iterator pit=surf->pts2.begin();
+					while(
+						pit!=surf->pts2.end())
+					{
+						if(*pit == tet->neib[vi])
+							pit = surf->pts2.erase(pit);
+						else
+							++pit;
+					}
+				}
+				tet->neib[vi] = NULL;
+			}
 		}
 	}
 	delete tet;
@@ -1249,43 +1274,82 @@ The original tet should then be removed from the list because it is freed
 */
 void SplitTris(Surf *surf, Tet *fourtet)
 {
+	if(!fourtet)
+		ErrMess("asd","!t1444");
+
 	for(int vi=0; vi<4; ++vi)
 	{
 		if(!fourtet->neib[vi])
 			return;
+		if(fourtet->neib[vi]->gone)
+			ErrMess("g123123","n133sf");
 	}
 	CopyTet(surf, fourtet);
 	Tet* tet1 = *surf->tets2.rbegin();
 	CopyTet(surf, fourtet);
 	Tet* tet2 = *surf->tets2.rbegin();
+
+	if(!tet1)
+		ErrMess("asd","!t1");
+	if(!tet2)
+		ErrMess("asd","!t2");
+	if(tet1==tet2)
+		ErrMess("asd","!t1t2");
+	if(fourtet==tet1)
+		ErrMess("asd","f!t1");
+	if(fourtet==tet2)
+		ErrMess("asd","f!t2");
+
+	int fpts=0;
+	int bpts=0;
+
 	for(int vi=0; vi<4; ++vi)
 	{
+		//01
+		//32
 		if(vi)
 		{
 			//tet2->neib[vi-1] = new SurfPt;
 			SurfPt* newp = CopyPt(fourtet->neib[vi], tet2);
+			if(!newp)
+				ErrMess("!v","!v");
 			SepPt(fourtet, newp, NULL);
+			if(newp->gone)
+				ErrMess("g123123","n133sfgn");
+			fpts++;
 		}
-		if(vi!=3)
+		if(vi!=2)
 		{
 			//tet1->neib[vi] = new SurfPt;
 			SurfPt* newp = CopyPt(fourtet->neib[vi], tet1);
+			if(!newp)
+				ErrMess("!v2","!v2");
 			SepPt(fourtet, newp, NULL);
+			if(newp->gone)
+				ErrMess("g123123","sdf");
+			bpts++;
 		}
 	}
-	FreeTet(fourtet, true);
+	FreeTet(surf, fourtet, true);
 	//remember to remove fourtet from tets2 list
 	//
-	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
-		tit!=surf->tets2.end();
-		++tit)
+	std::list<Tet*>::iterator tit=surf->tets2.begin();
+	while(
+		tit!=surf->tets2.end())
 	{
 		if(*tit == fourtet)
 		{
-			surf->tets2.erase(tit);
-			return;
+			tit = surf->tets2.erase(tit);
+			//return;
+			continue;
 		}
+		++tit;
 	}
+
+	if(fpts<3)
+		ErrMess("f<","f<ff");
+	if(bpts<3)
+		ErrMess("b<","b<bb");
 }
 
 bool VerifyTet(Surf *surf,
@@ -1295,10 +1359,69 @@ bool VerifyTet(Surf *surf,
 	{
 		if(!(*tit)->neib[vin])
 		{
+			Tet* tet = *tit;
 			surf->tets2.erase(tit);
+			FreeTet(surf, tet, true);
+			std::list<Tet*>::iterator tit2=surf->tets2.begin();
+			while(tit2!=surf->tets2.end())
+			{
+				if(*tit2 == tet)
+					tit2 = surf->tets2.erase(tit2);
+				else
+					++tit2;
+			}
 			return false;
 		}
 	}
+	return true;
+}
+
+bool TestDiscard(Surf *surf,
+				 std::list<Tet*>::iterator tit)
+{return false;
+	//Test(surf);
+	Tet *tet = *tit;
+	for(int vin1=0; vin1<4; vin1++)
+	{
+		for(int vin2=vin1+1; vin2<4; ++vin2)
+		{
+			if(tet->neib[vin1] &&
+				tet->neib[vin1] == tet->neib[vin2])
+			{
+				tet->neib[vin2]=NULL;
+			}
+		}
+	}
+	for(int vin1=0; vin1<3; vin1++)
+	{
+		if(!tet->neib[vin1])
+			goto discard;
+		for(int vin2=vin1+1; vin2<3; ++vin2)
+		{
+			if(!tet->neib[vin2])
+				goto discard;
+			if( Magnitude(tet->neib[vin1]->pos - tet->neib[vin2]->pos ) <= 1.0f )
+				goto discard;
+		}
+	}
+	//Test(surf);
+	return false;
+
+discard:
+
+	//Test(surf);
+	FreeTet(surf, tet, true);
+	surf->tets2.erase(tit);
+	tit=surf->tets2.begin();
+	while(tit!=surf->tets2.end())
+	{
+		if(*tit== tet)
+			tit = surf->tets2.erase(tit);
+		else
+			++tit;
+	}
+
+	//Test(surf);
 	return true;
 }
 
@@ -1325,6 +1448,9 @@ again:
 		//	fulltit!=fullsurf->tets2.end();
 		//	++fulltit)
 
+		if(TestDiscard(surf, tit))
+			goto again;
+
 		Vec3f tri1[3];
 		tri1[0] = (*tit)->neib[0]->pos;
 		tri1[1] = (*tit)->neib[1]->pos;
@@ -1337,6 +1463,9 @@ again:
 		{
 			//if(!VerifyTet(surf, fulltit))
 			//	goto again;
+
+			if(TestDiscard(surf, fulltit))
+				goto again;
 
 			if(*fulltit == *tit)
 				continue;
@@ -1372,6 +1501,9 @@ again:
 #define SIDE_BACK	0
 #define SIDE_ON		1
 #define SIDE_FRONT	2
+
+			int fpts = 0;
+			int bpts = 0;
 
 			// determine sides for each point
 			for (i=0 ; i<3 ; i++)
@@ -1418,6 +1550,18 @@ again:
 			CopyTet(surf, in);
 			backw = *surf->tets2.rbegin();
 
+			if(in->neib[3])
+				ErrMess("i4","i4");
+
+			if(neww == backw)
+				ErrMess("nb","n=b");
+
+			if(!neww)
+				ErrMess("n","N!");
+
+			if(!backw)
+				ErrMess("b","B!");
+
 			int newvi = 0;
 			int backvi = 0;
 
@@ -1425,6 +1569,8 @@ again:
 			{
 				if(!in->neib[i])
 					ErrMess("44","44");
+				if(in->neib[i]->gone)
+					ErrMess("g123","g123");
 
 				//p1 = in->points[i];
 				p1 = in->neib[i];
@@ -1434,13 +1580,29 @@ again:
 					//VectorCopy (p1, neww->points[neww->numpoints]);
 					//neww->numpoints++;
 
-					if(!CopyPt(p1, neww))
+					SurfPt* newp;
+					if(!(newp=CopyPt(p1, neww)))
 						ErrMess("123","12347");
-					if(!CopyPt(p1, backw))
+					if(newp->gone)
+						ErrMess("g123123","g123123");
+					SepPt(in, newp, NULL);
+					if(!(newp=CopyPt(p1, backw)))
 						ErrMess("123","12348");
+					if(newp->gone)
+						ErrMess("g123123","g12312355");
+					SepPt(in, newp, NULL);
 
 					newvi++;
 					backvi++;
+
+					bpts++;
+					fpts++;
+
+					if(bpts>4)
+						ErrMess(">4",">4b");
+
+					if(fpts>4)
+						ErrMess(">4",">4f");
 
 					continue;
 				}
@@ -1449,18 +1611,34 @@ again:
 				{
 					//VectorCopy (p1, neww->points[neww->numpoints]);
 					//neww->numpoints++;
-					if(!CopyPt(p1, neww))
+					SurfPt* newp;
+					if(!(newp=CopyPt(p1, neww)))
 						ErrMess("123","1234");
+					if(newp->gone)
+						ErrMess("g123123","g123123333");
+					SepPt(in, newp, NULL);
 					newvi++;
+
+					fpts++;
+
+					if(fpts>4)
+						ErrMess(">4",">4fsdf");
 				}
 
 				if (sides[i] == SIDE_BACK)
 				{
 					//VectorCopy (p1, neww->points[neww->numpoints]);
 					//neww->numpoints++;
-					if(!CopyPt(p1, backw))
+					SurfPt* newp;
+					if(!(newp=CopyPt(p1, backw)))
 						ErrMess("123","12346");
+					SepPt(in, newp, NULL);
 					backvi++;
+					
+					bpts++;
+
+					if(bpts>4)
+						ErrMess(">4",">4bsdd");
 				}
 
 				if (sides[i+1] == SIDE_ON || sides[i+1] == sides[i])
@@ -1468,6 +1646,11 @@ again:
 
 				// generate a split point
 				p2 = in->neib[(i+1)%3];
+
+				if(!p2)
+					ErrMess("!2","22");
+				if(p2->gone)
+					ErrMess("g123123","g123123222");
 
 				dot = dists[i] / (dists[i]-dists[i+1]);
 				for (j=0 ; j<3 ; j++)
@@ -1489,12 +1672,32 @@ again:
 					ErrMess("1","1");
 				if(!news2)
 					ErrMess("12","12");
+				if(news1->gone)
+					ErrMess("g123123","n1");
+				if(news2->gone)
+					ErrMess("g123123","n12");
 
 				news1->pos = mid;
 				news2->pos = mid;
 				
 				SepPt(in, news1, NULL);
 				SepPt(in, news2, NULL);
+				if(news1->gone)
+					ErrMess("g123123","n133s");
+				if(news2->gone)
+					ErrMess("g123123","n1233s");
+
+				backvi++;
+				newvi++;
+
+				bpts++;
+				fpts++;
+
+				if(bpts>4)
+					ErrMess(">4",">4bdsfgdfg");
+
+				if(fpts>4)
+					ErrMess(">4",">4fsdsdfsdf");
 			}
 
 			//if (neww->numpoints > maxpts)
@@ -1502,51 +1705,72 @@ again:
 
 			// free the original winding
 			//FreeWinding (in);
-			FreeTet(in, true);
+			FreeTet(surf, in, true);
 			//surf->tets2.erase(tit);	//tit invalided by CopyPt etc.
 
-			for(tit=surf->tets2.begin();
-				tit!=surf->tets2.end();
-				++tit)
+			tit=surf->tets2.begin();
+			while(
+				tit!=surf->tets2.end())
 			{
 				if(*tit == in)
 				{
-					surf->tets2.erase(tit);
-					break;
+					tit=surf->tets2.erase(tit);
+					//break;
 				}
+				else
+					++tit;
 			}
 
-			std::list<Tet*>::iterator backwtit=surf->tets2.end();
-			backwtit--;
-			std::list<Tet*>::iterator newwtit=backwtit;
-			newwtit--;
+			Test(surf);
 
-			if(VerifyTet(surf, newwtit))
+			if(fpts<3)
+				ErrMess("f<","f<");
+			if(bpts<3)
+				ErrMess("b<","b<");
+
+			//std::list<Tet*>::iterator backwtit=surf->tets2.end();
+			//backwtit--;
+			//std::list<Tet*>::iterator newwtit=backwtit;
+			//newwtit--;
+
+			//if(VerifyTet(surf, newwtit))
 				SplitTris(surf, neww);
-			else
-			{
-				backwtit=surf->tets2.end();
-				backwtit--;
-			}
-			if(VerifyTet(surf, backwtit))
+				neww = NULL;
+			//else
+			//{
+			//	backwtit=surf->tets2.end();
+			//	backwtit--;
+			//}
+			//if(VerifyTet(surf, backwtit))
 				SplitTris(surf, backw);
+
+				backw = NULL;
 
 			//return neww;
 			goto again;
 		}
 	}
 
+	Test(surf);
+
 	return true;
 }
 
-void MergePt(SurfPt *topt, SurfPt *frompt)
+bool UniqueTet(Tet *a, Tet *b)
 {
-//	topt->gen++;
+	return (a==b);
+}
+
+//1gets2
+void MergePt(SurfPt *topt, SurfPt *frompt)
+{	if(topt == frompt)
+		return;
 
 	for(std::list<Tet*>::iterator hit=frompt->holder.begin();
 		hit!=frompt->holder.end();
-		++hit)
+		hit++)
 	{
+#if 0
 		for(std::list<Tet*>::iterator tohit=topt->holder.begin();
 			tohit!=topt->holder.end();
 			++tohit)
@@ -1554,9 +1778,38 @@ void MergePt(SurfPt *topt, SurfPt *frompt)
 			if(*hit == *tohit)
 				goto next;
 		}
+#endif
 		topt->holder.push_back(*hit);
+		topt->holder.unique(UniqueTet);
 next:
 		;
+	}
+return;
+	for(std::list<Tet*>::iterator remhit=frompt->holder.begin();
+		remhit!=frompt->holder.end();
+		++remhit)
+	{
+		//fromdel2
+//1gets2hn
+		for(int vin=0; vin<4; ++vin)
+		{
+			if((*remhit)->neib[vin] == frompt)
+				(*remhit)->neib[vin] = topt;
+		}
+	}
+}
+
+void MigratePt(SurfPt* from, SurfPt *topt)
+{
+	for(std::list<Tet*>::iterator remhit=from->holder.begin();
+		remhit!=from->holder.end();
+		++remhit)
+	{
+		for(int vin=0; vin<4; ++vin)
+		{
+			if((*remhit)->neib[vin] == from)
+				(*remhit)->neib[vin] = topt;
+		}
 	}
 }
 
@@ -1568,42 +1821,297 @@ Join all vertices that are close to each other
 now.
 */
 bool JoinPts(Surf *surf, Surf *fullsurf)
-{
+{//return 1;
 again:
+	Test(surf);
+	int i1=0;
 	for(std::list<Tet*>::iterator tit1=surf->tets2.begin();
 		tit1!=surf->tets2.end();
-		++tit1)
+		++tit1, ++i1)
 	{
-		std::list<Tet*>::iterator tit2=tit1;
-		tit2++;
+		if(TestDiscard(surf, tit1))
+			goto again;
+
+		int i2=i1+1;
+		std::list<Tet*>::iterator tit2;
+		tit2=tit1;
+		++tit2;
 		for(;
 			tit2!=surf->tets2.end();
-			++tit2)
+			++tit2, ++i2)
 		{
+			if(*tit2 == *tit1)
+				continue;
+
+			if(TestDiscard(surf, tit2))
+				goto again;
+
+			////fprintf(g_applog, "\r\ni%d,%d\r\n", i1,i2);
+			//fflush(g_applog);
+
 			for(int vin1=0; vin1<3; ++vin1)
 			{
+				if(!(*tit1)->neib[vin1])
+					ErrMess("1!","1!");
+				if((*tit1)->neib[vin1]->gone)
+					ErrMess("g123123","tt11");
+
 				for(int vin2=0; vin2<3; vin2++)
 				{
+					if(!(*tit2)->neib[vin2])
+						ErrMess("12!","12!");
+					if((*tit2)->neib[vin2]->gone)
+						ErrMess("g123123","tt2");
+
 					if(Magnitude( (*tit1)->neib[vin1]->pos - (*tit2)->neib[vin2]->pos ) <= 1.0f &&
-						(*tit1)->neib[vin1] != (*tit2)->neib[vin2] )
+						(*tit1)->neib[vin1] != (*tit2)->neib[vin2] &&
+						*tit1 != *tit2 )
 					{
+#if 0
+						fprintf(g_applog, "\r\nt\nvin%d,%d:(%f,%f,%f),(%f,%f,%f)\r\n(%f,%f,%f),(%f,%f,%f)\r\n(%f,%f,%f),(%f,%f,%f)\r\n",
+							vin1,vin2,
+							(*tit1)->neib[vin1]->pos.x,
+							(*tit1)->neib[vin1]->pos.y,
+							(*tit1)->neib[vin1]->pos.z,
+							(*tit2)->neib[vin2]->pos.x,
+							(*tit2)->neib[vin2]->pos.y,
+							(*tit2)->neib[vin2]->pos.z,
+							
+							(*tit1)->neib[(vin1+1)%3]->pos.x,
+							(*tit1)->neib[(vin1+1)%3]->pos.y,
+							(*tit1)->neib[(vin1+1)%3]->pos.z,
+							(*tit2)->neib[(vin2+1)%3]->pos.x,
+							(*tit2)->neib[(vin2+1)%3]->pos.y,
+							(*tit2)->neib[(vin2+1)%3]->pos.z,
+							
+							(*tit1)->neib[(vin1+2)%3]->pos.x,
+							(*tit1)->neib[(vin1+2)%3]->pos.y,
+							(*tit1)->neib[(vin1+2)%3]->pos.z,
+							(*tit2)->neib[(vin2+2)%3]->pos.x,
+							(*tit2)->neib[(vin2+2)%3]->pos.y,
+							(*tit2)->neib[(vin2+2)%3]->pos.z);
+						fflush(g_applog);
+#endif
+
+						if((*tit1)->neib[vin1]->gone)
+							ErrMess("g13","11111g");
+						//delete (*tit2)->neib[vin2];
+#if 0
+						if((*tit2)->neib[vin2]->holder.size() <= 1)
+						{
+							(*tit2)->neib[vin2]->gone=true;
+							delete (*tit2)->neib[vin2];
+							(*tit2)->neib[vin2]=NULL;
+						}
+#endif
 						MergePt((*tit1)->neib[vin1],
 							(*tit2)->neib[vin2]);
-						delete (*tit2)->neib[vin2];
+
+						SurfPt* oldpt = (*tit2)->neib[vin2];
+
+						SurfPt *topt = (*tit1)->neib[vin1];
+						SurfPt *frompt = (*tit2)->neib[vin2];
+
+						for(std::list<Tet*>::iterator remhit=frompt->holder.begin();
+								remhit!=frompt->holder.end();
+								++remhit)
+							{
+								//fromdel2
+						//1gets2hn
+								for(int vin=0; vin<4; ++vin)
+								{
+									if((*remhit)->neib[vin] == frompt)
+										(*remhit)->neib[vin] = topt;
+								}
+							}
+
+						oldpt->gone=true;
+						delete oldpt;
+
+						(*tit1)->neib[vin1]->holder.push_back(*tit2);
+						(*tit1)->neib[vin1]->holder.unique(UniqueTet);
+//1gets2
+
+						//MigratePt((*tit2)->neib[vin2],
+						//	(*tit1)->neib[vin1]);
+						if((*tit2)->neib[vin2]->gone)
+							ErrMess("g13","g13");
+						//(*tit2)->neib[vin2]->gone=true;
+//1gets2
+						//delete (*tit2)->neib[vin2];
+						if(*tit1==*tit2)
+							ErrMess("t12","t12=");
+#if 0
+						if((*tit1)->neib[vin1]==(*tit2)->neib[vin2])
+							ErrMess("t12","t12=tn");
+						if((*tit1)->neib[vin1]->gone)
+							ErrMess("g13","111g");
+#endif
+
+						std::list<SurfPt*>::iterator pit=surf->pts2.begin();
+						while(
+							pit!=surf->pts2.end())
+						{
+							if(*pit == (*tit2)->neib[vin2])
+								pit = surf->pts2.erase(pit);
+							else
+								++pit;
+						}
+
 						(*tit2)->neib[vin2] = (*tit1)->neib[vin1];
+						if((*tit2)->neib[vin2]->gone)
+							ErrMess("g123123","tt2tt");
 						goto again;
 					}
 				}
 			}
 		}
 	}
+	Test(surf);
 
+	return true;
+}
+
+bool HolderHasPt(SurfPt* pt, Tet *holder)
+{
+	int c = 0;
+	for(int vin=0; vin<4; ++vin)
+	{
+		if(holder->neib[vin] == pt)
+			++c;
+	}
+	if(c>1)
+	{
+		ErrMess("asdasd","hp+++!");
+		return false;
+	}
+	if(c)
+		return true;
+	ErrMess("asdasd","hp!");
+	return false;
+}
+
+bool PtHasHolder(SurfPt* pt, Tet *holder)
+{//neib not getting removed
+	for(std::list<Tet*>::iterator tit=pt->holder.begin();
+		tit!=pt->holder.end();
+		++tit)
+	{
+		if(*tit == holder)
+			goto next;
+	}
+	ErrMess("asd","pht!");
+	return false;
+next:
+	//no repeats
+	//tet
+	for(std::list<Tet*>::iterator tit=pt->holder.begin();
+		tit!=pt->holder.end();
+		++tit)
+	{
+		std::list<Tet*>::iterator tit2=tit;
+		for(tit2++;
+			tit2!=pt->holder.end();
+			++tit2)
+		{
+			if(*tit == *tit2)
+			{
+				ErrMess("asd","pht=pht2");
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+
+
+bool Test(Surf *surf)
+{
+	return true;
+	//return true;
+	for(std::list<SurfPt*>::iterator pit=surf->pts2.begin();
+		pit!=surf->pts2.end();
+		++pit)
+	{
+		if((*pit)->gone)
+			ErrMess("g0","g0");
+		if((*pit)->holder.size() == 0)
+		{
+			ErrMess("asdasd","ph!0");
+			return false;
+		}
+		for(std::list<Tet*>::iterator hit=(*pit)->holder.begin();
+			hit!=(*pit)->holder.end();
+			++hit)
+		{
+			//if(PtHasHolder(*pit, *hit))
+			//	continue;
+			if(HolderHasPt(*pit,*hit))
+				continue;
+			ErrMess("sadasd","ph!hp");
+			return false;
+		}
+	}
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		for(int vin=0; vin<4; ++vin)
+		{
+			if(!(*tit)->neib[vin])
+				continue;
+			if((*tit)->neib[vin]->gone)
+				ErrMess("g0","g02");
+			if(PtHasHolder((*tit)->neib[vin], *tit))
+				continue;
+			ErrMess("asdasd","ph!!");
+			return false;
+		}
+	}
+	//no repeats
+	//pts
+	for(std::list<SurfPt*>::iterator pit=surf->pts2.begin();
+		pit!=surf->pts2.end();
+		++pit)
+	{
+		std::list<SurfPt*>::iterator pit2=pit;
+		for(pit2++;
+			pit2!=surf->pts2.end();
+			++pit2)
+		{
+			if(*pit == *pit2)
+			{
+				ErrMess("asd","p=p2");
+				return false;
+			}
+		}
+	}
+	//tets
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		std::list<Tet*>::iterator tit2=tit;
+		for(tit2++;
+			tit2!=surf->tets2.end();
+			++tit2)
+		{
+			if(*tit == *tit2)
+			{
+				ErrMess("asd","t=t2");
+				return false;
+			}
+		}
+	}
 	return true;
 }
 
 /*
 internal func called by RemTet
 removes the holder tet from the list in the pt "sp".
+does NOT remove the sp from the tet's neibs array.
 */
 void SepPt(Tet *tet,
 		   SurfPt *sp,
@@ -1626,11 +2134,13 @@ void SepPt(Tet *tet,
 	std::list<Tet*>::iterator hit=sp->holder.begin();
 	while(hit!=sp->holder.end())
 	{
-		if(*hit == tet)
+		if(*hit == tet) 
 			hit = sp->holder.erase(hit);
 		else
 			++hit;
 	}
+	if(sp->gone)
+		ErrMess("g123123","g123123sss");
 }
 
 /*
@@ -1644,9 +2154,9 @@ void RemTet(Surf *surf,
 		   int vin1)
 {
 	//check these tets to see if they have less than 3 verts, and remove them
-	std::list<Tet*> checkremove;
+	//std::list<Tet*> checkremove;
 
-	for(int vin=0; vin<3; ++vin)
+	for(int vin=0; vin<4; ++vin)
 	{
 		//for(std::list<Tet*>::iterator hit=(*tit)->neib[vin]->holder.begin();
 		//	hit!=(*tit)->neib[vin]->holder.end();
@@ -1655,19 +2165,44 @@ void RemTet(Surf *surf,
 		//	if(*hit == *tit)
 		//		continue;	//already going to remove this
 			//remove pt from other holders
-			SepPt(*tit, (*tit)->neib[vin], &checkremove);
+		if(!(*tit)->neib[vin])
+			continue;
+
+			SepPt(*tit, (*tit)->neib[vin], NULL);
 		//}
 				
 		if((*tit)->neib[vin]->holder.size() == 0)
 		{
+			if((*tit)->neib[vin]->gone)
+				ErrMess("g14","g14");
+			(*tit)->neib[vin]->gone=true;
 			delete (*tit)->neib[vin];
+
+			std::list<SurfPt*>::iterator pit=surf->pts2.begin();
+			while(
+				pit!=surf->pts2.end())
+			{
+				if(*pit == (*tit)->neib[vin])
+					pit = surf->pts2.erase(pit);
+				else
+					++pit;
+			}
 		}
 
 		(*tit)->neib[vin] = NULL;
 	}
 
-	FreeTet(*tit, true);
-	surf->tets2.erase(tit);
+	Tet *tet = *tit;
+	FreeTet(surf, *tit, true);
+	//surf->tets2.erase(tit);
+	tit=surf->tets2.begin();
+	while(tit!=surf->tets2.end())
+	{
+		if(*tit == tet)
+			tit=surf->tets2.erase(tit);
+		else
+			++tit;
+	}
 }
 
 /*
@@ -1678,9 +2213,9 @@ void RemTet2(Surf *surf,
 		   std::list<Tet*>::iterator tit)
 {
 	//check these tets to see if they have less than 3 verts, and remove them
-	std::list<Tet*> checkremove;
+	//std::list<Tet*> checkremove;
 
-	for(int vin=0; vin<3; ++vin)
+	for(int vin=0; vin<4; ++vin)
 	{
 		//if(!(*tit)->neib[vin])
 		//	contine;
@@ -1692,19 +2227,44 @@ void RemTet2(Surf *surf,
 		//	if(*hit == *tit && )
 		//		continue;	//already going to remove this
 			//remove pt from other holders
-			SepPt(*tit, (*tit)->neib[vin], &checkremove);
+		if(!(*tit)->neib[vin])
+			continue;
+
+			SepPt(*tit, (*tit)->neib[vin], NULL);
 		//}
 
 		if((*tit)->neib[vin]->holder.size() == 0)
 		{
+			if((*tit)->neib[vin]->gone)
+				ErrMess("g12","g12");
+			(*tit)->neib[vin]->gone=true;
 			delete (*tit)->neib[vin];
+			
+			std::list<SurfPt*>::iterator pit=surf->pts2.begin();
+			while(
+				pit!=surf->pts2.end())
+			{
+				if(*pit == (*tit)->neib[vin])
+					pit = surf->pts2.erase(pit);
+				else
+					++pit;
+			}
 		}
 
 		(*tit)->neib[vin] = NULL;
 	}
 
-	FreeTet(*tit, true);
-	surf->tets2.erase(tit);
+	Tet *tet = *tit;
+	FreeTet(surf, *tit, true);
+	//surf->tets2.erase(tit);
+	tit=surf->tets2.begin();
+	while(tit!=surf->tets2.end())
+	{
+		if(*tit == tet)
+			tit=surf->tets2.erase(tit);
+		else
+			++tit;
+	}
 }
 
 /*
@@ -2092,20 +2652,26 @@ void PlaceTet(Surf *surf, Tet *tet, std::list<Tet*>* toplace)
 
 		for(int vin=0; vin<3; ++vin)
 		{
+			if(!tet->neib[vin])
+				ErrMess("pl","pl1111");
 			if(tet->neib[vin]->placed)
 			{
+				if(!tet->neib[vin])
+					ErrMess("pl","pl1");
+				if(tet->neib[vin]->gone)
+					ErrMess("pl","pl1g");
 				placept[placec] = tet->neib[vin];
 				placec++;
 			}
 			else
 			{
-				placec=0;
+				//placec=0;
 				fate = vin;
 			}
 
-			if(placec>=2)
+			if(placec>=2&&fate>=0)
 			{
-				if(vin==2 || !tet->neib[2]->placed)
+				//if(vin==2 || !tet->neib[2]->placed)
 				{
 					int e1 = (fate+1)%3;
 					int e2 = (fate+2)%3;
@@ -2127,9 +2693,9 @@ void PlaceTet(Surf *surf, Tet *tet, std::list<Tet*>* toplace)
 					int p2n = -1;
 					float pd = 9999999;
 
-					for(int p1i=0; p1i<4; p1i++)
+					for(int p1i=0; p1i<3; p1i++)
 					{
-						for(int p2i=0; p2i<4; p2i++)
+						for(int p2i=0; p2i<3; p2i++)
 						{
 							float pdt = Magnitude(p1a[p1i] - p2a[p2i]);
 
@@ -2153,6 +2719,10 @@ void PlaceTet(Surf *surf, Tet *tet, std::list<Tet*>* toplace)
 
 					Vec3f p3 = midp + axis * d;
 
+					if(fate<0)
+						ErrMess("fate","fate<0");
+					if(fate>2)
+						ErrMess("fate","fate>2");
 /////////////////
 					tet->edgedrawarea[fate] = Magnitude( tet->neib[fate]->pos - tet->neib[e1]->pos );
 					//tet->edgeorarea[fate] = Magnitude( tet->neib[fate]->orc - tet->neib[e1]->orc );
@@ -2213,7 +2783,19 @@ bool GrowMapMesh(Surf *surf, Surf *fullsurf, Vec2f *vmin, Vec2f *vmax)
 		(*tit)->placed = false;
 	}
 
+	if(!surf->tets2.size())
+		ErrMess("pp","pp1");
+
 	Tet *tet = *surf->tets2.begin();
+
+	if(!tet->neib[0])
+		ErrMess("ssasd","s11");
+	if(tet->neib[0]->gone)
+		ErrMess("ssasd","s11g");
+	if(!tet->neib[1])
+		ErrMess("ssasd","s111");
+	if(tet->neib[1]->gone)
+		ErrMess("ssasd","s111g");
 
 	tet->neib[0]->orc.x = 0.5f;
 	tet->neib[0]->orc.y = 0.52f;
@@ -2268,9 +2850,9 @@ void UpdStrains(std::list<Tet*>* tets)
 			int p2n = -1;
 			float pd = 9999999;
 
-			for(int p1i=0; p1i<4; p1i++)
+			for(int p1i=0; p1i<3; p1i++)
 			{
-				for(int p2i=0; p2i<4; p2i++)
+				for(int p2i=0; p2i<3; p2i++)
 				{
 					float pdt = Magnitude(p1a[p1i] - p2a[p2i]);
 
@@ -2410,9 +2992,9 @@ again:
 		int o0n = 0;
 		int o1n = 0;
 
-		for(int o0i=0; o0i<4; o0i++)
+		for(int o0i=0; o0i<3; o0i++)
 		{
-			for(int o1i=0; o1i<4; o1i++)
+			for(int o1i=0; o1i<3; o1i++)
 			{
 				float odt = Magnitude(orc0a[o0i] - orc1a[o1i]);
 
@@ -2702,19 +3284,22 @@ void OrRender(int rendstage, Vec3f offset)
 	//SurfPt *p1;
 	//StartRay(&surf, tet, Vec3f(0,30000,0), &p1);
 
-	fprintf(g_applog, "\r\n111\r\n");
-	fflush(g_applog);
+	//fprintf(g_applog, "\r\n111\r\n");
+	//fflush(g_applog);
 
 	if(!AddClipMesh(&surf, &fullsurf))
 		return;
+
+	Test(&surf);
 	
-	fprintf(g_applog, "\r\n222\r\n");
-	fflush(g_applog);
+	//fprintf(g_applog, "\r\n222\r\n");
+	//fflush(g_applog);
 
 	do
 	{
 		if(!ClipTris(&surf, &fullsurf))
 			break;
+		Test(&surf);
 	fprintf(g_applog, "\r\n333\r\n");
 	fflush(g_applog);
 		if(!JoinPts(&surf, &fullsurf))
@@ -2743,7 +3328,7 @@ void OrRender(int rendstage, Vec3f offset)
 	fprintf(g_applog, "\r\n999\r\n");
 	fflush(g_applog);
 		break;
-	}while(true);
+	}while(0);
 
 	fprintf(g_applog, "\r\n000\r\n");
 	fflush(g_applog);

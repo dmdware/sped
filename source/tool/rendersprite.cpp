@@ -1669,6 +1669,12 @@ void RotateView()
 
 void UpdateRender()
 {
+	if(g_rendtopo)
+	{
+		OrRender(RENDSTAGE_COLOR, Vec3f(0,0,0));
+		return;
+	}
+
 	ResetView(true);
 
 	RotateView();

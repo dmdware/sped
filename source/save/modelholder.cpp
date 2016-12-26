@@ -361,7 +361,7 @@ void ModelHolder::destroy()
 
 void ModelHolder::addclipmesh(Surf *surf)
 {
-	int lastvi = surf->pts.size();
+	//int lastvi = surf->pts.size();
 
 	if(g_renderframes <= 0)
 		g_renderframes = 1;
