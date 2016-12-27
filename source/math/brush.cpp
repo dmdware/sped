@@ -234,9 +234,9 @@ bool Brush::addclipmesh(Surf *surf)
 			lastvs[1]->pos = tr[1];
 			lastvs[2]->pos = tr[2];
 
-			lastvs[0]->texc = txc[0];
-			lastvs[1]->texc = txc[1];
-			lastvs[2]->texc = txc[2];
+			//lastvs[0]->texc = txc[0];
+			//lastvs[1]->texc = txc[1];
+			//lastvs[2]->texc = txc[2];
 
 //			lastvs[0]->norm = vnorm[0];
 ///			lastvs[1]->norm = vnorm[1];

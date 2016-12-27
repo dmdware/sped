@@ -30,7 +30,7 @@ class SurfPt
 public:
 	bool gone;
 	Vec3f pos;
-	Vec2f texc;
+	//Vec2f texc;
 	//Vec3f norm;
 	//Texture *tex, *stex, *ntex;
 	//std::vector<SurfPt*> neib;

@@ -1039,13 +1039,15 @@ bool AddClipMesh(Surf *surf, Surf *fullsurf)
 	return true;
 }
 
-SurfPt* CopyPt(SurfPt *sp, Tet *totet)
+SurfPt* CopyPt(Surf *surf,
+			   SurfPt *sp, Tet *totet)
 {
 	for(int vi=0; vi<4; ++vi)
 	{
 		if(!totet->neib[vi])//remember remove parents of sp from sp2
 		{
 			SurfPt* sp2 = new SurfPt;
+			surf->pts2.push_back(sp2);
 			totet->neib[vi] = sp2;
 	//		sp2->gen = sp->gen+1;
 			sp2->holder.push_back(totet);
@@ -1310,7 +1312,7 @@ void SplitTris(Surf *surf, Tet *fourtet)
 		if(vi)
 		{
 			//tet2->neib[vi-1] = new SurfPt;
-			SurfPt* newp = CopyPt(fourtet->neib[vi], tet2);
+			SurfPt* newp = CopyPt(surf, fourtet->neib[vi], tet2);
 			if(!newp)
 				ErrMess("!v","!v");
 			SepPt(fourtet, newp, NULL);
@@ -1321,7 +1323,7 @@ void SplitTris(Surf *surf, Tet *fourtet)
 		if(vi!=2)
 		{
 			//tet1->neib[vi] = new SurfPt;
-			SurfPt* newp = CopyPt(fourtet->neib[vi], tet1);
+			SurfPt* newp = CopyPt(surf, fourtet->neib[vi], tet1);
 			if(!newp)
 				ErrMess("!v2","!v2");
 			SepPt(fourtet, newp, NULL);
@@ -1581,12 +1583,12 @@ again:
 					//neww->numpoints++;
 
 					SurfPt* newp;
-					if(!(newp=CopyPt(p1, neww)))
+					if(!(newp=CopyPt(surf, p1, neww)))
 						ErrMess("123","12347");
 					if(newp->gone)
 						ErrMess("g123123","g123123");
 					SepPt(in, newp, NULL);
-					if(!(newp=CopyPt(p1, backw)))
+					if(!(newp=CopyPt(surf, p1, backw)))
 						ErrMess("123","12348");
 					if(newp->gone)
 						ErrMess("g123123","g12312355");
@@ -1612,7 +1614,7 @@ again:
 					//VectorCopy (p1, neww->points[neww->numpoints]);
 					//neww->numpoints++;
 					SurfPt* newp;
-					if(!(newp=CopyPt(p1, neww)))
+					if(!(newp=CopyPt(surf, p1, neww)))
 						ErrMess("123","1234");
 					if(newp->gone)
 						ErrMess("g123123","g123123333");
@@ -1630,7 +1632,7 @@ again:
 					//VectorCopy (p1, neww->points[neww->numpoints]);
 					//neww->numpoints++;
 					SurfPt* newp;
-					if(!(newp=CopyPt(p1, backw)))
+					if(!(newp=CopyPt(surf, p1, backw)))
 						ErrMess("123","12346");
 					SepPt(in, newp, NULL);
 					backvi++;
@@ -1665,8 +1667,8 @@ again:
 
 				//VectorCopy (mid, neww->points[neww->numpoints]);
 				//neww->numpoints++;
-				SurfPt *news1 = CopyPt(p2, neww);
-				SurfPt *news2 = CopyPt(p2, backw);
+				SurfPt *news1 = CopyPt(surf, p2, neww);
+				SurfPt *news2 = CopyPt(surf, p2, backw);
 
 				if(!news1)
 					ErrMess("1","1");
@@ -2821,6 +2823,17 @@ bool GrowMapMesh(Surf *surf, Surf *fullsurf, Vec2f *vmin, Vec2f *vmax)
 	return true;
 }
 
+/*
+make triangles tesselated
+*/
+bool SplitEdges(Surf *surf, Surf *fullsurf, Vec2f *vmin, Vec2f *vmax)
+{
+	std::list<Tet*> newtets;
+	std::list<SurfPt*> newpts;
+
+	return true;
+}
+
 void UpdStrains(std::list<Tet*>* tets)
 {
 	for(std::list<Tet*>::iterator tit=tets->begin();
@@ -2915,8 +2928,8 @@ again:
 		{
 			float strain = tet->edgedrawarea[ein] / tet->edgeorarea[ein];
 
-			if(_isnan(strain))
-				strain = 9999999;
+			if(_isnan(strain) || tet->edgeorarea[ein] == 0)
+				strain = 1;
 
 			if(strain > moststrain)
 			{
@@ -2952,9 +2965,9 @@ again:
 				float ch1 = (*hit)->edgedrawarea[vin] / (*hit)->edgeorarea[vin];
 				float ch2 = (*hit)->edgedrawarea[(vin+2)%3] / (*hit)->edgeorarea[(vin+2)%3];
 
-				if(_isnan(ch1))
+				if(_isnan(ch1) || (*hit)->edgeorarea[vin] == 0)
 					ch1 = 1;
-				if(_isnan(ch2))
+				if(_isnan(ch2) || (*hit)->edgeorarea[(vin+2)%3] == 0)
 					ch2 = 1;
 
 				//if( (a||b||c||d) && !((a||b)&&(c||d)) )
@@ -3016,6 +3029,11 @@ again:
 		orc0 = orc0 + out1dir * 0.1f * strain1to2out;
 		orc1 = orc1 - out1dir * 0.1f / strain1to2out;
 
+		if(_isnan(orc1.x))
+			orc1.x = 0;
+		if(_isnan(orc1.y))
+			orc1.y = 0;
+
 		if(orc0.x < 0)
 			orc0.x += 1;
 		if(orc0.y < 0)
@@ -3040,7 +3058,8 @@ again:
 		UpdStrains(&tocheck);
 
 		tries++;
-		if(tries < BIGTEX*BIGTEX*BIGTEX)
+		//if(tries < BIGTEX*BIGTEX*BIGTEX)
+		if(tries < surf->tets2.size()*3*2)
 			goto again;
 	}
 
@@ -3170,23 +3189,167 @@ void OutTex(Surf *surf, LoadedTex *out)
 		tri3[1] = tet->neib[1]->pos;
 		tri3[2] = tet->neib[2]->pos;
 
+		//Vec2f txc[3];
+		//txc[0] = tet->neib[0]->texc;
+		//txc[1] = tet->neib[1]->texc;
+		//txc[2] = tet->neib[2]->texc;
 		Vec2f txc[3];
-		txc[0] = tet->neib[0]->texc;
-		txc[1] = tet->neib[1]->texc;
-		txc[2] = tet->neib[2]->texc;
+		for(int v=0; v<3; v++)
+		{
+			txc[v].x = tri3[v].x * tet->texceq[0].m_normal.x +
+				tri3[v].y * tet->texceq[0].m_normal.y +
+				tri3[v].z * tet->texceq[0].m_normal.z +
+				tet->texceq[0].m_d ;
+			txc[v].y = tri3[v].x * tet->texceq[1].m_normal.x +
+				tri3[v].y * tet->texceq[1].m_normal.y +
+				tri3[v].z * tet->texceq[1].m_normal.z +
+				tet->texceq[1].m_d ;
+		}
 
-		Vec2f tri[3];
-		tri[0] = tet->neib[0]->orc * BIGTEX;
-		tri[1] = tet->neib[1]->orc * BIGTEX;
-		tri[2] = tet->neib[2]->orc * BIGTEX;
+		//Vec2f tri[3];
+		//tri[0] = tet->neib[0]->orc * BIGTEX;
+		//tri[1] = tet->neib[1]->orc * BIGTEX;
+		//tri[2] = tet->neib[2]->orc * BIGTEX;
 
-		float fminz3 = fmin(tri3[0].z, fmin(tri3[1].z, tri3[2].z));
-		float fmaxz3 = fmax(tri3[0].z, fmax(tri3[1].z, tri3[2].z));
+#if 0
+		while(tri[0].x < 0 || tri[1].x < 0 || tri[2].x < 0)
+		{
+			tri[0].x += BIGTEX;
+			tri[1].x += BIGTEX;
+			tri[2].x += BIGTEX;
+		}
+		while(tri[0].y < 0 || tri[1].y < 0 || tri[2].y < 0)
+		{
+			tri[0].y += BIGTEX;
+			tri[1].y += BIGTEX;
+			tri[2].y += BIGTEX;
+		}
+#else
+		SurfPt *sp[3];
+		sp[0] = tet->neib[0];
+		sp[1] = tet->neib[1];
+		sp[2] = tet->neib[2];
 
+		
+		
+					fprintf(g_applog, "->neib=sp[0,1,2]->orc.xy=(%f,%f)\r\n(%f,%f)\r\n(%f,%f)\r\n",
+						sp[0]->orc.x,sp[0]->orc.y,
+						sp[1]->orc.x,sp[1]->orc.y,
+						sp[2]->orc.x,sp[2]->orc.y);
+					fflush(g_applog);
+
+		Vec2f orc0a[4];
+		Vec2f orc1a[4];
+		Vec2f orc2a[4];
+		orc0a[0] = Vec2f(sp[0]->orc.x,sp[0]->orc.y);
+		orc0a[1] = Vec2f(sp[0]->orc.x+1,sp[0]->orc.y);
+		orc0a[2] = Vec2f(sp[0]->orc.x,sp[0]->orc.y+1);
+		orc0a[3] = Vec2f(sp[0]->orc.x+1,sp[0]->orc.y+1);
+		orc1a[0] = Vec2f(sp[1]->orc.x,sp[1]->orc.y);
+		orc1a[1] = Vec2f(sp[1]->orc.x+1,sp[1]->orc.y);
+		orc1a[2] = Vec2f(sp[1]->orc.x,sp[1]->orc.y+1);
+		orc1a[3] = Vec2f(sp[1]->orc.x+1,sp[1]->orc.y+1);
+		orc2a[0] = Vec2f(sp[2]->orc.x,sp[2]->orc.y);
+		orc2a[1] = Vec2f(sp[2]->orc.x+1,sp[2]->orc.y);
+		orc2a[2] = Vec2f(sp[2]->orc.x,sp[2]->orc.y+1);
+		orc2a[3] = Vec2f(sp[2]->orc.x+1,sp[2]->orc.y+1);
+		float od0 = 9999999;
+		float od1 = 9999999;
+		float od2 = 9999999;
+		int o0n = 0;
+		int o1n = 0;
+		int o2n = 0;
+
+		for(int o0i=0; o0i<3; o0i++)
+		{
+			for(int o1i=0; o1i<3; o1i++)
+			{
+				for(int o2i=0; o2i<3; o2i++)
+				{
+					float odt0 = Magnitude(orc0a[o0i] - orc1a[o1i]);
+					float odt1 = Magnitude(orc1a[o1i] - orc2a[o2i]);
+					float odt2 = Magnitude(orc2a[o2i] - orc0a[o0i]);
+
+					if(odt0 < od0 || odt1 < od1 || odt2 < od2)
+					{
+						od0 = odt0;
+						od1 = odt1;
+						od2 = odt2;
+						o0n = o0i;
+						o1n = o1i;
+						o2n = o2i;
+					}
+				}
+			}
+		}
+
+		Vec2f orcf[3];
+		orcf[0] = orc0a[o0n] * BIGTEX;
+		orcf[1] = orc1a[o1n] * BIGTEX;
+		orcf[2] = orc2a[o2n] * BIGTEX;
+
+					fprintf(g_applog, "orcf[0,1,2].xy=(%d,%d,%d)=\r\n(%f,%f)\r\n(%f,%f)\r\n(%f,%f)\r\n",
+						o0n,o1n,o2n,
+						orcf[0].x,orcf[0].y,
+						orcf[1].x,orcf[1].y,
+						orcf[2].x,orcf[2].y);
+					fflush(g_applog);
+
+		while(orcf[0].x >= BIGTEX &&
+			orcf[1].x >= BIGTEX &&
+			orcf[2].x >= BIGTEX)
+		{
+			orcf[0].x -= BIGTEX;
+			orcf[1].x -= BIGTEX;
+			orcf[2].x -= BIGTEX;
+		}
+		while(orcf[0].y >= BIGTEX &&
+			orcf[1].y >= BIGTEX &&
+			orcf[2].y >= BIGTEX)
+		{
+			orcf[0].y -= BIGTEX;
+			orcf[1].y -= BIGTEX;
+			orcf[2].y -= BIGTEX;
+		}
+
+		while(orcf[0].x < 0 ||
+			orcf[1].x < 0 ||
+			orcf[2].x < 0)
+		{
+			orcf[0].x += BIGTEX;
+			orcf[1].x += BIGTEX;
+			orcf[2].x += BIGTEX;
+		}
+		while(orcf[0].y < 0 ||
+			orcf[1].y < 0 ||
+			orcf[2].y < 0)
+		{
+			orcf[0].y += BIGTEX;
+			orcf[1].y += BIGTEX;
+			orcf[2].y += BIGTEX;
+		}
+
+		
+					fprintf(g_applog, "orcf[0,1,2].xy=(%f,%f)\r\n(%f,%f)\r\n(%f,%f)\r\n",
+						orcf[0].x,orcf[0].y,
+						orcf[1].x,orcf[1].y,
+						orcf[2].x,orcf[2].y);
+					fflush(g_applog);
+#endif
+
+		//float fminz3 = fmin(tri3[0].z, fmin(tri3[1].z, tri3[2].z));
+		//float fmaxz3 = fmax(tri3[0].z, fmax(tri3[1].z, tri3[2].z));
+#if 0
 		float fminxout = fmin(tri[0].x, fmin(tri[1].x, tri[2].x));
 		float fmaxxout = fmax(tri[0].x, fmax(tri[1].x, tri[2].x));
 		float fminyout = fmin(tri[0].y, fmin(tri[1].y, tri[2].y));
 		float fmaxyout = fmax(tri[0].y, fmax(tri[1].y, tri[2].y));
+#else
+		float fminxout = fmin(orcf[0].x, fmin(orcf[1].x, orcf[2].x));
+		float fmaxxout = fmax(orcf[0].x, fmax(orcf[1].x, orcf[2].x));
+		float fminyout = fmin(orcf[0].y, fmin(orcf[1].y, orcf[2].y));
+		float fmaxyout = fmax(orcf[0].y, fmax(orcf[1].y, orcf[2].y));
+#endif
 
 #if 0
 		int iminx = (BIGTEX + fminx)%BIGTEX;
@@ -3198,30 +3361,47 @@ void OutTex(Surf *surf, LoadedTex *out)
 		int imaxxout = (int)(fmaxxout);
 		int iminyout = (int)(fminyout);
 		int imaxyout = (int)(fmaxyout);
-
-		if(imaxxout < iminxout)
+#if 0
+		while(iminxout < 0)
+			iminxout += BIGTEX;
+		while(iminyout < 0)
+			iminyout += BIGTEX;
+		while(imaxxout < iminxout)
 			imaxxout += BIGTEX;
-		if(imaxyout < iminyout)
+		while(imaxyout < iminyout)
 			imaxyout += BIGTEX;
 #endif
+#endif
 
-		for(int pxout=iminxout; pxout<imaxxout+1; ++pxout)
+		for(int pxout=iminxout; pxout<imaxxout+1 && pxout<iminxout+BIGTEX; ++pxout)
 		{
-			for(int pyout=iminyout; pyout<imaxyout+1; ++pyout)
+			for(int pyout=iminyout; pyout<imaxyout+1 && pyout<iminyout+BIGTEX; ++pyout)
 			{
 				Vec2f pout = Vec2f(pxout,pyout);
+				fprintf(g_applog, "pout=%f,%f\r\n", pout.x, pout.y);
+				fflush(g_applog);
 			//	Vec3f ir = 
-				if(!PointInTriangle(pout, tri[0], tri[1], tri[2]))
+				//if(!PointInTriangle(pout, tri[0], tri[1], tri[2]))
+				if(!PointInTriangle(pout, orcf[0], orcf[1], orcf[2]))
+				{
+					fprintf(g_applog, "out\r\n");
+					fflush(g_applog);
 					continue;
-				
+				}
+					fprintf(g_applog, "in\r\n");
+					fflush(g_applog);
+
 				LoadedTex* difpx = diff->pixels;
 
 				//Vec2f ratio = Vec2f(pxout,pyout)/(float)BIGTEX;
 
 				// compute vectors
-				Vec2f v0 = tri[1] - tri[0], 
-					v1 = tri[2] - tri[0],
-					v2 = pout - tri[0];
+				//Vec2f v0 = tri[1] - tri[0], 
+				//	v1 = tri[2] - tri[0],
+				//	v2 = pout - tri[0];
+				Vec2f v0 = orcf[2] - orcf[0],
+					v1 = orcf[2] - orcf[0],
+					v2 = pout - orcf[0];
 
 				// do bounds test for each position
 				double f00 = Dot( v0, v0 );
@@ -3233,6 +3413,8 @@ void OutTex(Surf *surf, LoadedTex *out)
 
 				// Compute barycentric coordinates
 				double invDenom = 1 / ( f00 * f11 - f01 * f01 );
+				if(_isnan(invDenom))
+					invDenom = 1;
 				double fU = ( f11 * f02 - f01 * f12 ) * invDenom;
 				double fV = ( f00 * f12 - f01 * f02 ) * invDenom;
 
@@ -3270,9 +3452,21 @@ void OutTex(Surf *surf, LoadedTex *out)
 				rgba.z = difpx->data[ pxin * difpx->channels + 2 ];
 				rgba.w = 255;
 
-				out->data[ out->channels * ( pxout + pyout * out->sizex ) + 0 ] = (int)rgba.x;
-				out->data[ out->channels * ( pxout + pyout * out->sizex ) + 1 ] = (int)rgba.y;
-				out->data[ out->channels * ( pxout + pyout * out->sizex ) + 2 ] = (int)rgba.z;
+				int pxout2 = pxout;
+				int pyout2 = pyout;
+				
+				while(pxout2 < 0)
+					pxout2 += out->sizex;
+				while(pxout2 >= out->sizex)
+					pxout2 %= out->sizex;
+				while(pyout2 < 0)
+					pyout2 += out->sizey;
+				while(pyout2 >= out->sizey)
+					pyout2 %= out->sizey;
+
+				out->data[ out->channels * ( pxout2 + pyout2 * out->sizex ) + 0 ] = (int)rgba.x;
+				out->data[ out->channels * ( pxout2 + pyout2 * out->sizex ) + 1 ] = (int)rgba.y;
+				out->data[ out->channels * ( pxout2 + pyout2 * out->sizex ) + 2 ] = (int)rgba.z;
 			}
 		}
 	}
@@ -3321,6 +3515,10 @@ void OrRender(int rendstage, Vec3f offset)
 		Vec2f vmin(0.0f,0.0f), vmax(1,1);
 		if(!GrowMapMesh(&surf, &fullsurf, &vmin, &vmax))
 			break;
+	fprintf(g_applog, "\r\n888111\r\n");
+	fflush(g_applog);
+		if(!SplitEdges(&surf, &fullsurf, &vmin, &vmax))
+			break;
 	fprintf(g_applog, "\r\n888\r\n");
 	fflush(g_applog);
 		if(!BalanceMesh(&surf, &fullsurf, &vmin, &vmax))
@@ -3338,7 +3536,15 @@ void OrRender(int rendstage, Vec3f offset)
 
 	OutTex(&surf, &outtex);
 
-	SavePNG2("renders/out.png", &outtex);
+	char outpath[SPE_MAX_PATH+1];
+	FullPath("renders/out.png", outpath);
+
+	SavePNG2(outpath, &outtex);
+
+	InfoMess("Done", "Done rendering orientability map");
+
+	GUI* gui = &g_gui;
+	SkipLogo();
 }
 
 #if 0
