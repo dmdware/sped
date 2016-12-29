@@ -1478,8 +1478,8 @@ again:
 			fulltri[2] = (*fulltit)->neib[2]->pos;
 			Vec3f fullnorm = Normal(fulltri);
 
-			if(fullnorm == norm1)
-				continue;
+			//if(fullnorm == norm1)
+			//	continue;
 
 			Plane3f split;
 			MakePlane(&split.m_normal, &split.m_d, (fulltri[0]+fulltri[1]+fulltri[2])/3.0f,
@@ -2027,10 +2027,14 @@ next:
 }
 
 
-
 bool Test(Surf *surf)
 {
 	return true;
+}
+
+bool Test2(Surf *surf)
+{
+	//return true;
 	//return true;
 	for(std::list<SurfPt*>::iterator pit=surf->pts2.begin();
 		pit!=surf->pts2.end();
@@ -2642,15 +2646,215 @@ again:
 	return true;
 }
 
-
-void PlaceTet(Surf *surf, Tet *tet, std::list<Tet*>* toplace)
+void ClassifyEdge(Vec2f p1orc,
+				  Vec2f p2orc,
+				  float *edgeposx,
+				  bool *edgeplaced,
+				  float *edgeposy)
 {
+
+	*edgeposx = p2orc.x - p1orc.x;
+	*edgeposy = p2orc.y - p1orc.y;
+	*edgeplaced = true;
+
+	if(abs(*edgeposx) <= 0.01f && abs(*edgeposy) <= 0.01f)
+		ErrMess("asd","<=exy");
+
+#if 0
+	if(p2orc.x > p1orc.x)
+	{
+		*edgeposx = true;
+		*edgesamex = false;
+	}
+	else if(p2orc.x < p1orc.x)
+	{
+		*edgeposx = false;
+		*edgesamex = false;
+	}
+	else
+	{
+		*edgeposx = false;
+		*edgesamex = true;
+	}
+	
+	if(p2orc.y > p1orc.y)
+	{
+		*edgeposy = true;
+		*edgesamey = false;
+	}
+	else if(p2orc.y < p1orc.y)
+	{
+		*edgeposy = false;
+		*edgesamey = false;
+	}
+	else
+	{
+		*edgeposy = false;
+		*edgesamey = true;
+	}
+#endif
+}
+
+class EdgeRef
+{
+public:
+	Tet* tet;
+	int ev;
+};
+
+void ListEdges(Surf *surf, SurfPt *p1, SurfPt *p2, std::list<EdgeRef> *edgelist)
+{
+	//for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+
+}
+
+//find the correct edges and update "updtet" edges
+void UpdEdges2(Surf *surf, SurfPt *p1, SurfPt *p2, float* edgeposx, float* edgeposy,
+			  Tet* updtet, bool *edgeplaced)
+{
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet *tet = *tit;
+
+		//if(tet == not)
+		//	continue;
+		if(tet == updtet)
+			continue;
+
+		int e1 = -1;
+		int e2 = -1;
+
+		for(int v=0; v<3; ++v)
+		{
+			if(tet->neib[v] == p1)
+				e1 = v;
+			if(tet->neib[v] == p2)
+				e2 = v;
+		}
+
+		if(e1 >= 0 && e2 >= 0)
+		{
+			int fate = 0;
+
+			while(fate == e1 || fate == e2)
+				fate++;
+
+			int ei = (fate+1)%3;
+
+			int e12 = (fate+1)%3;
+			int e22 = (fate+2)%3;
+
+			if(!tet->edgeplaced[ei])
+				continue;
+
+			//going forward?
+			if(e12 == e1 && e22 == e2)
+			{
+				//tet->edgeposx[ei] = edgeposx;
+				//tet->edgeposy[ei] = edgeposy;
+				*edgeposx = tet->edgeposx[ei];
+				*edgeposy = tet->edgeposy[ei];
+				*edgeplaced = true;
+
+				if(abs(*edgeposx) <= 0.01 &&
+					abs(*edgeposy) <= 0.01)
+					ErrMess("asdads","e<<<<<");
+			}
+			else
+			{
+				//tet->edgeposx[ei] = -edgeposx;
+				//tet->edgeposy[ei] = -edgeposy;
+				*edgeposx = -tet->edgeposx[ei];
+				*edgeposy = -tet->edgeposy[ei];
+				*edgeplaced = true;
+
+				if(abs(*edgeposx) <= 0.01 &&
+					abs(*edgeposy) <= 0.01)
+					ErrMess("asdads","e<<<<<2");
+			}
+		}
+	}
+}
+
+//update the obtained edge offsets (true) for neighbouring tets with the same edge
+void UpdEdges(Surf *surf, SurfPt *p1, SurfPt *p2, float edgeposx, float edgeposy,
+			  Tet* not)
+{
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet *tet = *tit;
+
+		if(tet == not)
+			continue;
+
+		int e1 = -1;
+		int e2 = -1;
+
+		for(int v=0; v<3; ++v)
+		{
+			if(tet->neib[v] == p1)
+				e1 = v;
+			if(tet->neib[v] == p2)
+				e2 = v;
+		}
+
+		if(e1 >= 0 && e2 >= 0)
+		{
+			int fate = 0;
+
+			while(fate == e1 || fate == e2)
+				fate++;
+
+			int ei = (fate+1)%3;
+
+			int e12 = (fate+1)%3;
+			int e22 = (fate+2)%3;
+
+			//going forward?
+			if(e12 == e1 && e22 == e2)
+			{
+				tet->edgeposx[ei] = edgeposx;
+				tet->edgeposy[ei] = edgeposy;
+				tet->edgeplaced[ei] = true;
+				
+
+				if(abs(edgeposx) <= 0.01 &&
+					abs(edgeposy) <= 0.01)
+					ErrMess("asdads","e<<<<<333");
+
+				return;
+			}
+			else
+			{
+				tet->edgeposx[ei] = -edgeposx;
+				tet->edgeposy[ei] = -edgeposy;
+				tet->edgeplaced[ei] = true;
+
+				if(abs(edgeposx) <= 0.01 &&
+					abs(edgeposy) <= 0.01)
+					ErrMess("asdads","e<<<<<444");
+
+				return;
+			}
+		}
+	}
+
+	ErrMess("asdads","e!!up333");
+}
+
+void PlaceTet(Surf *surf, Tet *tet, std::list<Tet*>* toplace, bool lasttry)
+{
+tryagain:
 	if(!tet->placed)
 	{
 		int placec = 0;
 		int fate = -1;
 
-		SurfPt* placept[2] = {NULL,NULL};
+		SurfPt* placept[3] = {NULL,NULL,NULL};
 
 		for(int vin=0; vin<3; ++vin)
 		{
@@ -2670,14 +2874,135 @@ void PlaceTet(Surf *surf, Tet *tet, std::list<Tet*>* toplace)
 				//placec=0;
 				fate = vin;
 			}
+#if 0
+			if(vin==2 && placec>=1 && placec<2 && lasttry)
+			{
+				Vec2f rp = Vec2f((rand()%100-50)/1000.0f + placept[0]->orc.x,
+					(rand()%100-50)/1000.0f + placept[0]->orc.y);
 
-			if(placec>=2&&fate>=0)
+				tet->neib[fate]->orc = rp;
+				tet->neib[fate]->placed = true;
+				//tet->placed = true;
+				
+				ClassifyEdge(tet->neib[0]->orc, tet->neib[1]->orc,
+					&tet->edgeposx[0], &tet->edgesamex[0],
+					&tet->edgeposy[0], &tet->edgesamey[0]);
+
+				goto tryagain;
+			}
+#endif
+
+			if(fate<0 && placec>=3)
+			{
+				//tet->placed = true;
+				fate=0;
+
+				UpdEdges2(surf,
+					tet->neib[0],
+					tet->neib[1],
+					&tet->edgeposx[0],
+					&tet->edgeposy[0],
+					tet,
+					&tet->edgeplaced[0]);
+				UpdEdges2(surf,
+					tet->neib[1],
+					tet->neib[2],
+					&tet->edgeposx[1],
+					&tet->edgeposy[1],
+					tet,
+					&tet->edgeplaced[1]);
+				UpdEdges2(surf,
+					tet->neib[2],
+					tet->neib[0],
+					&tet->edgeposx[2],
+					&tet->edgeposy[2],
+					tet,
+					&tet->edgeplaced[2]);
+
+				for(std::list<Tet*>::iterator hit=tet->neib[fate]->holder.begin();
+					hit!=tet->neib[fate]->holder.end();
+					++hit)
+				{
+#if 0
+					Tet *temptet = *hit;
+
+					if(temptet->placed)
+					{
+						int e1 = -1;
+						int e2 = -1;
+						int e3 = -1;
+
+						for(int v2=0; v2<3; v2++)
+						{
+							if(temptet->neib[v2] == tet->neib[0])
+								e1 = v2;
+							if(temptet->neib[v2] == tet->neib[1])
+								e2 = v2;
+							if(temptet->neib[v2] == tet->neib[2])
+								e3 = v2;
+						}
+
+						if(e1 >= 0 && e2 >= 0)
+						{
+							tet->edgeposx[0] = 
+								temptet->neib[e2]->orc.x - temptet->neib[e1]->orc.x;
+							tet->edgeposy[0] = 
+								temptet->neib[e2]->orc.y - temptet->neib[e1]->orc.y;
+						}
+
+						if(e2 >= 0 && e3 >= 0)
+						{
+							tet->edgeposx[1] = 
+								temptet->neib[e3]->orc.x - temptet->neib[e2]->orc.x;
+							tet->edgeposy[1] = 
+								temptet->neib[e3]->orc.y - temptet->neib[e2]->orc.y;
+						}
+
+						if(e3 >= 0 && e1 >= 0)
+						{
+							tet->edgeposx[2] = 
+								temptet->neib[e1]->orc.x - temptet->neib[e3]->orc.x;
+							tet->edgeposy[2] = 
+								temptet->neib[e1]->orc.y - temptet->neib[e3]->orc.y;
+						}
+					}
+#endif
+					//PlaceTet(surf, *hit);
+					if(*hit != tet)
+						toplace->push_back(*hit);
+				}
+
+				for(std::list<Tet*>::iterator hit=tet->neib[(fate+1)%3]->holder.begin();
+					hit!=tet->neib[(fate+1)%3]->holder.end();
+					++hit)
+				{
+					//PlaceTet(surf, *hit);
+					if(*hit != tet)
+						toplace->push_back(*hit);
+				}
+
+				for(std::list<Tet*>::iterator hit=tet->neib[(fate+2)%3]->holder.begin();
+					hit!=tet->neib[(fate+2)%3]->holder.end();
+					++hit)
+				{
+					//PlaceTet(surf, *hit);
+					if(*hit != tet)
+						toplace->push_back(*hit);
+				}
+
+				tet->placed = true;
+
+				return;
+			}
+
+			if(placec==2&&fate>=0)
 			{
 				//if(vin==2 || !tet->neib[2]->placed)
 				{
 					int e1 = (fate+1)%3;
 					int e2 = (fate+2)%3;
 
+#if 0
 					Vec3f p1a[4];
 					Vec3f p2a[4];
 
@@ -2712,14 +3037,80 @@ void PlaceTet(Surf *surf, Tet *tet, std::list<Tet*>* toplace)
 
 					Vec3f p1 = p1a[p1n];
 					Vec3f p2 = p2a[p2n];
+#endif
 
+#if 0
+					Vec3f p1 = Vec2f(tet->neib[e1]->orc.x, tet->neib[e1]->orc.y, 0);
+					Vec3f p2 = Vec2f(tet->neib[e2]->orc.x, tet->neib[e2]->orc.y, 0);
+
+					if(tet->outx[e1])
+						p1.x += 1;
+					if(tet->outy[e1])
+						p1.y += 1;
+					
+					if(tet->outx[e2])
+						p2.x += 1;
+					if(tet->outy[e2])
+						p2.y += 1;
+#endif
+#if 1
+					Vec2f p1a,p2a;
+
+					p1a = tet->neib[e1]->orc;
+					TrueNextPt(p1a, 
+						tet->edgeposx[e1],
+						false,
+						tet->edgeposy[e1],
+						false,
+						tet->neib[e2]->orc,
+						&p2a);
+
+					Vec3f p1 = Vec3f(p1a.x, p1a.y, 0);
+					Vec3f p2 = Vec3f(p2a.x, p2a.y, 0);
+#endif
+
+					Vec3f up = Vec3f(0,0,-1);
 					Vec3f axis = Cross(up,p1-p2);
+
+					if(_isnan(axis.x))
+						ErrMess("asd","axispnan!x");
+					if(_isnan(axis.y))
+						ErrMess("asd","axispnan!y");
+					if(_isnan(axis.z))
+						ErrMess("asd","axispnan!z");
+
 					axis = Normalize(axis);
 
 					Vec3f midp = (p1+p2)/2.0f;
+
+					if(_isnan(midp.x))
+						ErrMess("asd","midpnan!x");
+					if(_isnan(midp.y))
+						ErrMess("asd","midpnan!y");
+
 					float d = Magnitude(p1-p2);
+					
+					if(_isnan(d))
+						ErrMess("asd","dnan!");
 
 					Vec3f p3 = midp + axis * d;
+
+					if(_isnan(p3.x))
+					{
+						ErrMess("asd","nan!x");
+
+						char m[123];
+						sprintf(m, "midp%f,%f,%f axis%f,%f,%f d%f p1=%f,%f p2=%f,%f edgepos=%f,%f",
+							midp.x, midp.y, midp.z,
+							axis.x, axis.y, axis.z,
+							d,
+							p1.x, p1.y,
+							p2.x, p2.y,
+							tet->edgeposx[e1], tet->edgeposy[e1]);
+						ErrMess(m,m);
+					}
+					if(_isnan(p3.y))
+						ErrMess("asd","nan!y");
 
 					if(fate<0)
 						ErrMess("fate","fate<0");
@@ -2733,22 +3124,147 @@ void PlaceTet(Surf *surf, Tet *tet, std::list<Tet*>* toplace)
 					tet->edgedrawarea[e1] = Magnitude( tet->neib[e1]->pos - tet->neib[e2]->pos );
 					//tet->edgeorarea[e1] = Magnitude( tet->neib[e1]->orc - tet->neib[e2]->orc );
 					tet->edgeorarea[e1] = Magnitude( p1 - p2 );
+					
+					tet->edgedrawarea[e2] = Magnitude( tet->neib[e2]->pos - tet->neib[fate]->pos );
+					//tet->edgeorarea[e1] = Magnitude( tet->neib[e1]->orc - tet->neib[e2]->orc );
+					tet->edgeorarea[e2] = Magnitude( p2 - p3 );
 	/////////////////
-					if(p3.x < 0)
+				
+					ClassifyEdge(tet->neib[e2]->orc, Vec2f(p3.x,p3.y),
+						&tet->edgeposx[e2], &tet->edgeplaced[e2],
+						&tet->edgeposy[e2]);
+
+					UpdEdges(surf,
+						tet->neib[e2],
+						tet->neib[fate],
+						tet->edgeposx[e2],
+						tet->edgeposy[e2],
+						tet);
+
+					if(tet->edgeposx[e2] == 0 &&
+							tet->edgeposy[e2] == 0)
+							ErrMess("asdasd","exy=0ttt");
+
+					ClassifyEdge(Vec2f(p3.x,p3.y), tet->neib[e1]->orc,
+						&tet->edgeposx[fate], &tet->edgeplaced[fate],
+						&tet->edgeposy[fate]);
+					
+					UpdEdges(surf,
+						tet->neib[fate],
+						tet->neib[e1],
+						tet->edgeposx[fate],
+						tet->edgeposy[fate],
+						tet);
+
+					if(tet->edgeposx[fate] == 0 &&
+							tet->edgeposy[fate] == 0)
+							ErrMess("asdasd","exy=0gggg");
+
+					UpdEdges(surf,
+						tet->neib[e1],
+						tet->neib[e2],
+						tet->edgeposx[e1],
+						tet->edgeposy[e1],
+						tet);
+
+					if(tet->edgeposx[e1] == 0 &&
+						tet->edgeposy[e1] == 0)
+						ErrMess("asdasd","exy=0eeeeee");
+
+					while(p3.x < 0)
 						p3.x += 1.0f;
-					if(p3.y < 0)
+					while(p3.y < 0)
 						p3.y += 1.0f;
-					if(p3.x > 1)
+
+					//bool outx = false;
+					//bool outy = false;
+
+					while(p3.x >= 1)
+					{
+						//outx = true;
 						p3.x -= 1.0f;
-					if(p3.y > 1)
+					}
+					while(p3.y >= 1)
+					{
+						//outy = true;
 						p3.y -= 1.0f;
+					}
 
 					tet->neib[fate]->orc = Vec2f(p3.x,p3.y);
 					tet->neib[fate]->placed = true;
+					///tet->edgeoutx[fate] = outx;
+					///tet->edgeouty[fate] = outy;
 					tet->placed = true;
+
+#if 0
+					if(OrNorm(tet->neib,
+						tet->edgeposx,
+						tet->edgeposy,
+						tet->edgesamex,
+						tet->edgesamey).z >= 0)
+					{
+						p3 = midp - axis * d;
+
+						//outx = false;
+						//outy = false;
+						
+						ClassifyEdge(tet->neib[e2]->orc, Vec2f(p3.x,p3.y),
+							&tet->edgeposx[e2], &tet->edgesamex[e2],
+							&tet->edgeposy[e2], &tet->edgesamey[e2]);
+						ClassifyEdge(Vec2f(p3.x,p3.y), tet->neib[e1]->orc,
+							&tet->edgeposx[fate], &tet->edgesamex[fate],
+							&tet->edgeposy[fate], &tet->edgesamey[fate]);
+
+						while(p3.x < 0)
+						{
+							//outx = true;
+							p3.x += 1.0f;
+						}
+						while(p3.y < 0)
+						{
+							//outy = true;
+							p3.y += 1.0f;
+						}
+						while(p3.x >= 1)
+						{
+							//outx = true;
+							p3.x -= 1.0f;
+						}
+						while(p3.y >= 1)
+						{
+							//outy = true;
+							p3.y -= 1.0f;
+						}
+
+						tet->neib[fate]->orc = Vec2f(p3.x,p3.y);
+						tet->neib[fate]->placed = true;
+//					tet->edgeoutx[fate] = outx;
+		//				tet->edgeouty[fate] = outy;
+						tet->placed = true;
+					}
+#endif
 /////////////////
+
 					for(std::list<Tet*>::iterator hit=tet->neib[fate]->holder.begin();
 						hit!=tet->neib[fate]->holder.end();
+						++hit)
+					{
+						//PlaceTet(surf, *hit);
+						if(*hit != tet)
+							toplace->push_back(*hit);
+					}
+
+					for(std::list<Tet*>::iterator hit=tet->neib[(fate+1)%3]->holder.begin();
+						hit!=tet->neib[(fate+1)%3]->holder.end();
+						++hit)
+					{
+						//PlaceTet(surf, *hit);
+						if(*hit != tet)
+							toplace->push_back(*hit);
+					}
+
+					for(std::list<Tet*>::iterator hit=tet->neib[(fate+2)%3]->holder.begin();
+						hit!=tet->neib[(fate+2)%3]->holder.end();
 						++hit)
 					{
 						//PlaceTet(surf, *hit);
@@ -2761,6 +3277,63 @@ void PlaceTet(Surf *surf, Tet *tet, std::list<Tet*>* toplace)
 			}
 		}
 	}
+}
+
+void TrueBackEdge(SurfPt* p2, 
+				  //these booleans apply to p1 going to p2
+				  bool edgeposx, bool edgesamex,
+				  bool edgeposy, bool edgesamey,
+				  //getting the coords of p1
+				  Vec2f startorc, Vec2f* trueorc)
+{
+	
+}
+
+#define SAME_EPSILON	0.1f
+
+void TrueNextPt(Vec2f p1orc, //prev point
+			  //for edge with second point =trueorc
+				  float edgeposx, bool edgesamex,
+				  float edgeposy, bool edgesamey,
+				  Vec2f startorc, Vec2f* trueorc)
+{
+	trueorc->x = p1orc.x += edgeposx;
+	trueorc->y = p1orc.y += edgeposy;
+
+#if 0
+	trueorc->x = startorc.x;
+	trueorc->y = startorc.y;
+
+	while(edgeposx && trueorc->x <= p1orc.x)
+	{
+		trueorc->x += 1;
+	}
+	
+	while(!edgeposx && !edgesamex && trueorc->x >= p1orc.x)
+	{
+		trueorc->x -= 1;
+	}
+	
+	if(!edgeposx && edgesamex)
+	{
+		trueorc->x = p1orc.x;
+	}
+	/////////
+	while(edgeposy && trueorc->y <= p1orc.y)
+	{
+		trueorc->y += 1;
+	}
+	
+	while(!edgeposy && !edgesamey && trueorc->y >= p1orc.y)
+	{
+		trueorc->y -= 1;
+	}
+	
+	if(!edgeposy && edgesamey)
+	{
+		trueorc->y = p1orc.y;
+	}
+#endif
 }
 
 /*
@@ -2800,26 +3373,370 @@ bool GrowMapMesh(Surf *surf, Surf *fullsurf, Vec2f *vmin, Vec2f *vmax)
 		ErrMess("ssasd","s111g");
 
 	tet->neib[0]->orc.x = 0.5f;
-	tet->neib[0]->orc.y = 0.52f;
+	tet->neib[0]->orc.y = 0.5f + 1.0f/(float)surf->pts2.size();
 	tet->neib[0]->placed = true;
-	tet->neib[1]->orc.x = 0.52f;
-	tet->neib[1]->orc.y = 0.52f;
+	tet->neib[1]->orc.x = 0.5f + 1.0f/(float)surf->pts2.size();
+	tet->neib[1]->orc.y = 0.5f + 1.0f/(float)surf->pts2.size();
 	tet->neib[1]->placed = true;
+	ClassifyEdge(tet->neib[0]->orc, tet->neib[1]->orc,
+		&tet->edgeposx[0], &tet->edgeplaced[0],
+		&tet->edgeposy[0]);
+
+	UpdEdges(surf,
+		tet->neib[0],
+		tet->neib[1],
+		tet->edgeposx[0],
+		tet->edgeposy[0],
+		tet);
+
+	//tet->edgeposx[0] = true;
+	//tet->edgesamex[0] = false;
+	//tet->edgeposy[0] = false;
+	//tet->edgesamey[0] = true;
+	//tet->edgeoutx[0] = false;
+	//tet->edgeouty[0] = false;
+	//tet->edgeoutx[1] = false;
+	//tet->edgeouty[1] = false;
 	//tet->neib[2]->orc.x = 0.52f;
 	//tet->neib[2]->orc.y = 0.5f;
 	tet->edgedrawarea[0] = Magnitude( tet->neib[0]->pos - tet->neib[1]->pos );
 	tet->edgeorarea[0] = Magnitude( tet->neib[0]->orc - tet->neib[1]->orc );
 
+	if(tet->edgeposx[0] == 0 &&
+		tet->edgeposy[0] == 0)
+		ErrMess("asdasd","exy=0");
+
 	//maybe split some tri's?
 	std::list<Tet*> toplace;
-	PlaceTet(surf, tet, &toplace);
+	PlaceTet(surf, tet, &toplace, false);
 
+//placeagain:
 	while(toplace.size())
 	{
-		PlaceTet(surf, *toplace.begin(), &toplace);
+		PlaceTet(surf, *toplace.begin(), &toplace, false);
 		toplace.erase(toplace.begin());
 	}
 
+#if 0
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		if(!(*tit)->placed)
+			toplace.push_back(*tit);
+	}
+
+	//if(toplace.size())
+	{
+		while(toplace.size())
+		{
+			PlaceTet(surf, *toplace.begin(), &toplace, false);
+			toplace.erase(toplace.begin());
+		}
+	}
+		//goto placeagain;
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		if((*tit)->placed)
+		{
+dotet:
+			Tet * tet = *tit;
+			SurfPt *fatt[3];
+
+			fatt[0] = tet->neib[0];
+			fatt[1] = tet->neib[1];
+			fatt[2] = tet->neib[2];
+
+			if(fatt[0]->placed &&
+				fatt[1]->placed &&
+				fatt[2]->placed)
+			{
+dopt:
+				for(int v=0; v<3; ++v)
+				{
+					if(fatt[v]->orc.x < vmin->x)
+						vmin->x = fatt[v]->orc.x;
+					if(fatt[v]->orc.y < vmin->y)
+						vmin->y = fatt[v]->orc.y;
+					
+					if(fatt[v]->orc.x > vmax->x)
+						vmax->x = fatt[v]->orc.x;
+					if(fatt[v]->orc.y > vmax->y)
+						vmax->y = fatt[v]->orc.y;
+				}
+			}
+			else
+			{
+				ErrMess("p","!p");
+				PlaceTet(surf, tet, &toplace, false);
+
+				while(toplace.size())
+				{
+					PlaceTet(surf, *toplace.begin(), &toplace, false);
+					toplace.erase(toplace.begin());
+				}
+
+				goto dopt;
+			}
+		}
+		else
+		{
+			ErrMess("p","!p2");
+			PlaceTet(surf, tet, &toplace, false);
+
+			while(toplace.size())
+			{
+				PlaceTet(surf, *toplace.begin(), &toplace, false);
+				toplace.erase(toplace.begin());
+			}
+
+			goto dotet;
+		}
+	}
+#endif
+	/////////
+	return true;
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet * tet = *tit;
+		
+		SurfPt *fatt[3];
+
+		fatt[0] = tet->neib[0];
+		fatt[1] = tet->neib[1];
+		fatt[2] = tet->neib[2];
+
+		for(int v=0; v<3; ++v)
+		{
+			fatt[v]->placed = false;
+		}
+	}
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet * tet = *tit;
+		SurfPt *fatt[3];
+
+		fatt[0] = tet->neib[0];
+		fatt[1] = tet->neib[1];
+		fatt[2] = tet->neib[2];
+
+		for(int v=0; v<3; ++v)
+		{
+			///tet->edgeposx[v] /= (vmax->x - vmin->x);
+			///tet->edgeposy[v] /= (vmax->y - vmin->y);
+		}
+
+		for(int v=0; v<3; ++v)
+		{
+			if(fatt[v]->placed)
+				continue;
+			//fatt[v]->orc.x = (fatt[v]->orc.x - vmin->x) / ((vmax->x - vmin->x));
+			//fatt[v]->orc.y = (fatt[v]->orc.y - vmin->y) / ((vmax->y - vmin->y));
+			///fatt[v]->orc.x = (fatt[v]->orc.x - vmin->x) / ((vmax->x - vmin->x));
+			///fatt[v]->orc.y = (fatt[v]->orc.y - vmin->y) / ((vmax->y - vmin->y));
+			//tet->edgeposx[v] /= (vmax->x - vmin->x);
+			//tet->edgeposy[v] /= (vmax->y - vmin->y);
+			fatt[v]->placed = true;
+		}
+
+		for(int v=0; v<3; ++v)
+		{
+			int e1 = v;
+			int e2 = (v+1)%3;
+
+			tet->edgeorarea[v] = Magnitude( tet->neib[e1]->orc - tet->neib[e2]->orc );
+		}
+	}
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet * tet = *tit;
+	
+		if(OrNorm(tet->neib,
+			tet->edgeposx,
+			tet->edgeposy,
+			tet->edgeplaced,
+			tet->edgeplaced).z >= 0)
+		{
+			SurfPt* oldpt = tet->neib[0];
+			tet->neib[0] = tet->neib[1];
+			tet->neib[1] = oldpt;
+
+			float oldval1 = tet->edgedrawarea[1];
+			tet->edgedrawarea[1] = tet->edgedrawarea[2];
+			tet->edgedrawarea[2] = oldval1;
+
+			oldval1 = tet->edgeorarea[1];
+			tet->edgeorarea[1] = tet->edgeorarea[2];
+			tet->edgeorarea[2] = oldval1;
+		}
+	}
+
+	return true;
+}
+
+bool SplitEdge3(Surf *surf, Tet *tet,
+			   //std::list<Tet*>::iterator tit,
+			   SurfPt **remidp,
+			   int fate//,
+			  // Tet **retet
+			  )
+{
+	//fate=far vertex from midp, the one behind the one behind midp in a clockwise turn
+	SurfPt* fatt[3];
+
+	fatt[0] = tet->neib[0];
+	fatt[1] = tet->neib[1];
+	fatt[2] = tet->neib[2];
+
+	if(fatt[0]->gone)
+		ErrMess("g00000","g0f0");
+	if(fatt[1]->gone)
+		ErrMess("g00000","g0f1");
+	if(fatt[2]->gone)
+		ErrMess("g00000","g0f2");
+
+	//int fate = -1;
+
+	int e1 = (fate+1)%3;
+	int e2 = (fate+2)%3;
+
+	Vec3f midp = (fatt[e1]->pos+fatt[e2]->pos)/2.0f;
+
+	//01
+	//32
+
+	//surf->tets2.erase(tit);
+
+	CopyTet(surf, tet);
+	Tet *newt1 = *surf->tets2.rbegin();
+	//CopyTet(surf, tet);
+	//Tet *newt2 = *surf->tets2.rbegin();
+	newt1->placed = false;
+
+	if(*remidp)	//already created?
+	{
+		(*remidp)->holder.push_back(newt1);
+		(*remidp)->holder.push_back(tet);
+		
+		(*remidp)->holder.unique(UniqueTet);
+		
+		newt1->neib[0] = *remidp;
+		newt1->neib[1] = fatt[e2];
+		newt1->neib[2] = fatt[fate];
+		SepPt(newt1, fatt[e1], NULL);
+		
+		if(newt1->neib[0]->gone)
+			ErrMess("g00000","g0f0n");
+		if(newt1->neib[1]->gone)
+			ErrMess("g00000","g0f1n");
+		if(newt1->neib[2]->gone)
+			ErrMess("g00000","g0f2n");
+		
+		//fatt[e1]->holder.push_back(newt1);
+		fatt[e2]->holder.push_back(newt1);
+		fatt[fate]->holder.push_back(newt1);
+
+		tet->neib[0] = *remidp;
+		tet->neib[1] = fatt[fate];
+		tet->neib[2] = fatt[e1];
+		SepPt(tet, fatt[e2], NULL);
+		
+		if(tet->neib[0]->gone)
+			ErrMess("g00000","g0f0nt");
+		if(tet->neib[1]->gone)
+			ErrMess("g00000","g0f1nt");
+		if(tet->neib[2]->gone)
+			ErrMess("g00000","g0f2nt");
+	}
+	else
+	{
+		//(*remidp) = CopyPt(surf, fatt[(fate+1)%3], newt1);
+		//(*remidp) = CopyPt(surf, fatt[e1], newt1);
+		(*remidp) = new SurfPt;
+		surf->pts2.push_back(*remidp);
+		(*remidp)->placed = false;
+		//SepPt(tet, *remidp, NULL);
+		//SurfPt* newp2 = CopyPt(surf, fatt[(fate+1)%3], newt2);
+		//SepPt(tet, newp2, NULL);
+		(*remidp)->pos = midp;
+		//newp2->pos = midp;
+		(*remidp)->holder.clear();
+		(*remidp)->holder.push_back(newt1);
+		(*remidp)->holder.push_back(tet);
+		(*remidp)->holder.unique(UniqueTet);
+
+		//Tet *sharet = NULL;
+
+		//sharet also gets midp
+		
+		//12
+		//3
+
+		//23
+		//1*
+
+		newt1->neib[0] = *remidp;
+		newt1->neib[1] = fatt[e2];
+		newt1->neib[2] = fatt[fate];
+		SepPt(newt1, fatt[e1], NULL);
+			
+		if(newt1->neib[0]->gone)
+			ErrMess("g00000","g0f0nb");
+		if(newt1->neib[1]->gone)
+			ErrMess("g00000","g0f1nb");
+		if(newt1->neib[2]->gone)
+			ErrMess("g00000","g0f2nb");
+		
+		//fatt[e1]->holder.push_back(newt1);
+		fatt[e2]->holder.push_back(newt1);
+		fatt[fate]->holder.push_back(newt1);
+
+		tet->neib[0] = *remidp;
+		tet->neib[1] = fatt[fate];
+		tet->neib[2] = fatt[e1];
+		SepPt(tet, fatt[e2], NULL);
+
+		if(tet->neib[0]->gone)
+			ErrMess("g00000","g0f0nt2");
+		if(tet->neib[1]->gone)
+			ErrMess("g00000","g0f1nt2");
+		if(tet->neib[2]->gone)
+			ErrMess("g00000","g0f2nt2");
+	}
+
+	//*retet = newt1;
+
+	//fatt[e1]->holder.push_back(newt1);
+	//fatt[e2]->holder.push_back(newt1);
+	//fatt[fate]->holder.push_back(newt1);
+
+	//std::list<Tet*> toplace;
+	//PlaceTet(surf, newt1, &toplace, false);
+
+	//while(toplace.size())
+	{
+	//	PlaceTet(surf, *toplace.begin(), &toplace, false);
+	//	toplace.erase(toplace.begin());
+	}
+
+	return true;
+}
+
+bool SplitEdge2(Surf *surf, SurfPt *epts[2])
+{
+	
 	return true;
 }
 
@@ -2827,9 +3744,159 @@ bool GrowMapMesh(Surf *surf, Surf *fullsurf, Vec2f *vmin, Vec2f *vmax)
 make triangles tesselated
 */
 bool SplitEdges(Surf *surf, Surf *fullsurf, Vec2f *vmin, Vec2f *vmax)
-{
-	std::list<Tet*> newtets;
-	std::list<SurfPt*> newpts;
+{return true;
+	int times = 0;
+again:
+
+	++times;
+
+	if(times > BIGTEX*BIGTEX)
+		return true;
+
+	float smallestratio = 9999999;
+	//std::list<Tet*>::iterator titrec=surf->tets2.end();
+
+	Tet *tet = NULL;
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Vec3f tri[3];
+		tri[0] = (*tit)->neib[0]->pos;
+		tri[1] = (*tit)->neib[1]->pos;
+		tri[2] = (*tit)->neib[2]->pos;
+
+		float a,b,c,s,areadraw,areaor;
+
+		a = Magnitude(tri[0]-tri[1]);
+		b = Magnitude(tri[1]-tri[2]);
+		c = Magnitude(tri[2]-tri[0]);
+
+		//(*tit)->edgedrawarea[0] = Magnitude( a );
+		//(*tit)->edgedrawarea[1] = Magnitude( b );
+		//(*tit)->edgedrawarea[2] = Magnitude( c );
+
+		s = (a+b+c)/2.0f;
+
+		areadraw = sqrt(s*(s-a)*(s-b)*(s-c));
+#if 0
+		Vec2f orc[3];
+		orc[0] = (*tit)->neib[0]->orc;
+		orc[1] = (*tit)->neib[1]->orc;
+		orc[2] = (*tit)->neib[2]->orc;
+		
+		a = Magnitude(orc[0]-orc[1]);
+		b = Magnitude(orc[1]-orc[2]);
+		c = Magnitude(orc[2]-orc[0]);
+		
+		s = (a+b+c)/2.0f;
+#endif
+		//areaor = sqrt(s*(s-a)*(s-b)*(s-c));
+		areaor = 1;
+
+		if(areadraw / areaor > smallestratio || areaor == 0 || _isnan(areaor) )
+		{
+			//titrec = tit;
+			tet = *tit;
+			smallestratio = areadraw / areaor;
+			if(_isnan(smallestratio))
+				smallestratio = 0;
+		}
+	}
+
+	SurfPt *midp = NULL;
+
+	if(tet)
+	{
+		int fate = -1;
+		float bigd = 0;
+
+		if((tet)->neib[0]->gone)
+			ErrMess("gasd","gasd0");
+		if((tet)->neib[1]->gone)
+			ErrMess("gasd","gasd1");
+		if((tet)->neib[2]->gone)
+			ErrMess("gasd","gasd2");
+
+		for(int v=0; v<3; ++v)
+		{
+			float d = Magnitude((tet)->neib[v]->pos - (tet)->neib[(v+1)%3]->pos);
+
+			if(d > bigd || fate < 0)
+			{
+				bigd=d;
+				fate=(v+2)%3;
+			}
+		}
+
+		Tet *sharet = NULL;
+		int sharefate = -1;
+		SurfPt *p1 = tet->neib[(fate+1)%3];
+		SurfPt *p2 = tet->neib[(fate+2)%3];
+
+		for(std::list<Tet*>::iterator sharetit=surf->tets2.begin();
+			sharetit!=surf->tets2.end();
+			++sharetit)
+		{
+			if( (*sharetit) == tet)
+				continue;
+
+			for(int v=0; v<3; v++)
+			{
+				if( ((*sharetit)->neib[v] == p1 &&
+					(*sharetit)->neib[(v+1)%3] == p2) ||
+					 ((*sharetit)->neib[v] == p2 &&
+					(*sharetit)->neib[(v+1)%3] == p1) )
+				{
+					sharet = *sharetit;
+					sharefate = (v+2)%3;
+					goto share;
+				}
+			}
+		}
+
+		return true;
+
+share:
+
+		if(sharet->neib[0]->gone)
+			ErrMess("gasdasd","gg0");
+		if(sharet->neib[1]->gone)
+			ErrMess("gasdasd","gg1");
+		if(sharet->neib[2]->gone)
+			ErrMess("gasdasd","gg2");
+
+		Tet *sharet2=NULL, *tet2=NULL;
+
+		SplitEdge3(surf, tet,
+		//titrec,
+		&midp,
+		fate//,&tet2
+		);
+		
+		SplitEdge3(surf, sharet,
+		//sharetit,
+		&midp,
+		sharefate//,&sharet2
+		);
+
+		
+		//std::list<Tet*> toplace;
+		//PlaceTet(surf, tet, &toplace, false);
+		//PlaceTet(surf, tet2, &toplace, false);
+		//PlaceTet(surf, sharet, &toplace, false);
+		//PlaceTet(surf, sharet2, &toplace, false);
+
+		//while(toplace.size())
+		{
+			//PlaceTet(surf, *toplace.begin(), &toplace, false);
+			//toplace.erase(toplace.begin());
+		}
+
+
+		goto again;
+	}
 
 	return true;
 }
@@ -2896,6 +3963,107 @@ void UpdStrains(std::list<Tet*>* tets)
 	tets->clear();
 }
 
+Vec3f OrNorm(SurfPt *fatt[3], float *edgeposx, float *edgeposy, bool *edgesamex, bool *edgesamey)
+{
+#if 0
+	Vec2f orc0a[4];
+	Vec2f orc1a[4];
+	Vec2f orc2a[4];
+	orc0a[0] = Vec2f(fatt[0]->orc.x,fatt[0]->orc.y);
+	orc0a[1] = Vec2f(fatt[0]->orc.x+1,fatt[0]->orc.y);
+	orc0a[2] = Vec2f(fatt[0]->orc.x,fatt[0]->orc.y+1);
+	orc0a[3] = Vec2f(fatt[0]->orc.x+1,fatt[0]->orc.y+1);
+	orc1a[0] = Vec2f(fatt[1]->orc.x,fatt[1]->orc.y);
+	orc1a[1] = Vec2f(fatt[1]->orc.x+1,fatt[1]->orc.y);
+	orc1a[2] = Vec2f(fatt[1]->orc.x,fatt[1]->orc.y+1);
+	orc1a[3] = Vec2f(fatt[1]->orc.x+1,fatt[1]->orc.y+1);
+	orc2a[0] = Vec2f(fatt[2]->orc.x,fatt[2]->orc.y);
+	orc2a[1] = Vec2f(fatt[2]->orc.x+1,fatt[2]->orc.y);
+	orc2a[2] = Vec2f(fatt[2]->orc.x,fatt[2]->orc.y+1);
+	orc2a[3] = Vec2f(fatt[2]->orc.x+1,fatt[2]->orc.y+1);
+	float od0 = 9999999;
+	float od1 = 9999999;
+	float od2 = 9999999;
+	int o0n = 0;
+	int o1n = 0;
+	int o2n = 0;
+
+	for(int o0i=0; o0i<3; o0i++)
+	{
+		for(int o1i=0; o1i<3; o1i++)
+		{
+			for(int o2i=0; o2i<3; o2i++)
+			{
+				float odt0 = Magnitude(orc0a[o0i] - orc1a[o1i]);
+				float odt1 = Magnitude(orc1a[o1i] - orc2a[o2i]);
+				float odt2 = Magnitude(orc2a[o2i] - orc0a[o0i]);
+
+				if(odt0 < od0 || odt1 < od1 || odt2 < od2)
+				{
+					od0 = odt0;
+					od1 = odt1;
+					od2 = odt2;
+					o0n = o0i;
+					o1n = o1i;
+					o2n = o2i;
+				}
+			}
+		}
+	}
+
+	Vec2f orcf[3];
+	orcf[0] = orc0a[o0n] * 1;
+	orcf[1] = orc1a[o1n] * 1;
+	orcf[2] = orc2a[o2n] * 1;
+
+#endif
+
+#if 0
+	Vec2f orcf[3];
+	for(int v=0; v<3; v++)
+	{
+		orcf[v] = fatt[v]->orc;
+		if(outx[v])
+		{
+			while(orcf[v].x < 1)
+				orcf[v].x += 1;
+		}
+		
+		if(outy[v])
+		{
+			while(orcf[v].y < 1)
+				orcf[v].y += 1;
+		}
+	}
+#endif
+
+	Vec3f tri3[3];
+
+	//for(int v=0; v<3; v++)
+	//	tri3[v] = Vec3f(orcf[v].x, orcf[v].y, 0);
+
+	Vec2f trueorc[3];
+
+	trueorc[0] = fatt[0]->orc;
+	trueorc[1] = fatt[1]->orc;
+	trueorc[2] = fatt[2]->orc;
+
+	for(int v=0; v<4; ++v)
+	{
+		TrueNextPt(trueorc[v%3], 
+			edgeposx[v%3], edgesamex[v%3], edgeposy[v%3], edgesamey[v%3], 
+			trueorc[(v+1)%3],
+			&trueorc[(v+1)%3]);
+	}
+
+	for(int v=0; v<3; ++v)
+	{
+		tri3[v] = Vec3f(trueorc[v].x, trueorc[v].y, 0);
+	}
+
+	return Normal(tri3);
+}
+
 bool BalanceMesh(Surf *surf, Surf *fullsurf, Vec2f *vmin, Vec2f *vmax)
 {
 	//check for updating edge-areas
@@ -2904,7 +4072,7 @@ bool BalanceMesh(Surf *surf, Surf *fullsurf, Vec2f *vmin, Vec2f *vmax)
 	std::list<Tet*>::iterator mosttit;
 	Tet* mosttet = NULL;
 	int mostvin = -1;
-	SurfPt *sp[2] = {NULL,NULL};
+	SurfPt *sp[3] = {NULL,NULL,NULL};
 	float moststrain = 0;
 
 	int tries = 0;
@@ -2914,28 +4082,65 @@ again:
 	moststrain = 0;
 	sp[0] = NULL;
 	sp[1] = NULL;
+	sp[2] = NULL;
 	mostvin = -1;
 	mosttet = NULL;
 	mosttit = surf->tets2.end();
+	float *edgeposx[3], *edgeposy[3];
+	bool *edgesamex[3], *edgesamey[3];
+	bool *edgeplaced[3];
+
+	bool updown = false;
 
 	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
 		tit!=surf->tets2.end();
 		++tit)
 	{
 		Tet *tet = *tit;
+
+		//Vec3f tri3[3];
+		//for(int v=0; v<3; ++v)
+		//	tri3[v] = Vec3f(tet->neib[v].x, tet->neib[v].y, 0);
+
+		//Vec3f norm = Normal(tri3);
+		Vec3f norm = OrNorm(tet->neib,
+			tet->edgeposx,
+			tet->edgeposy,
+			tet->edgeplaced,
+			tet->edgeplaced);
+
+		//if(rand()%3!=1)
+		//	continue;
+
 		//for(int vin=0; vin<3; ++vin)
 		for(int ein=0; ein<3; ++ein)
 		{
+			if(norm.z >= 0 && EdgeFront(surf, tet->neib[ein], tet->neib[(ein+1)%3], tet))
+				continue;
+
 			float strain = tet->edgedrawarea[ein] / tet->edgeorarea[ein];
 
 			if(_isnan(strain) || tet->edgeorarea[ein] == 0)
 				strain = 1;
 
-			if(strain > moststrain)
+			if(strain > moststrain ||
+				(!updown && norm.z >= 0) ||
+				(updown && norm.z >= 0 && strain > moststrain))
 			{
+				if(norm.z >= 0)updown=true;
 				moststrain = strain;
-				sp[0] = tet->neib[ein];
-				sp[1] = tet->neib[(ein+1)%3];
+				sp[ein] = tet->neib[ein];
+				sp[(ein+1)%3] = tet->neib[(ein+1)%3];
+				sp[(ein+2)%3] = tet->neib[(ein+2)%3];
+
+				for(int v=0; v<3; v++)
+				{
+					edgeposx[(ein+v)%3] = &tet->edgeposx[(ein+v)%3];
+					edgeposy[(ein+v)%3] = &tet->edgeposy[(ein+v)%3];
+					//edgesamex[(ein+v)%3] = &tet->edgeplaced[(ein+v)%3];
+					//edgesamey[(ein+v)%3] = &tet->edgeplaced[(ein+v)%3];
+					edgeplaced[(ein+v)%3] = &tet->edgeplaced[(ein+v)%3];
+				}
 				mostvin = ein;
 				mosttet = tet;
 				mosttit = tit;
@@ -2943,124 +4148,235 @@ again:
 		}
 	}
 
-	if(sp[0])
+	if(mostvin >= 0 && sp[mostvin])	//edge to balance?
 	{
-		float strain1 = 0.00001f;
-		float strain2 = 0.00001f;
-
-		for(std::list<Tet*>::iterator hit=sp[0]->holder.begin();
-			hit!=sp[0]->holder.end();
-			++hit)
+		//if(updown)
 		{
-			if(*hit == mosttet)
-				continue;
 
-			for(int vin=0; vin<3; vin++)
-			{
-				bool a = ( (*hit)->neib[vin] == sp[0] );
-				//bool b = (*hit)->neib[vin] == sp[1];
-				//bool c = (*hit)->neib[(vin+1)%3] == sp[0];
-				bool d = ( (*hit)->neib[(vin+1)%3] == sp[1] );
-				
-				float ch1 = (*hit)->edgedrawarea[vin] / (*hit)->edgeorarea[vin];
-				float ch2 = (*hit)->edgedrawarea[(vin+2)%3] / (*hit)->edgeorarea[(vin+2)%3];
-
-				if(_isnan(ch1) || (*hit)->edgeorarea[vin] == 0)
-					ch1 = 1;
-				if(_isnan(ch2) || (*hit)->edgeorarea[(vin+2)%3] == 0)
-					ch2 = 1;
-
-				//if( (a||b||c||d) && !((a||b)&&(c||d)) )
-				if( (a) && !(a&&d) )
-				{
-					strain1 += ch1;
-					strain2 += ch2;
-				}
-				if( (d) && !(a&&d) )
-				{
-					strain1 += ch2;
-					strain2 += ch1;
-				}
-
-				if( (a||d) && !(a&&d) )
-					tocheck.push_back(*hit);
-			}
 		}
-		
-		tocheck.push_back(mosttet);
-	
-		float strain1to2out = (moststrain/strain1)/(moststrain/strain2);
-
-		Vec2f orc0a[4];
-		Vec2f orc1a[4];
-		orc0a[0] = Vec2f(sp[0]->orc.x,sp[0]->orc.y);
-		orc0a[1] = Vec2f(sp[0]->orc.x+1,sp[0]->orc.y);
-		orc0a[2] = Vec2f(sp[0]->orc.x,sp[0]->orc.y+1);
-		orc0a[3] = Vec2f(sp[0]->orc.x+1,sp[0]->orc.y+1);
-		orc1a[0] = Vec2f(sp[1]->orc.x,sp[1]->orc.y);
-		orc1a[1] = Vec2f(sp[1]->orc.x+1,sp[1]->orc.y);
-		orc1a[2] = Vec2f(sp[1]->orc.x,sp[1]->orc.y+1);
-		orc1a[3] = Vec2f(sp[1]->orc.x+1,sp[1]->orc.y+1);
-		float od = 9999999;
-		int o0n = 0;
-		int o1n = 0;
-
-		for(int o0i=0; o0i<3; o0i++)
+		//else
 		{
-			for(int o1i=0; o1i<3; o1i++)
-			{
-				float odt = Magnitude(orc0a[o0i] - orc1a[o1i]);
+			float strain1 = 0.00001f;
+			float strain2 = 0.00001f;
 
-				if(odt < od)
+			std::list<Tet*> holders;
+			
+			for(std::list<Tet*>::iterator hit=sp[mostvin]->holder.begin();
+				hit!=sp[mostvin]->holder.end();
+				++hit)
+				if(*hit != mosttet)
+					holders.push_back(*hit);
+
+			for(std::list<Tet*>::iterator hit=sp[(mostvin+1)%3]->holder.begin();
+				hit!=sp[(mostvin+1)%3]->holder.end();
+				++hit)
+				if(*hit != mosttet)
+					holders.push_back(*hit);
+
+			for(std::list<Tet*>::iterator hit=holders.begin();
+				hit!=holders.end();
+				++hit)
+			{
+				if(*hit == mosttet)
+					continue;
+
+				for(int vin=0; vin<3; vin++)
 				{
-					od = odt;
-					o0n = o0i;
-					o1n = o1i;
+					bool a = ( (*hit)->neib[vin] == sp[0] );
+					//bool b = (*hit)->neib[vin] == sp[1];
+					//bool c = (*hit)->neib[(vin+1)%3] == sp[0];
+					bool d = ( (*hit)->neib[(vin+1)%3] == sp[1] );
+					
+					float ch1 = (*hit)->edgedrawarea[vin] / (*hit)->edgeorarea[vin];
+					float ch2 = (*hit)->edgedrawarea[(vin+2)%3] / (*hit)->edgeorarea[(vin+2)%3];
+
+					if(_isnan(ch1) || (*hit)->edgeorarea[vin] == 0)
+						ch1 = 0.001;
+					if(_isnan(ch2) || (*hit)->edgeorarea[(vin+2)%3] == 0)
+						ch2 = 0.001;
+
+					//if( (a||b||c||d) && !((a||b)&&(c||d)) )
+					if( (a) && !(a&&d) )
+					{
+						strain1 += ch1;
+						strain2 += ch2;
+					}
+					if( (d) && !(a&&d) )
+					{
+						strain1 += ch2;
+						strain2 += ch1;
+					}
+
+					if( (a||d) && !(a&&d) )
+						tocheck.push_back(*hit);
 				}
 			}
+			
+			tocheck.push_back(mosttet);
+		
+			float strain1to2out = (moststrain/strain1)/(moststrain/strain2);
+
+#if 0
+			Vec2f orc0a[4];
+			Vec2f orc1a[4];
+			orc0a[0] = Vec2f(sp[0]->orc.x,sp[0]->orc.y);
+			orc0a[1] = Vec2f(sp[0]->orc.x+1,sp[0]->orc.y);
+			orc0a[2] = Vec2f(sp[0]->orc.x,sp[0]->orc.y+1);
+			orc0a[3] = Vec2f(sp[0]->orc.x+1,sp[0]->orc.y+1);
+			orc1a[0] = Vec2f(sp[1]->orc.x,sp[1]->orc.y);
+			orc1a[1] = Vec2f(sp[1]->orc.x+1,sp[1]->orc.y);
+			orc1a[2] = Vec2f(sp[1]->orc.x,sp[1]->orc.y+1);
+			orc1a[3] = Vec2f(sp[1]->orc.x+1,sp[1]->orc.y+1);
+			float od = 9999999;
+			int o0n = 0;
+			int o1n = 0;
+
+			for(int o0i=0; o0i<3; o0i++)
+			{
+				for(int o1i=0; o1i<3; o1i++)
+				{
+					float odt = Magnitude(orc0a[o0i] - orc1a[o1i]);
+
+					if(odt < od)
+					{
+						od = odt;
+						o0n = o0i;
+						o1n = o1i;
+					}
+				}
+			}
+
+			Vec2f orc0 = orc0a[o0n];
+			Vec2f orc1 = orc1a[o1n];
+#endif
+#if 1
+			Vec2f orc0 = sp[mostvin]->orc;
+			Vec2f orc1 = sp[(mostvin+1)%3]->orc;
+
+			TrueNextPt(sp[(mostvin+2)%3]->orc,
+				*edgeposx[(mostvin+2)%3],
+				*edgesamex[(mostvin+2)%3],
+				*edgeposy[(mostvin+2)%3],
+				*edgesamey[(mostvin+2)%3],
+				orc0,
+				&orc0);
+
+			TrueNextPt(orc0,
+				*edgeposx[(mostvin)%3],
+				*edgesamex[(mostvin)%3],
+				*edgeposy[(mostvin)%3],
+				*edgesamey[(mostvin)%3],
+				orc1,
+				&orc1);
+
+#endif
+			//Vec2f out1dir = sp[0]->orc - sp[1]->orc;
+			Vec2f out1dir = orc0 - orc1;
+			out1dir = out1dir / Magnitude(out1dir);
+
+			float strain1to2out2 = strain1/strain2;
+
+			if(updown)
+			{
+				if(strain2>strain1)
+					strain1to2out2*=-1;
+
+				//float force = 0.1f * strain1to2out;
+				orc0 = orc0 - out1dir * 0.1f;// * strain1to2out2;
+				orc1 = orc1 + out1dir * 0.1f;// * strain1to2out2;
+			}//reverse
+			else
+			{
+				if(strain2>strain1)
+					strain1to2out2*=-1;
+
+				orc0 = orc0 + out1dir * 0.1f;// * strain1to2out2;
+				orc1 = orc1 - out1dir * 0.1f;// * strain1to2out2;
+			}
+
+			ClassifyEdge(orc0, orc1,
+				edgeposx[mostvin],
+				edgeplaced[mostvin],
+				edgeposy[mostvin]);
+
+			//
+		//	Vec2f orc0 = sp[mostvin]->orc;
+		//	Vec2f orc1 = sp[(mostvin+1)%3]->orc;
+
+			UpdEdges(surf,
+				mosttet->neib[mostvin],
+				mosttet->neib[(mostvin+1)%3],
+				mosttet->edgeposx[mostvin],
+				mosttet->edgeposy[mostvin],
+				mosttet);
+			//////////////
+
+			ClassifyEdge(orc1, sp[(mostvin+2)%3]->orc,
+				edgeposx[(mostvin+1)%3],
+				edgeplaced[(mostvin+1)%3],
+				edgeposy[(mostvin+1)%3]);
+			
+			UpdEdges(surf,
+				mosttet->neib[(mostvin+1)%3],
+				mosttet->neib[(mostvin+2)%3],
+				mosttet->edgeposx[(mostvin+1)%3],
+				mosttet->edgeposy[(mostvin+1)%3],
+				mosttet);
+			//////////////
+			
+			ClassifyEdge(sp[(mostvin+2)%3]->orc, orc0,
+				edgeposx[(mostvin+2)%3],
+				edgeplaced[(mostvin+2)%3],
+				edgeposy[(mostvin+2)%3]);
+			
+			UpdEdges(surf,
+				mosttet->neib[(mostvin+2)%3],
+				mosttet->neib[(mostvin+3)%3],
+				mosttet->edgeposx[(mostvin+2)%3],
+				mosttet->edgeposy[(mostvin+2)%3],
+				mosttet);
+			//////////////
+
+			if(_isnan(orc0.x))
+				orc0.x = 0;
+			if(_isnan(orc0.y))
+				orc0.y = 0;
+			if(_isnan(orc1.x))
+				orc1.x = 0;
+			if(_isnan(orc1.y))
+				orc1.y = 0;
+
+#if 011
+
+			if(orc0.x < 0)
+				orc0.x += 1;
+			if(orc0.y < 0)
+				orc0.y += 1;
+			if(orc0.x > 1)
+				orc0.x -= 1;
+			if(orc0.y > 1)
+				orc0.y -= 1;
+			
+			if(orc1.x < 0)
+				orc1.x += 1;
+			if(orc1.y < 0)
+				orc1.y += 1;
+			if(orc1.x > 1)
+				orc1.x -= 1;
+			if(orc1.y > 1)
+				orc1.y -= 1;
+#endif
+
+			sp[mostvin]->orc = orc0;
+			sp[(mostvin+1)%3]->orc = orc1;
+
+			UpdStrains(&tocheck);
+
+			tries++;
+			//if(tries < BIGTEX*BIGTEX*BIGTEX)
+			if(tries < surf->tets2.size()*3*20)
+				goto again;
 		}
-
-		Vec2f orc0 = orc0a[o0n];
-		Vec2f orc1 = orc1a[o1n];
-
-		//Vec2f out1dir = sp[0]->orc - sp[1]->orc;
-		Vec2f out1dir = orc0 - orc1;
-		
-		orc0 = orc0 + out1dir * 0.1f * strain1to2out;
-		orc1 = orc1 - out1dir * 0.1f / strain1to2out;
-
-		if(_isnan(orc1.x))
-			orc1.x = 0;
-		if(_isnan(orc1.y))
-			orc1.y = 0;
-
-		if(orc0.x < 0)
-			orc0.x += 1;
-		if(orc0.y < 0)
-			orc0.y += 1;
-		if(orc0.x > 1)
-			orc0.x -= 1;
-		if(orc0.y > 1)
-			orc0.y -= 1;
-		
-		if(orc1.x < 0)
-			orc1.x += 1;
-		if(orc1.y < 0)
-			orc1.y += 1;
-		if(orc1.x > 1)
-			orc1.x -= 1;
-		if(orc1.y > 1)
-			orc1.y -= 1;
-
-		sp[0]->orc = orc0;
-		sp[1]->orc = orc1;
-
-		UpdStrains(&tocheck);
-
-		tries++;
-		//if(tries < BIGTEX*BIGTEX*BIGTEX)
-		if(tries < surf->tets2.size()*3*2)
-			goto again;
 	}
 
 	return true;
@@ -3158,6 +4474,43 @@ again:
 }
 #endif
 
+//is the angle with the edge p1-p2 facing correctly upward (clockwise)?
+bool EdgeFront(Surf *surf, SurfPt* p1, SurfPt *p2, Tet *not)
+{
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		tit++)
+	{
+		Tet *tet = *tit;
+
+		if(tet == not)
+			continue;
+	
+		bool got[2] = {false,false};
+
+		for(int v=0; v<3; v++)
+		{
+			if(tet->neib[v] == p1)
+				got[0] = true;
+			if(tet->neib[v] == p2)
+				got[1] = true;
+		}
+
+		if(got[0] && got[1])
+		{
+			Vec3f ornorm = OrNorm(tet->neib,
+				tet->edgeposx,
+				tet->edgeposy,
+				tet->edgeplaced,
+				tet->edgeplaced);
+
+			return (ornorm.z<0);
+		}
+	}
+
+	return false;
+}
+
 float sign (Vec2f p1, Vec2f p2, Vec2f p3)
 {
     return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
@@ -3174,15 +4527,30 @@ bool PointInTriangle (Vec2f pt, Vec2f v1, Vec2f v2, Vec2f v3)
     return ((b1 == b2) && (b2 == b3));
 }
 
-void OutTex(Surf *surf, LoadedTex *out)
+void OutTex(Surf *surf, LoadedTex out[6])
 {
-
+	int ti=0;
 	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
 		tit!=surf->tets2.end();
 		++tit)
 	{
+		ti++;
+		LoadedTex out1;
+		LoadedTex out2;
+		LoadedTex out3;
+		LoadedTex out4;
+		LoadedTex out5;
+		AllocTex(&out1, BIGTEX, BIGTEX, 3);
+		AllocTex(&out2, BIGTEX, BIGTEX, 3);
+		AllocTex(&out3, BIGTEX, BIGTEX, 3);
+		AllocTex(&out4, BIGTEX, BIGTEX, 3);
+		AllocTex(&out5, BIGTEX, BIGTEX, 3);
+
 		Tet* tet = *tit;
 		Texture *diff = tet->tex;
+
+		if(!tet->placed)
+			continue;
 
 		Vec3f tri3[3];
 		tri3[0] = tet->neib[0]->pos;
@@ -3224,7 +4592,7 @@ void OutTex(Surf *surf, LoadedTex *out)
 			tri[1].y += BIGTEX;
 			tri[2].y += BIGTEX;
 		}
-#else
+#elif 0
 		SurfPt *sp[3];
 		sp[0] = tet->neib[0];
 		sp[1] = tet->neib[1];
@@ -3270,6 +4638,17 @@ void OutTex(Surf *surf, LoadedTex *out)
 					float odt1 = Magnitude(orc1a[o1i] - orc2a[o2i]);
 					float odt2 = Magnitude(orc2a[o2i] - orc0a[o0i]);
 
+					Vec3f tri31[3];
+
+					tri31[0] = Vec3f(orc0a[o0i].x, orc0a[o0i].y, 0);
+					tri31[1] = Vec3f(orc1a[o1i].x, orc1a[o1i].y, 0);
+					tri31[2] = Vec3f(orc2a[o2i].x, orc2a[o2i].y, 0);
+
+					Vec3f norm = Normal(tri31);
+
+					if(norm.z >= 0)
+						continue;
+
 					if(odt0 < od0 || odt1 < od1 || odt2 < od2)
 					{
 						od0 = odt0;
@@ -3284,9 +4663,9 @@ void OutTex(Surf *surf, LoadedTex *out)
 		}
 
 		Vec2f orcf[3];
-		orcf[0] = orc0a[o0n] * BIGTEX;
-		orcf[1] = orc1a[o1n] * BIGTEX;
-		orcf[2] = orc2a[o2n] * BIGTEX;
+		orcf[0] = orc0a[o0n] * 1;
+		orcf[1] = orc1a[o1n] * 1;
+		orcf[2] = orc2a[o2n] * 1;
 
 					fprintf(g_applog, "orcf[0,1,2].xy=(%d,%d,%d)=\r\n(%f,%f)\r\n(%f,%f)\r\n(%f,%f)\r\n",
 						o0n,o1n,o2n,
@@ -3295,40 +4674,56 @@ void OutTex(Surf *surf, LoadedTex *out)
 						orcf[2].x,orcf[2].y);
 					fflush(g_applog);
 
-		while(orcf[0].x >= BIGTEX &&
-			orcf[1].x >= BIGTEX &&
-			orcf[2].x >= BIGTEX)
+#if 01
+		while(orcf[0].x >= 1 &&
+			orcf[1].x >= 1 &&
+			orcf[2].x >= 1)
 		{
-			orcf[0].x -= BIGTEX;
-			orcf[1].x -= BIGTEX;
-			orcf[2].x -= BIGTEX;
+			orcf[0].x -= 1;
+			orcf[1].x -= 1;
+			orcf[2].x -= 1;
 		}
-		while(orcf[0].y >= BIGTEX &&
-			orcf[1].y >= BIGTEX &&
-			orcf[2].y >= BIGTEX)
+		while(orcf[0].y >= 1 &&
+			orcf[1].y >= 1 &&
+			orcf[2].y >= 1)
 		{
-			orcf[0].y -= BIGTEX;
-			orcf[1].y -= BIGTEX;
-			orcf[2].y -= BIGTEX;
+			orcf[0].y -= 1;
+			orcf[1].y -= 1;
+			orcf[2].y -= 1;
 		}
 
 		while(orcf[0].x < 0 ||
 			orcf[1].x < 0 ||
 			orcf[2].x < 0)
 		{
-			orcf[0].x += BIGTEX;
-			orcf[1].x += BIGTEX;
-			orcf[2].x += BIGTEX;
+			orcf[0].x += 1;
+			orcf[1].x += 1;
+			orcf[2].x += 1;
 		}
 		while(orcf[0].y < 0 ||
 			orcf[1].y < 0 ||
 			orcf[2].y < 0)
 		{
-			orcf[0].y += BIGTEX;
-			orcf[1].y += BIGTEX;
-			orcf[2].y += BIGTEX;
+			orcf[0].y += 1;
+			orcf[1].y += 1;
+			orcf[2].y += 1;
 		}
 
+#if 0
+		for(int v=0; v<3; v++)
+		{
+			while(orcf[v].x >= 1)
+			{
+				orcf[v].x -= 1;
+			}
+			
+			while(orcf[v].x < 0)
+			{
+				orcf[v].x += 1;
+			}
+		}
+#endif
+#endif
 		
 					fprintf(g_applog, "orcf[0,1,2].xy=(%f,%f)\r\n(%f,%f)\r\n(%f,%f)\r\n",
 						orcf[0].x,orcf[0].y,
@@ -3336,6 +4731,70 @@ void OutTex(Surf *surf, LoadedTex *out)
 						orcf[2].x,orcf[2].y);
 					fflush(g_applog);
 #endif
+
+		SurfPt *sp[3];
+		sp[0] = tet->neib[0];
+		sp[1] = tet->neib[1];
+		sp[2] = tet->neib[2];
+
+		Vec2f orcf[3];
+
+		orcf[0] = sp[0]->orc;
+		orcf[1] = sp[1]->orc;
+		orcf[2] = sp[2]->orc;
+
+		for(int v=0; v<3; ++v)
+		{
+			fprintf(g_applog, "start pl%d,%d tet%d v%d = %f,%f  edge(pos)(x,y),(same)(x,y)=%f,%f,%d,%d\r\n",
+				(int)tet->neib[v]->placed,
+				(int)tet->placed,
+				ti,
+				v,
+				orcf[v].x,
+				orcf[v].y,
+				(float)(tet->edgeposx[v]),
+				(float)(tet->edgeposy[v]),
+				(int)(tet->edgeplaced[v]),
+				(int)(tet->edgeplaced[v]));
+			fflush(g_applog);
+		}
+
+		for(int v=0; v<3; v++)
+		{
+			TrueNextPt(orcf[v%3],
+				tet->edgeposx[v%3],
+				0,
+				tet->edgeposy[v%3],
+				0,
+				orcf[(v+1)%3], &orcf[(v+1)%3]);
+			
+		//	for(int v=0; v<3; ++v)
+			{
+				fprintf(g_applog, "mid tet%d v%d = %f,%f  edge(pos)(x,y),(same)(x,y)=%f,%f,%d,%d\r\n",
+					ti,
+					v,
+					orcf[v].x,
+					orcf[v].y,
+				(float)(tet->edgeposx[v]),
+				(float)(tet->edgeposy[v]),
+				(int)(tet->edgeplaced[v]),
+				(int)(tet->edgeplaced[v]));
+				fflush(g_applog);
+			}
+		}
+		for(int v=0; v<3; ++v)
+		{
+			fprintf(g_applog, "final tet%d v%d = %f,%f  edge(pos)(x,y),(same)(x,y)=%f,%f,%d,%d\r\n",
+				ti,
+				v,
+				orcf[v].x,
+				orcf[v].y,
+				(float)(tet->edgeposx[v]),
+				(float)(tet->edgeposy[v]),
+				(int)(tet->edgeplaced[v]),
+				(int)(tet->edgeplaced[v]));
+			fflush(g_applog);
+		}
 
 		//float fminz3 = fmin(tri3[0].z, fmin(tri3[1].z, tri3[2].z));
 		//float fmaxz3 = fmax(tri3[0].z, fmax(tri3[1].z, tri3[2].z));
@@ -3357,39 +4816,64 @@ void OutTex(Surf *surf, LoadedTex *out)
 		int iminy = (BIGTEX + fminy)%BIGTEX;
 		int imaxy = (BIGTEX + fmaxy)%BIGTEX;
 #else
-		int iminxout = (int)(fminxout);
-		int imaxxout = (int)(fmaxxout);
-		int iminyout = (int)(fminyout);
-		int imaxyout = (int)(fmaxyout);
+		//int iminxout = (int)(fminxout);
+		//int imaxxout = (int)(fmaxxout);
+		//int iminyout = (int)(fminyout);
+		//int imaxyout = (int)(fmaxyout);
 #if 0
-		while(iminxout < 0)
-			iminxout += BIGTEX;
-		while(iminyout < 0)
-			iminyout += BIGTEX;
-		while(imaxxout < iminxout)
-			imaxxout += BIGTEX;
-		while(imaxyout < iminyout)
-			imaxyout += BIGTEX;
+		while(fminxout < 0)
+			fminxout += 1;
+		while(fminyout < 0)
+			fminyout += 1;
+		while(fmaxxout < fminxout)
+			fmaxxout += 1;
+		while(fmaxyout < fminyout)
+			fmaxyout += 1;
 #endif
 #endif
 
-		for(int pxout=iminxout; pxout<imaxxout+1 && pxout<iminxout+BIGTEX; ++pxout)
+		static int c=0;
+		++c;
+
+		fprintf(g_applog, "%d/%d\r\n", c, (int)surf->tets2.size());
+		fflush(g_applog);
+
+		float xch = 1.0f/BIGTEX;
+		float ych = 1.0f/BIGTEX;
+
+		Vec3f ornorm = OrNorm(tet->neib,
+			tet->edgeposx,
+			tet->edgeposy,
+			tet->edgeplaced,
+			tet->edgeplaced);
+
+		if(ornorm.z >= 0)
 		{
-			for(int pyout=iminyout; pyout<imaxyout+1 && pyout<iminyout+BIGTEX; ++pyout)
+			//xch *= -1;
+			//ych *= -1;
+
+			//pxout=fmaxxout;
+			//pyout=fmaxyout;
+		}
+		
+		for(float pxout=fminxout; pxout <= fmaxxout /* && pxout <= fminxout+1 */; pxout+=xch)
+		{
+
+			for(float pyout=fminyout; pyout <= fmaxyout /* && pyout <= fminyout+1 */; pyout+=ych)
 			{
 				Vec2f pout = Vec2f(pxout,pyout);
-				fprintf(g_applog, "pout=%f,%f\r\n", pout.x, pout.y);
-				fflush(g_applog);
+			//	fprintf(g_applog, "pout=%f,%f\r\n", pout.x, pout.y);
+			//	fflush(g_applog);
 			//	Vec3f ir = 
 				//if(!PointInTriangle(pout, tri[0], tri[1], tri[2]))
-				if(!PointInTriangle(pout, orcf[0], orcf[1], orcf[2]))
+				//if(!PointInTriangle(pout, orcf[0], orcf[1], orcf[2]))
 				{
-					fprintf(g_applog, "out\r\n");
-					fflush(g_applog);
-					continue;
+					//fprintf(g_applog, "out\r\n");
+					//fflush(g_applog);
+				//	continue;
 				}
-					fprintf(g_applog, "in\r\n");
-					fflush(g_applog);
+					//fprintf(g_applog, "in\r\n");
+					//fflush(g_applog);
 
 				LoadedTex* difpx = diff->pixels;
 
@@ -3399,7 +4883,7 @@ void OutTex(Surf *surf, LoadedTex *out)
 				//Vec2f v0 = tri[1] - tri[0], 
 				//	v1 = tri[2] - tri[0],
 				//	v2 = pout - tri[0];
-				Vec2f v0 = orcf[2] - orcf[0],
+				Vec2f v0 = orcf[1] - orcf[0],
 					v1 = orcf[2] - orcf[0],
 					v2 = pout - orcf[0];
 
@@ -3419,9 +4903,15 @@ void OutTex(Surf *surf, LoadedTex *out)
 				double fV = ( f00 * f12 - f01 * f02 ) * invDenom;
 
 				// Check if point is in triangle
-				///if( ( fU >= 0 ) && ( fV >= 0 ) && ( fU + fV <= 1 ) )
-				///	goto dotex;
-				//	return true;
+				if( ( fU >= 0.0 ) && ( fV >= 0.0 ) && ( fU + fV <= 1.0 ) )
+					goto dotex;
+				continue;
+
+dotex:
+
+				Vec3f ff3 = tri3[0] * (1 - fU - fV) + 
+					tri3[1] * (fU) + 
+					tri3[2] * (fV);
 
 				float ffU = txc[0].x * (1 - fU - fV) + 
 					txc[1].x * (fU) + 
@@ -3431,8 +4921,26 @@ void OutTex(Surf *surf, LoadedTex *out)
 					txc[1].y * (fU) + 
 					txc[2].y * (fV);
 
+				Vec4f color;
+
+				Vec4f red = Vec4f(1,0,0,1);
+				Vec4f green = Vec4f(0,1,0,1);
+				Vec4f blue = Vec4f(0,0,1,1);
+				
+				color = red * (1 - fU - fV) + 
+					green * (fU) + 
+					blue * (fV);
+
+				ffU = ffU - (int)ffU;
+				ffV = ffV - (int)ffV;
+
 				int intx = ffU * difpx->sizex;
 				int inty = ffV * difpx->sizey;
+
+				if(intx < 0)
+					intx = (intx%difpx->sizex);
+				if(inty < 0)
+					inty = (inty%difpx->sizey);
 
 				while(intx < 0)
 					intx += difpx->sizex;
@@ -3452,8 +4960,8 @@ void OutTex(Surf *surf, LoadedTex *out)
 				rgba.z = difpx->data[ pxin * difpx->channels + 2 ];
 				rgba.w = 255;
 
-				int pxout2 = pxout;
-				int pyout2 = pyout;
+				int pxout2 = pxout * out->sizex;
+				int pyout2 = pyout * out->sizey;
 				
 				while(pxout2 < 0)
 					pxout2 += out->sizex;
@@ -3464,11 +4972,86 @@ void OutTex(Surf *surf, LoadedTex *out)
 				while(pyout2 >= out->sizey)
 					pyout2 %= out->sizey;
 
-				out->data[ out->channels * ( pxout2 + pyout2 * out->sizex ) + 0 ] = (int)rgba.x;
-				out->data[ out->channels * ( pxout2 + pyout2 * out->sizex ) + 1 ] = (int)rgba.y;
-				out->data[ out->channels * ( pxout2 + pyout2 * out->sizex ) + 2 ] = (int)rgba.z;
+				rgba = color;
+
+				out[0].data[ out[0].channels * ( pxout2 + pyout2 * BIGTEX ) + 0 ] = (int)rgba.x;
+				out[0].data[ out[0].channels * ( pxout2 + pyout2 * BIGTEX ) + 1 ] = (int)rgba.y;
+				out[0].data[ out[0].channels * ( pxout2 + pyout2 * BIGTEX ) + 2 ] = (int)rgba.z;
+
+				LoadedTex *depthout = &out[1];
+				LoadedTex *xout = &out[2];
+				LoadedTex *yout = &out[3];
+				LoadedTex *zout = &out[4];
+
+				//unsigned short depthi = (unsigned short)Magnitude(ff3);
+				//unsigned char depthb[2];
+				//depthb[0] = *(((unsigned char*)&depthi)+0);
+				//depthb[1] = *(((unsigned char*)&depthi)+1);
+
+				*((unsigned short*)&depthout->data[ depthout->channels * ( pxout2 + pyout2 * depthout->sizex ) + 0 ]) =
+					(unsigned short)Magnitude(ff3);
+				depthout->data[ depthout->channels * ( pxout2 + pyout2 * depthout->sizex ) + 2 ] = (int)0;
+
+				//*((unsigned short*)&out1.data[ depthout->channels * ( pxout2 + pyout2 * depthout->sizex ) + 0 ]) =
+				//	(unsigned short)Magnitude(ff3);
+				//out1.data[ out1.channels * ( pxout2 + pyout2 * depthout->sizex ) + 2 ] = (int)0;
+				out1.data[ out1.channels * ( pxout2 + pyout2 * depthout->sizex ) + 0 ] = (int)(color.x*255);
+				out1.data[ out1.channels * ( pxout2 + pyout2 * depthout->sizex ) + 1 ] = (int)(color.y*255);
+				out1.data[ out1.channels * ( pxout2 + pyout2 * depthout->sizex ) + 2 ] = (int)(color.z*255);
+
+
+				*((unsigned short*)&xout->data[ out->channels * ( pxout2 + pyout2 * out->sizex ) + 0 ]) =
+					(unsigned short)ff3.x + 30000;
+				xout->data[ out->channels * ( pxout2 + pyout2 * out->sizex ) + 2 ] = (int)0;
+
+				*((unsigned short*)&out2.data[ depthout->channels * ( pxout2 + pyout2 * depthout->sizex ) + 0 ]) =
+					(unsigned short)ff3.x + 30000;
+				out2.data[ out1.channels * ( pxout2 + pyout2 * depthout->sizex ) + 2 ] = (int)0;
+
+				
+
+				*((unsigned short*)&yout->data[ out->channels * ( pxout2 + pyout2 * out->sizex ) + 0 ]) =
+					(unsigned short)ff3.y + 30000;
+				yout->data[ out->channels * ( pxout2 + pyout2 * out->sizex ) + 2 ] = (int)0;
+
+				*((unsigned short*)&out3.data[ depthout->channels * ( pxout2 + pyout2 * depthout->sizex ) + 0 ]) =
+					(unsigned short)ff3.y + 30000;
+				out3.data[ out1.channels * ( pxout2 + pyout2 * depthout->sizex ) + 2 ] = (int)0;
+
+				
+				*((unsigned short*)&zout->data[ out->channels * ( pxout2 + pyout2 * out->sizex ) + 0 ]) =
+					(unsigned short)ff3.z + 30000;
+				zout->data[ out->channels * ( pxout2 + pyout2 * out->sizex ) + 2 ] = (int)0;
+				
+				*((unsigned short*)&out4.data[ depthout->channels * ( pxout2 + pyout2 * depthout->sizex ) + 0 ]) =
+					(unsigned short)ff3.z + 30000;
+				out4.data[ out1.channels * ( pxout2 + pyout2 * depthout->sizex ) + 2 ] = (int)0;
 			}
 		}
+
+		char full[SPE_MAX_PATH+1];
+
+		char file[32];
+
+		sprintf(file, "renders/tet%d_1.png", ti);
+		FullPath(file, full);
+		SavePNG2(full, &out1);
+		
+		sprintf(file, "renders/tet%d_2.png", ti);
+		FullPath(file, full);
+		//SavePNG2(full, &out2);
+		
+		sprintf(file, "renders/tet%d_3.png", ti);
+		FullPath(file, full);
+		//SavePNG2(full, &out3);
+		
+		sprintf(file, "renders/tet%d_4.png", ti);
+		FullPath(file, full);
+		//SavePNG2(full, &out4);
+		
+		sprintf(file, "renders/tet%d_5.png", ti);
+		FullPath(file, full);
+		//SavePNG2(full, &out5);
 	}
 }
 
@@ -3491,8 +5074,8 @@ void OrRender(int rendstage, Vec3f offset)
 
 	do
 	{
-		if(!ClipTris(&surf, &fullsurf))
-			break;
+	//	if(!ClipTris(&surf, &fullsurf))
+	//		break;
 		Test(&surf);
 	fprintf(g_applog, "\r\n333\r\n");
 	fflush(g_applog);
@@ -3500,29 +5083,45 @@ void OrRender(int rendstage, Vec3f offset)
 			break;
 	fprintf(g_applog, "\r\n444\r\n");
 	fflush(g_applog);
-		if(!RemFloaters(&surf, &fullsurf))
-			break;
+	//	if(!RemFloaters(&surf, &fullsurf))
+	//		break;
 	fprintf(g_applog, "\r\n555\r\n");
 	fflush(g_applog);
-		if(MarkVis(&surf, &fullsurf))
-			break;
+	//	if(MarkVis(&surf, &fullsurf))
+	//		break;
 	fprintf(g_applog, "\r\n666\r\n");
 	fflush(g_applog);
-		if(!RemHidden(&surf, &fullsurf))
-			break;
+	//	if(!RemHidden(&surf, &fullsurf))
+	//		break;
 	fprintf(g_applog, "\r\n777\r\n");
 	fflush(g_applog);
-		Vec2f vmin(0.0f,0.0f), vmax(1,1);
-		if(!GrowMapMesh(&surf, &fullsurf, &vmin, &vmax))
-			break;
+		Vec2f vmin(0.5f,0.5f), vmax(0.5,0.5);
+	//	if(!SplitEdges(&surf, &fullsurf, &vmin, &vmax))
+	//		break;
+		//Test2(&surf);
 	fprintf(g_applog, "\r\n888111\r\n");
 	fflush(g_applog);
-		if(!SplitEdges(&surf, &fullsurf, &vmin, &vmax))
+		if(!GrowMapMesh(&surf, &fullsurf, &vmin, &vmax))
 			break;
+
+	LoadedTex outtex[6];
+	for(int i=0; i<6; i++)
+		AllocTex(&outtex[i], BIGTEX, BIGTEX, 3);
+	OutTex(&surf, outtex);
+	for(int t=0; t<6; t++)
+	{
+		char outpath[SPE_MAX_PATH+1];
+		char file[32];
+		sprintf(file, "renders/outa%d.png", t);
+		FullPath(file, outpath);
+
+		SavePNG2(outpath, &outtex[t]);
+	}
+
 	fprintf(g_applog, "\r\n888\r\n");
 	fflush(g_applog);
-		if(!BalanceMesh(&surf, &fullsurf, &vmin, &vmax))
-			break;
+		//if(!BalanceMesh(&surf, &fullsurf, &vmin, &vmax))
+		//	break;
 	fprintf(g_applog, "\r\n999\r\n");
 	fflush(g_applog);
 		break;
@@ -3531,16 +5130,21 @@ void OrRender(int rendstage, Vec3f offset)
 	fprintf(g_applog, "\r\n000\r\n");
 	fflush(g_applog);
 
-	LoadedTex outtex;
-	AllocTex(&outtex, BIGTEX, BIGTEX, 3);
+	LoadedTex outtex[6];
+	for(int i=0; i<6; i++)
+		AllocTex(&outtex[i], BIGTEX, BIGTEX, 3);
 
-	OutTex(&surf, &outtex);
+	OutTex(&surf, outtex);
 
-	char outpath[SPE_MAX_PATH+1];
-	FullPath("renders/out.png", outpath);
+	for(int t=0; t<6; t++)
+	{
+		char outpath[SPE_MAX_PATH+1];
+		char file[32];
+		sprintf(file, "renders/out%d.png", t);
+		FullPath(file, outpath);
 
-	SavePNG2(outpath, &outtex);
-
+		SavePNG2(outpath, &outtex[t]);
+	}
 	InfoMess("Done", "Done rendering orientability map");
 
 	GUI* gui = &g_gui;

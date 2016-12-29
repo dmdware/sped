@@ -5,6 +5,7 @@
 
 #include "../platform.h"
 #include "../math/vec3f.h"
+#include "../math/vec2f.h"
 #include "../math/plane3f.h"
 
 extern int g_rendlon;
@@ -24,6 +25,21 @@ void SepPt(Tet *tet,
 		   std::list<Tet*>* checkremove);
 bool UniqueTet(Tet *a, Tet *b);
 bool Test(Surf *surf);
+Vec3f OrNorm(SurfPt *fatt[3], float *edgeposx, float *edgeposy, bool *edgesamex, bool *edgesamey);
+bool EdgeFront(Surf *surf, SurfPt* p1, SurfPt *p2, Tet *not);
+void TrueNextPt(Vec2f p1orc, 
+				  float edgeposx, bool edgesamex,
+				  float edgeposy, bool edgesamey,
+				  Vec2f startorc, Vec2f* trueorc);
+void ClassifyEdge(Vec2f p1orc,
+				  Vec2f p2orc,
+				  float *edgeposx,
+				  bool *edgeplaced,
+				  float *edgeposy);
+void UpdEdges(Surf *surf, SurfPt *p1, SurfPt *p2, float edgeposx, float edgeposy,
+			  Tet* not);
+void UpdEdges2(Surf *surf, SurfPt *p1, SurfPt *p2, float* edgeposx, float* edgeposy,
+			  Tet* updtet, bool *edgeplaced);
 
 class SurfPt
 {
@@ -99,6 +115,28 @@ public:
 	//float ormaparea, drawarea;
 	float edgeorarea[3], edgedrawarea[3];
 	bool placed;
+	//bool edgeoutx[3], edgeouty[3];
+	//bool edgeposx[3];	//does x increase going from first to second point on the edge?
+	//bool edgeposy[3];	//does y increase going from first to second point on the edge?
+	float edgeposx[3];	//x offset going from first to second point on the edge
+	float edgeposy[3];	//y offset going from first to second point on the edge
+	bool edgeplaced[3];	//has this edge had offset set?
+	//bool edgesamex[3];	//does x stay same from first to second point on the edge?
+	///bool edgesamey[3];	//does y stay same from first to second point on the edge?
+
+	Tet()
+	{
+		edgeposx[0]=edgeposx[1]=edgeposx[2]=edgeposy[0]=edgeposy[1]=edgeposy[2]=0;
+		edgeplaced[0]=edgeplaced[1]=edgeplaced[2]=false;
+		////edgeoutx[0]=false;
+		////edgeoutx[1]=false;
+		////edgeoutx[2]=false;
+		//edgeoutx[3]=false;
+		/////edgeouty[0]=false;
+		/////edgeouty[1]=false;
+		////edgeouty[2]=false;
+		//edgeouty[3]=false;
+	}
 };
 
 class Surf
