@@ -215,7 +215,9 @@ bool Brush::addclipmesh(Surf *surf)
 			lastvs[2] = new SurfPt;
 			Tet* tet = new Tet();
 			
-			GenTexEq(tet, tr, txc);
+			//GenTexEq(tet, tr, txc);
+			tet->texceq[0] = s->m_tceq[0];
+			tet->texceq[1] = s->m_tceq[1];
 
 			tet->approved = false;
 			tet->hidden = false;

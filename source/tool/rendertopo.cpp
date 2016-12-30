@@ -1092,14 +1092,48 @@ void GenTexEq1(
 	float &K,
 	float &L)
 {
-	d=0;
+	d=-1.11;
+
+again:
+
+	d += 0.13f;
 
 	c = ((A*F-A*E+B*D)*d+(B*C*D-A*C*E)*a+(A*E-B*D)*L-A*F*K+B*F*J)/
 		((A*E-B*D)*I-A*F*H+B*F*G+B*F);
 
+	if(_isnan(c))
+	{
+		goto again;
+		//ErrMess("sfgsdfg", "isnan c gen");
+
+		//char mm[123];
+		//sprintf(mm, "((A*E-B*D)*I-A*F*H+B*F*G+B*F)=%f", ((A*E-B*D)*I-A*F*H+B*F*G+B*F));
+		//ErrMess(mm,mm);
+	}
+
 	b=-(A*d+(A*H-B*G-B)*c-A*K+B*J)/(A*E-B*D);
+	
+	if(_isnan(b))
+	{
+		//ErrMess("sfgsdfg", "isnan b gen");
+
+		//char mm[123];
+		//sprintf(mm, "(A*E-B*D)=%f", (A*E-B*D));
+		//ErrMess(mm,mm);
+		goto again;
+	}
 
 	a=-(d+G*c+D*b-J)/A;
+	
+	if(_isnan(a))
+	{
+		//ErrMess("sfgsdfg", "isnan a gen");
+
+		//char mm[123];
+		//sprintf(mm, "A=%f", A);
+		//ErrMess(mm,mm);
+		goto again;
+	}
 }
 
 void GenTexEq(Tet *tet, Vec3f tri[3], Vec2f txc[3])
@@ -1115,7 +1149,38 @@ void GenTexEq(Tet *tet, Vec3f tri[3], Vec2f txc[3])
 	//K = aB+bE+cH+d
 	//L = aC+bF+cI+d
 
+	for(int v1=0; v1<3; v1++)
+	{
+		for(int v2=v1+1; v2<3; v2++)
+		{
+			if(tri[v1] == tri[v2])
+				ErrMess("sfgdsg","is eq gen tri");
+		}
+	}
+
+	if(_isnan(tri[0].x))
+		ErrMess("sfgdfg","is nan gen tri 0 x");
+	if(_isnan(tri[0].y))
+		ErrMess("sfgdfg","is nan gen tri 0 y");
+	if(_isnan(tri[0].z))
+		ErrMess("sfgdfg","is nan gen tri 0 z");
+	
+	if(_isnan(tri[1].x))
+		ErrMess("sfgdfg","is nan gen tri 1 x");
+	if(_isnan(tri[1].y))
+		ErrMess("sfgdfg","is nan gen tri 1 y");
+	if(_isnan(tri[1].z))
+		ErrMess("sfgdfg","is nan gen tri 1 z");
+	
+	if(_isnan(tri[2].x))
+		ErrMess("sfgdfg","is nan gen tri 2 x");
+	if(_isnan(tri[2].y))
+		ErrMess("sfgdfg","is nan gen tri 2 y");
+	if(_isnan(tri[2].z))
+		ErrMess("sfgdfg","is nan gen tri 2 z");
+
 	//tet->texceq[0]
+#if 0
 	GenTexEq1(
 		tet->texceq[0].m_normal.x,
 		tet->texceq[0].m_normal.y,
@@ -1133,7 +1198,40 @@ void GenTexEq(Tet *tet, Vec3f tri[3], Vec2f txc[3])
 		txc[0].x,
 		txc[1].x,
 		txc[2].x);
+#endif
+	GenTexEq1(
+		tet->texceq[0].m_normal.x,
+		tet->texceq[0].m_normal.y,
+		tet->texceq[0].m_normal.z,
+		tet->texceq[0].m_d,
+		tri[2].x,
+		tri[1].x,
+		tri[0].x,
+		tri[2].y,
+		tri[1].y,
+		tri[0].y,
+		tri[2].z,
+		tri[1].z,
+		tri[0].z,
+		txc[2].x,
+		txc[1].x,
+		txc[0].x);
+
+	if(_isnan(tet->texceq[0].m_normal.x))
+	{
+		ErrMess("dfgdg","is nan gen tet->texceq[0].m_normal.x");
 	
+		char mm[123];
+		sprintf(mm, "5th=%f", tri[0].x);
+		ErrMess(mm,mm);
+	}
+	if(_isnan(tet->texceq[0].m_normal.y))
+		ErrMess("dfgdg","is nan gen tet->texceq[0].m_normal.y");
+	if(_isnan(tet->texceq[0].m_normal.z))
+		ErrMess("dfgdg","is nan gen tet->texceq[0].m_normal.z");
+	if(_isnan(tet->texceq[0].m_d))
+		ErrMess("dfgdg","is nan gen tet->texceq[0].m_d");
+#if 0
 	GenTexEq1(
 		tet->texceq[1].m_normal.x,
 		tet->texceq[1].m_normal.y,
@@ -1151,6 +1249,33 @@ void GenTexEq(Tet *tet, Vec3f tri[3], Vec2f txc[3])
 		txc[0].y,
 		txc[1].y,
 		txc[2].y);
+#endif
+	GenTexEq1(
+		tet->texceq[1].m_normal.x,
+		tet->texceq[1].m_normal.y,
+		tet->texceq[1].m_normal.z,
+		tet->texceq[1].m_d,
+		tri[2].x,
+		tri[1].x,
+		tri[0].x,
+		tri[2].y,
+		tri[1].y,
+		tri[0].y,
+		tri[2].z,
+		tri[1].z,
+		tri[0].z,
+		txc[2].y,
+		txc[1].y,
+		txc[0].y);
+
+	if(_isnan(tet->texceq[1].m_normal.x))
+		ErrMess("dfgdg","is nan gen tet->texceq[1].m_normal.x");
+	if(_isnan(tet->texceq[1].m_normal.y))
+		ErrMess("dfgdg","is nan gen tet->texceq[1].m_normal.y");
+	if(_isnan(tet->texceq[1].m_normal.z))
+		ErrMess("dfgdg","is nan gen tet->texceq[1].m_normal.z");
+	if(_isnan(tet->texceq[1].m_d))
+		ErrMess("dfgdg","is nan gen tet->texceq[1].m_d");
 
 	/*
 	c = ((A*F-A*E+B*D)*d+(B*C*D-A*C*E)*a+(A*E-B*D)*L-A*F*K+B*F*J)/
@@ -1663,7 +1788,16 @@ again:
 						mid[j] = -split.m_d;
 					else
 						mid[j] = p1->pos[j] + dot*(p2->pos[j]-p1->pos[j]);
+
+					//if(_isnan(mid[j]))
+					//	ErrMess("sfgdsfklg","nannanmidj");
 				}
+				if(_isnan(mid[0]))
+					ErrMess("sfgdsfklg","nannanmidj0");
+				if(_isnan(mid[1]))
+					ErrMess("sfgdsfklg","nannanmidj1");
+				if(_isnan(mid[2]))
+					ErrMess("sfgdsfklg","nannanmidj2");
 
 				//VectorCopy (mid, neww->points[neww->numpoints]);
 				//neww->numpoints++;
@@ -3297,8 +3431,10 @@ void TrueNextPt(Vec2f p1orc, //prev point
 				  float edgeposy, bool edgesamey,
 				  Vec2f startorc, Vec2f* trueorc)
 {
-	trueorc->x = p1orc.x += edgeposx;
-	trueorc->y = p1orc.y += edgeposy;
+	trueorc->x = startorc.x;
+	trueorc->y = startorc.y;
+	//trueorc->x = p1orc.x += edgeposx;
+	//trueorc->y = p1orc.y += edgeposy;
 
 #if 0
 	trueorc->x = startorc.x;
@@ -3744,7 +3880,7 @@ bool SplitEdge2(Surf *surf, SurfPt *epts[2])
 make triangles tesselated
 */
 bool SplitEdges(Surf *surf, Surf *fullsurf, Vec2f *vmin, Vec2f *vmax)
-{return true;
+{//return true;
 	int times = 0;
 again:
 
@@ -4527,6 +4663,325 @@ bool PointInTriangle (Vec2f pt, Vec2f v1, Vec2f v2, Vec2f v3)
     return ((b1 == b2) && (b2 == b3));
 }
 
+bool TraceRay2(Surf* surf,
+			   Vec3f line[2], 
+			  LoadedTex **retex,
+			  LoadedTex **retexs,
+			  LoadedTex **retexn,
+			  Vec2f *retexc,
+			  Vec3f *rewp, Vec3f *rerp, 
+			  Vec3f* ren,
+			  Tet **retet)
+{
+	bool re = false;
+	int nearesti = -1;
+	float nearestd = Magnitude(line[1]-line[0]);
+	char neartype = 0;
+	//Vec3f nearestv;
+	//Vec3f nearnorm;
+
+	//fprintf(g_applog, "ray%f,%f,%f->%f,%f,%f\r\n", 
+	//	line[0].x, line[0].y, line[0].z,
+	//	line[1].x, line[1].y, line[1].z);
+
+//	fprintf(g_applog, "\r\nsta\r\n");
+	
+
+//	if(line[0].y < 0 && line[0].z > 0)
+//	fprintf(g_applog, "\r\nstaaaaa\r\n");
+
+	//int ci = 0;
+
+	//Texture *retex, *retexs, *retexn;
+
+	//unsigned char pr2,pg2,pb2,pa2,
+	//	spr2,spg2,spb2,spa2,
+	//	npr2,npg2,npb2,npa2;
+
+	
+				///if(
+				//	line[0] == Vec3f(0,-30000,30000))
+				//		ErrMess("!66!244","!2443!66");
+
+//	for(std::list<ModelHolder>::iterator mit=g_modelholder.begin();
+	//	mit!=g_modelholder.end(); 
+//		++mit, ++ci)
+
+	Tet *itet = NULL;
+	Vec3f ir = line[1];
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet *tet = *tit;
+
+		Vec3f tr[3];
+		tr[0] = tet->neib[0]->wrappos;
+		tr[1] = tet->neib[1]->wrappos;
+		tr[2] = tet->neib[2]->wrappos;
+		
+		Vec3f tr2[3];
+		tr2[1] = tet->neib[0]->wrappos;
+		tr2[0] = tet->neib[1]->wrappos;
+		tr2[2] = tet->neib[2]->wrappos;
+
+		ir = line[1];
+
+		if(IntersectedPolygon(tr, line, 3, &ir))
+		{
+			goto interc;
+		}
+		if(IntersectedPolygon(tr2, line, 3, &ir))
+		{
+			goto interc;
+		}
+
+		continue;
+
+interc:
+		re = true;
+		line[1] = ir;
+		itet = tet;
+	}
+
+	if(itet)
+	{
+		Vec3f tr[3];
+		tr[0] = itet->neib[0]->wrappos;
+		tr[1] = itet->neib[1]->wrappos;
+		tr[2] = itet->neib[2]->wrappos;
+		Vec3f rtr[3];
+		rtr[0] = itet->neib[0]->pos;
+		rtr[1] = itet->neib[1]->pos;
+		rtr[2] = itet->neib[2]->pos;
+
+		Vec2f txc[3];
+
+		for(int v=0; v<3; v++)
+		{
+			txc[v].x = 
+				itet->neib[v]->pos.x * itet->texceq[0].m_normal.x +
+				itet->neib[v]->pos.y * itet->texceq[0].m_normal.y +
+				itet->neib[v]->pos.z * itet->texceq[0].m_normal.z +
+				itet->texceq[0].m_d;
+			
+			txc[v].y = 
+				itet->neib[v]->pos.x * itet->texceq[1].m_normal.x +
+				itet->neib[v]->pos.y * itet->texceq[1].m_normal.y +
+				itet->neib[v]->pos.z * itet->texceq[1].m_normal.z +
+				itet->texceq[1].m_d;
+
+			if(_isnan(itet->neib[v]->pos.x))
+				ErrMess("sfgdfg","is nan itet->neib[v]->pos.x");
+			if(_isnan(itet->neib[v]->pos.y))
+				ErrMess("sfgdfg","is nan itet->neib[v]->pos.y");
+			if(_isnan(itet->neib[v]->pos.z))
+				ErrMess("sfgdfg","is nan itet->neib[v]->pos.z");
+
+			if(_isnan(itet->texceq[0].m_normal.x))
+				ErrMess("dsfgdfg", "itet->texceq[0].m_normal.x");
+			if(_isnan(itet->texceq[0].m_normal.y))
+				ErrMess("dsfgdfg", "itet->texceq[0].m_normal.y");
+			if(_isnan(itet->texceq[0].m_normal.z))
+				ErrMess("dsfgdfg", "itet->texceq[0].m_normal.z");
+			if(_isnan(itet->texceq[0].m_d))
+				ErrMess("dsfgdfg", "itet->texceq[0].m_d");
+
+			if(_isnan(itet->texceq[1].m_normal.x))
+				ErrMess("dsfgdfg", "itet->texceq[1].m_normal.x");
+			if(_isnan(itet->texceq[1].m_normal.y))
+				ErrMess("dsfgdfg", "itet->texceq[1].m_normal.y");
+			if(_isnan(itet->texceq[1].m_normal.z))
+				ErrMess("dsfgdfg", "itet->texceq[1].m_normal.z");
+			if(_isnan(itet->texceq[1].m_d))
+				ErrMess("dsfgdfg", "itet->texceq[1].m_d");
+
+			if(_isnan(txc[v].x))
+				ErrMess("sgfs","isnan txc v x");
+			if(_isnan(txc[v].y))
+				ErrMess("sgfs","isnan txc v y");
+		}
+
+		Vec3f v0 = tr[1] - tr[0],
+			v1 = tr[2] - tr[0],
+			v2 = ir - tr[0];
+
+		// do bounds test for each position
+		double f00 = Dot( v0, v0 );
+		double f01 = Dot( v0, v1 );
+		double f11 = Dot( v1, v1 );
+
+		double f02 = Dot( v0, v2 );
+		double f12 = Dot( v1, v2 );
+
+		// Compute barycentric coordinates
+		double invDenom = 1 / ( f00 * f11 - f01 * f01 );
+		if(_isnan(invDenom))
+			invDenom = 1;
+		double fU = ( f11 * f02 - f01 * f12 ) * invDenom;
+		double fV = ( f00 * f12 - f01 * f02 ) * invDenom;
+
+		// Check if point is in triangle
+		//if( ( fU >= 0.0 ) && ( fV >= 0.0 ) && ( fU + fV <= 1.0 ) )
+		//	goto dotex;
+		//continue;
+
+//dotex:
+
+		Vec2f txcf = txc[0] * (1 - fU - fV) + 
+			txc[1] * (fU) + 
+			txc[2] * (fV);
+
+		if(_isnan(fU))
+			ErrMess("sgfdfg","fUnandfdfg");
+		if(_isnan(fV))
+			ErrMess("sgfdfg","fVnandfdfg");
+
+		if(_isnan(txc[0].x))
+			ErrMess("dfdfgsd","nantxcf.x[0]1");
+		if(_isnan(txc[0].y))
+			ErrMess("dfdfgsd","nantxcf.y[0]1");
+		
+		if(_isnan(txc[1].x))
+			ErrMess("dfdfgsd","nantxcf.x[1]1");
+		if(_isnan(txc[1].y))
+			ErrMess("dfdfgsd","nantxcf.y[1]1");
+		
+		if(_isnan(txc[2].x))
+			ErrMess("dfdfgsd","nantxcf.x[2]1");
+		if(_isnan(txc[2].y))
+			ErrMess("dfdfgsd","nantxcf.y[2]1");
+
+		LoadedTex *diff = itet->tex->pixels;
+
+		*retex = diff;
+		*rewp = ir;
+		*rerp = rtr[0] * (1 - fU - fV) + 
+			rtr[1] * (fU) + 
+			rtr[2] * (fV);
+		*retet = itet;
+
+		if(_isnan(txcf.x))
+			ErrMess("dfdfgsd","nantxcf.x1");
+		if(_isnan(txcf.y))
+			ErrMess("dfdfgsd","nantxcf.y1");
+
+		if(txcf.x >= 1)
+			txcf.x -= 1;
+		if(txcf.y >= 1)
+			txcf.y -= 1;
+
+		if(txcf.x < 0)
+			txcf.x += 1;
+		if(txcf.y < 0)
+			txcf.y += 1;
+
+		if(_isnan(txcf.x))
+			ErrMess("dfdfgsd","nantxcf.x");
+		if(_isnan(txcf.y))
+			ErrMess("dfdfgsd","nantxcf.y");
+
+		*retexc = txcf;
+	}
+
+	return re;
+}
+
+
+//bounce rays with "globe" to get intersections and map those by long,lat to orientability map
+void OutTex2(Surf *surf, LoadedTex* out)
+{
+	for(int outpx=0; outpx<BIGTEX; outpx++)
+	{
+		for(int outpy=0; outpy<BIGTEX; outpy++)
+		{
+			Vec3f line[2];
+
+			line[1] = Vec3f(0,0,0);
+			line[0] = Vec3f(30000,0,0);
+
+			float lat = M_PI*
+				(float)outpy/(float)BIGTEX;
+			line[0] = Rotate(line[0], lat, 0, 0, 1);
+			//fprintf(g_applog, "prepos3 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
+			float yaw = M_PI*
+				(float)2.0f*(float)outpx/(float)BIGTEX;
+			line[0] = Rotate(line[0], -yaw, 0, 1, 0);
+
+			LoadedTex *tex=NULL, *ntex=NULL, *stex=NULL;
+			Vec2f texc;
+			Vec3f wp, rp, n;
+			Tet *tet;
+
+			if(TraceRay2(surf,
+				line,
+				&tex,
+				&stex,
+				&ntex,
+				&texc,
+				&wp,&rp,
+				&n,
+				&tet))
+			{
+				unsigned char c[4];
+
+				//texc.x = texc.x - (int)texc.x;
+				//texc.y = texc.y - (int)texc.y;
+
+				int intx = texc.x * tex->sizex;
+				int inty = texc.y * tex->sizey;
+
+				while(intx < 0)
+					intx += tex->sizex;
+				while(inty < 0)
+					inty += tex->sizey;
+				while(intx >= tex->sizex)
+					intx -= tex->sizex;
+				while(inty >= tex->sizey)
+					inty -= tex->sizey;
+
+				c[0] = tex->data[ tex->channels * (intx + inty * tex->sizex) + 0 ];
+				c[1] = tex->data[ tex->channels * (intx + inty * tex->sizex) + 1 ];
+				c[2] = tex->data[ tex->channels * (intx + inty * tex->sizex) + 2 ];
+
+				unsigned short vx = 30000 + rp.x;
+				unsigned short vy = 30000 + rp.y;
+				unsigned short vz = 30000 + rp.z;
+
+				out[0].data[ 3 * (outpx + outpy * out[0].sizex) + 0 ] = c[0];
+				out[0].data[ 3 * (outpx + outpy * out[0].sizex) + 1 ] = c[1];
+				out[0].data[ 3 * (outpx + outpy * out[0].sizex) + 2 ] = c[2];
+
+				unsigned short vd = 30000 - Magnitude(rp);
+
+				
+				*((unsigned short*)&(out[1].data[ 3 * (outpx + outpy * out[1].sizex) + 0 ])) = vx;
+				out[1].data[ 3 * (outpx + outpy * out[1].sizex) + 2 ] = 0;
+				
+				*((unsigned short*)&(out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 0 ])) = vy;
+				out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 2 ] = 0;
+				
+				*((unsigned short*)&(out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 0 ])) = vz;
+				out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 2 ] = 0;
+				
+				*((unsigned short*)&(out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 0 ])) = vd;
+				out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 2 ] = 0;
+			}
+
+		}
+	}
+
+	for(int t=0; t<6; ++t)
+	{
+		//char file[32];
+		//sprintf(file, "renders/outaa%d.png", t);
+		//char full[SPE_MAX_PATH+1];
+		//FullPath(file, full);
+		//SavePNG2(full, &out[t]);
+	}
+}
+
 void OutTex(Surf *surf, LoadedTex out[6])
 {
 	int ti=0;
@@ -5055,6 +5510,517 @@ dotex:
 	}
 }
 
+//arrange the orc's on a globe and then balance it so everything is seen
+bool MapGlobe(Surf *surf)
+{
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet * tet = *tit;
+		for(int v=0; v<3; v++)
+		{
+			SurfPt *pt = tet->neib[v];
+			if(_isnan(pt->pos.x))
+				ErrMess("yhjgjf","wpnnx");
+			if(_isnan(pt->pos.y))
+				ErrMess("yhjgjf","wpnny");
+			if(_isnan(pt->pos.z))
+				ErrMess("yhjgjf","wpnnz");
+			Vec3f wrappos = pt->pos;
+			float yaw = atan2(wrappos.x, wrappos.z);
+			if(_isnan(yaw))
+				ErrMess("asdsdg","nanyaw");
+			//tan(0)=op/adj=0/1
+			//fprintf(g_applog, "prepos1 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
+			wrappos = Rotate(wrappos, yaw, 0, 1, 0);
+			//fprintf(g_applog, "prepos2 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
+			float lat = atan2(wrappos.y, wrappos.x);
+			if(_isnan(lat))
+				ErrMess("asdsdg","nanlat");
+			pt->orc.x = yaw / (2.0f * M_PI);
+			pt->orc.y = lat / (1.0f * M_PI);
+
+			wrappos = Rotate(Vec3f(1000,0,0), lat, 0, 0, 1);
+			//fprintf(g_applog, "prepos3 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
+			wrappos = Rotate(wrappos, -yaw, 0, 1, 0);
+			pt->wrappos = wrappos;
+			if(_isnan(wrappos.x))
+				ErrMess("yhjgjf","wpnnxww");
+			if(_isnan(wrappos.y))
+				ErrMess("yhjgjf","wpnnyww");
+			if(_isnan(wrappos.z))
+				ErrMess("yhjgjf","wpnnzww");
+			//fprintf(g_applog, "1pos %f,%f yaw,lat,%f,%f\r\n", pt->orc.x, pt->orc.y, yaw, lat);
+			//fprintf(g_applog, "prepos4 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
+		}
+
+#if 0
+		for(int v=0; v<3; v++)
+		{
+			SurfPt *pt = tet->neib[v];
+			SurfPt *pt2 = tet->neib[(v+1)%3];
+
+			ClassifyEdge(pt->orc, pt2->orc,
+				&tet->edgeposx[v],
+				&tet->edgeplaced[v],
+				&tet->edgeposy[v]);
+		}
+#endif
+#if 1
+		for(int v=0; v<3; v++)
+		{
+			
+			SurfPt *pt = tet->neib[v];
+			while(pt->orc.x < 0)
+				pt->orc.x += 1;
+			while(pt->orc.y < 0)
+				pt->orc.y += 1;
+			while(pt->orc.x >= 1)
+				pt->orc.x -= 1;
+			while(pt->orc.y >= 1)
+				pt->orc.y -= 1;
+		}
+#endif
+	}
+
+	bool haveupdown = false;
+
+again:
+	haveupdown = false;
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet * tet = *tit;
+	
+		for(int v=0; v<3; v++)
+		{
+			tet->neib[v]->pressure = Vec3f(0,0,0);
+		}
+	}
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet * tet = *tit;
+
+		SurfPt *fatt[3];
+
+		fatt[0] = tet->neib[0];
+		fatt[1] = tet->neib[1];
+		fatt[2] = tet->neib[2];
+
+		Vec3f wrappos[3];
+		wrappos[0] = fatt[0]->wrappos;
+		wrappos[1] = fatt[1]->wrappos;
+		wrappos[2] = fatt[2]->wrappos;
+
+		//for(int v=0; v<3; v++)
+		//	fprintf(g_applog, "wrappos[%d]%f,%f,%f\r\n",
+		//	v,
+		//	wrappos[v].x,
+		//	wrappos[v].y,
+		//	wrappos[v].z);
+
+		Vec3f cen = (wrappos[0] + wrappos[1] + wrappos[2])/3.0f;
+		Vec3f norm = Normal(wrappos);
+
+			if(_isnan(norm.x))
+				ErrMess("yhjgjf","nannormx");
+			if(_isnan(norm.y))
+				ErrMess("yhjgjf","nannormy");
+			if(_isnan(norm.z))
+				ErrMess("yhjgjf","nannormz");
+
+		Vec3f correctnorm = Normalize(cen);
+
+		
+			if(_isnan(correctnorm.x))
+				ErrMess("yhjgjf","nannormxcc");
+			if(_isnan(correctnorm.y))
+				ErrMess("yhjgjf","nannormycc");
+			if(_isnan(correctnorm.z))
+				ErrMess("yhjgjf","nannormzcc");
+
+		//fprintf(g_applog, "corr%f,%f,%f nor%f,%f,%f\r\n", 
+		//	correctnorm.x,
+		//	correctnorm.y,
+		//	correctnorm.z,
+		//	norm.x,
+		//	norm.y,
+		//	norm.z);
+
+		float dot = Dot(correctnorm, norm);
+
+		//fprintf(g_applog, "dot%f\r\n", 
+		//	dot);
+
+		if(_isnan(dot))
+		{
+			ErrMess("asfdgsdfg","dotnan");
+		}
+
+		if(dot < 0)
+		{
+			haveupdown = true;
+			//dot *= 2;
+			float dot2 = 1.0f / dot;
+			//dot = fmax(dot, -10);
+
+			if(_isnan(dot2))
+			{
+				dot = 1.0f / (0.1f);
+			}
+			else
+				dot = dot2;
+		}
+		//if(dot == 0)
+		//	dot += 1;
+
+
+		if(dot >= 0.5f)
+			;
+		else if(dot > 0 && dot < 0.5f)
+			dot *= 2.6f;
+
+		
+		float a,b,c,s,area;
+
+		a = Magnitude(wrappos[0]-wrappos[1]);
+		b = Magnitude(wrappos[1]-wrappos[2]);
+		c = Magnitude(wrappos[2]-wrappos[0]);
+
+		s = (a+b+c)/2.0f;
+
+		area = sqrt(s*(s-a)*(s-b)*(s-c));
+
+		if(area == 0)
+			area = 1;
+
+		float strength = 10.0f / area;
+
+		dot *= strength;
+
+		dot = fmin(dot, 30);
+		dot = fmax(dot, -30);
+
+		//if(dot > 0)
+		//	continue;
+#if 1
+		if(dot > 0)
+		{
+			//continue;
+			//dot = 1.0f / dot / 100.0f;
+
+	//		dot = fmin(dot, 3);
+		}
+#endif
+		//if(dot < 0)
+		{
+			for(int v=0; v<3; v++)
+			{
+				Vec3f dir = Normalize(wrappos[v] - cen);
+				tet->neib[v]->pressure = 
+					tet->neib[v]->pressure + 
+					dir * dot;
+				tet->neib[v]->pressure =
+					tet->neib[v]->pressure +
+					Normal(wrappos) * 1;
+				
+				if(_isnan(tet->neib[v]->pressure.x))
+					ErrMess("sdsfg","pressnanx");
+				if(_isnan(tet->neib[v]->pressure.y))
+					ErrMess("sdsfg","pressnany");
+				if(_isnan(tet->neib[v]->pressure.z))
+					ErrMess("sdsfg","pressnanz");
+		//	fprintf(g_applog, "1dot%f press%f,%f,%f dir%f,%f,%f\r\n", dot, 
+		//		tet->neib[v]->pressure.x,
+		//		tet->neib[v]->pressure.y,
+		//		tet->neib[v]->pressure.z,
+		//		dir.x, dir.y, dir.z);
+			}
+		}
+	}
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+			tit!=surf->tets2.end();
+			++tit)
+	{
+		Tet * tet = *tit;
+	
+		for(int v=0; v<3; v++)
+		{
+			float mag = Magnitude( tet->neib[v]->wrappos );
+			if( mag == 0 )
+				mag = 1;
+			tet->neib[v]->wrappos = 
+				tet->neib[v]->wrappos + tet->neib[v]->pressure;
+			tet->neib[v]->wrappos = 
+				(tet->neib[v]->wrappos * 1000 / mag );
+			tet->neib[v]->pressure = Vec3f(0,0,0);
+
+			
+				if(_isnan(tet->neib[v]->wrappos.x))
+					ErrMess("sdsfg","wrappos2nanx");
+				if(_isnan(tet->neib[v]->wrappos.y))
+					ErrMess("sdsfg","wrappos2nany");
+				if(_isnan(tet->neib[v]->wrappos.z))
+					ErrMess("sdsfg","wrappos2nanz");
+		}
+	}
+
+	static int times = 0;
+	times++;
+
+	if(/* times < 3000 || */ haveupdown)
+		goto again;
+
+	//return true;
+again2:
+
+	
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet * tet = *tit;
+	
+		for(int v=0; v<3; v++)
+		{
+			tet->neib[v]->pressure = Vec3f(0,0,0);
+		}
+	}
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet * tet = *tit;
+
+		SurfPt *fatt[3];
+
+		fatt[0] = tet->neib[0];
+		fatt[1] = tet->neib[1];
+		fatt[2] = tet->neib[2];
+
+		Vec3f wrappos[3];
+		wrappos[0] = fatt[0]->wrappos;
+		wrappos[1] = fatt[1]->wrappos;
+		wrappos[2] = fatt[2]->wrappos;
+
+		//for(int v=0; v<3; v++)
+		//	fprintf(g_applog, "wrappos[%d]%f,%f,%f\r\n",
+		//	v,
+		//	wrappos[v].x,
+		//	wrappos[v].y,
+		//	wrappos[v].z);
+
+		Vec3f cen = (wrappos[0] + wrappos[1] + wrappos[2])/3.0f;
+		Vec3f norm = Normal(wrappos);
+
+		if(_isnan(norm.x))
+		{
+			ErrMess("sfgsfg","nbannormx");
+		}
+		if(_isnan(norm.y))
+		{
+			ErrMess("sfgsfg","nbannormy");
+		}
+		if(_isnan(norm.z))
+		{
+			ErrMess("sfgsfg","nbannormz");
+		}
+
+		Vec3f correctnorm = Normalize(cen);
+
+		if(_isnan(correctnorm.x))
+		{
+			ErrMess("sfgsfg","nbannormxcorrectnorm");
+		}
+		if(_isnan(correctnorm.y))
+		{
+			ErrMess("sfgsfg","nbannormycorrectnorm");
+		}
+		if(_isnan(correctnorm.z))
+		{
+			ErrMess("sfgsfg","nbannormzcorrectnorm");
+		}
+
+		//fprintf(g_applog, "corr%f,%f,%f nor%f,%f,%f\r\n", 
+		//	correctnorm.x,
+		//	correctnorm.y,
+		//	correctnorm.z,
+		//	norm.x,
+		//	norm.y,
+		//	norm.z);
+
+		float dot = Dot(correctnorm, norm);
+
+		if(_isnan(dot))
+		{
+			ErrMess("sfgdsfg","dotnan2");
+		}
+		//fprintf(g_applog, "dot%f\r\n", 
+		//	dot);
+
+		if(dot < 0)
+		{
+			haveupdown = true;
+			goto again;
+			//dot *= 2;
+			//dot = 1.0f / dot;
+			//dot = fmax(dot, -10);
+		}
+		//if(dot == 0)
+		//	dot += 1;
+
+		//if(dot > 0)
+		//	dot *= 2.0f;
+
+		//if(dot > 0)
+		//	continue;
+
+		float a,b,c,s,area;
+
+		a = Magnitude(wrappos[0]-wrappos[1]);
+		b = Magnitude(wrappos[1]-wrappos[2]);
+		c = Magnitude(wrappos[2]-wrappos[0]);
+
+		s = (a+b+c)/2.0f;
+
+		area = sqrt(s*(s-a)*(s-b)*(s-c));
+
+		if(area == 0)
+			area = 1;
+
+		float strength = 1.0f / area;
+
+		strength = fmin(strength, 30);
+		strength = fmax(strength, -30);
+
+#if 1
+		//if(dot > 0)
+		{
+			//continue;
+			//dot = 1.0f / dot;
+
+	//		dot = fmin(dot, 3);
+		}
+#endif
+		//if(dot < 0)
+		{
+			for(int v=0; v<3; v++)
+			{
+				Vec3f dir = Normalize(wrappos[v] - cen);
+				tet->neib[v]->pressure = 
+					tet->neib[v]->pressure + 
+					dir * strength;
+				
+			//fprintf(g_applog, "1dot%f press%f,%f,%f dir%f,%f,%f\r\n", dot, 
+			///	tet->neib[v]->pressure.x,
+			///	tet->neib[v]->pressure.y,
+			//	tet->neib[v]->pressure.z,
+			//	dir.x, dir.y, dir.z);
+			}
+		}
+	}
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+			tit!=surf->tets2.end();
+			++tit)
+	{
+		Tet * tet = *tit;
+	
+		for(int v=0; v<3; v++)
+		{
+			float mag = Magnitude( tet->neib[v]->wrappos );
+			if( mag == 0 )
+				mag = 1;
+			tet->neib[v]->wrappos = 
+				tet->neib[v]->wrappos + tet->neib[v]->pressure;
+			tet->neib[v]->wrappos = 
+				(tet->neib[v]->wrappos * 1000 / mag );
+			tet->neib[v]->pressure = Vec3f(0,0,0);
+		}
+	}
+
+	static int times2 = 0;
+	times2++;
+
+	if(haveupdown)
+	{
+		times2=0;
+		goto again;
+	}
+
+	if(times2 < 3000)
+		goto again2;
+
+again3:
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet * tet = *tit;
+			tet->placed = true;
+		for(int v=0; v<3; v++)
+		{
+			SurfPt *pt = tet->neib[v];
+			pt->placed = true;
+			Vec3f wrappos = pt->wrappos;
+			float yaw = atan2(wrappos.x, wrappos.z);
+			wrappos = Rotate(wrappos, yaw, 0, 1, 0);
+			float lat = atan2(wrappos.y, wrappos.x);
+			pt->orc.x = yaw / (2.0f * M_PI);
+			pt->orc.y = lat / (1.0f * M_PI);
+
+			if(_isnan(pt->orc.x))
+				ErrMess("sfgsdf","forcxnan");
+
+			if(_isnan(pt->orc.y))
+				ErrMess("sfgsdf","forcynan");
+
+			//wrappos = Rotate(Vec3f(100,0,0), lat, 0, 0, 1);
+			//wrappos = Rotate(wrappos, lat, 0, 1, 0);
+			//pt->wrappos = wrappos;
+			//fprintf(g_applog, "pos %f,%f yaw,lat,%f,%f\r\n", pt->orc.x, pt->orc.y, yaw, lat);
+		}	
+		
+#if 0
+		for(int v=0; v<3; v++)
+		{
+			SurfPt *pt = tet->neib[v];
+			SurfPt *pt2 = tet->neib[(v+1)%3];
+
+			ClassifyEdge(pt->orc, pt2->orc,
+				&tet->edgeposx[v],
+				&tet->edgeplaced[v],
+				&tet->edgeposy[v]);
+		}
+#endif
+		for(int v=0; v<3; v++)
+		{
+			SurfPt *pt = tet->neib[v];
+			
+			while(pt->orc.x < 0)
+				pt->orc.x += 1;
+			while(pt->orc.y < 0)
+				pt->orc.y += 1;
+			while(pt->orc.x >= 1)
+				pt->orc.x -= 1;
+			while(pt->orc.y >= 1)
+				pt->orc.y -= 1;
+		}
+	}
+
+
+	return true;
+}
+
 void OrRender(int rendstage, Vec3f offset)
 {
 	Surf surf, fullsurf;
@@ -5074,8 +6040,8 @@ void OrRender(int rendstage, Vec3f offset)
 
 	do
 	{
-	//	if(!ClipTris(&surf, &fullsurf))
-	//		break;
+		//if(!ClipTris(&surf, &fullsurf))
+		//	break;
 		Test(&surf);
 	fprintf(g_applog, "\r\n333\r\n");
 	fflush(g_applog);
@@ -5083,31 +6049,34 @@ void OrRender(int rendstage, Vec3f offset)
 			break;
 	fprintf(g_applog, "\r\n444\r\n");
 	fflush(g_applog);
-	//	if(!RemFloaters(&surf, &fullsurf))
-	//		break;
+		//if(!RemFloaters(&surf, &fullsurf))
+		//	break;
 	fprintf(g_applog, "\r\n555\r\n");
 	fflush(g_applog);
-	//	if(MarkVis(&surf, &fullsurf))
-	//		break;
+		//if(MarkVis(&surf, &fullsurf))
+		//	break;
 	fprintf(g_applog, "\r\n666\r\n");
 	fflush(g_applog);
-	//	if(!RemHidden(&surf, &fullsurf))
-	//		break;
+		//if(!RemHidden(&surf, &fullsurf))
+		//	break;
 	fprintf(g_applog, "\r\n777\r\n");
 	fflush(g_applog);
 		Vec2f vmin(0.5f,0.5f), vmax(0.5,0.5);
-	//	if(!SplitEdges(&surf, &fullsurf, &vmin, &vmax))
-	//		break;
+		//if(!SplitEdges(&surf, &fullsurf, &vmin, &vmax))
+		//	break;
 		//Test2(&surf);
 	fprintf(g_applog, "\r\n888111\r\n");
 	fflush(g_applog);
-		if(!GrowMapMesh(&surf, &fullsurf, &vmin, &vmax))
-			break;
+	//	if(!GrowMapMesh(&surf, &fullsurf, &vmin, &vmax))
+	//		break;
+	if(!MapGlobe(&surf))
+		break;
 
 	LoadedTex outtex[6];
 	for(int i=0; i<6; i++)
 		AllocTex(&outtex[i], BIGTEX, BIGTEX, 3);
-	OutTex(&surf, outtex);
+	//OutTex(&surf, outtex);
+	OutTex2(&surf, outtex);
 	for(int t=0; t<6; t++)
 	{
 		char outpath[SPE_MAX_PATH+1];
@@ -5134,7 +6103,8 @@ void OrRender(int rendstage, Vec3f offset)
 	for(int i=0; i<6; i++)
 		AllocTex(&outtex[i], BIGTEX, BIGTEX, 3);
 
-	OutTex(&surf, outtex);
+	//OutTex(&surf, outtex);
+	OutTex2(&surf, outtex);
 
 	for(int t=0; t<6; t++)
 	{

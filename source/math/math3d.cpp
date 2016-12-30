@@ -57,6 +57,9 @@ Vec3f Normalize(Vec3f vNormal)
 {
 	float magnitude = Magnitude(vNormal);
 
+	if(magnitude == 0)
+		magnitude = 1;
+
 	vNormal.x /= magnitude;
 	vNormal.y /= magnitude;
 	vNormal.z /= magnitude;

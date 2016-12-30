@@ -56,6 +56,8 @@ public:
 	std::list<Tet*> holder;
 	Vec2f orc;	//orientability map texture coord
 	bool placed;
+	Vec3f wrappos;
+	Vec3f pressure;
 
 	bool hasneib(SurfPt *neib)
 	{
