@@ -26,6 +26,7 @@
 #include "../save/compilemap.h"
 #include "../save/modelholder.h"
 #include "../tool/rendersprite.h"
+#include "../tool/rendertopo.h"
 #include "../debug.h"
 #include "sesim.h"
 #include "../sim/tile.h"
@@ -138,12 +139,34 @@ void DrawScene(Matrix projection, Matrix viewmat, Matrix modelmat, Matrix modelv
 #ifdef DEBUG
     LastNum(__FILE__, __LINE__);
 #endif
+	
+#if 00
+	if(g_rendtopo)
+	{
+		if(g_projtype == PROJ_ORTHO)
+			UseShadow(SHADER_MODEL, projection, viewmat, modelmat, modelviewinv, mvLightPos, lightDir);
+		else
+			UseShadow(SHADER_MODELPERSP, projection, viewmat, modelmat, modelviewinv, mvLightPos, lightDir);
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, g_depth);
+		glUniform1i(g_shader[g_curS].m_slot[SSLOT_SHADOWMAP], 4);
+		
+		DrawClip();
+		//RenderToShadowMap(projection, viewmat, modelmat, g_cam.m_view, DrawClipDepth);
+#ifdef DEBUG
+		LastNum(__FILE__, __LINE__);
+#endif
+		//RenderShadowedScene(projection, viewmat, modelmat, modelview, DrawClip);
+		EndS();
+		return;
+	}
+#endif
 
 #if 1
 	if(g_projtype == PROJ_ORTHO)
-		UseShadow(SHADER_MODEL, projection, viewmat, modelmat, modelviewinv, mvLightPos, lightDir);
+		UseShadow(SHADER_MAP, projection, viewmat, modelmat, modelviewinv, mvLightPos, lightDir);
 	else
-		UseShadow(SHADER_MODELPERSP, projection, viewmat, modelmat, modelviewinv, mvLightPos, lightDir);
+		UseShadow(SHADER_MAPPERSP, projection, viewmat, modelmat, modelviewinv, mvLightPos, lightDir);
     glActiveTexture(GL_TEXTURE4);
     glBindTexture(GL_TEXTURE_2D, g_depth);
     glUniform1i(g_shader[g_curS].m_slot[SSLOT_SHADOWMAP], 4);

@@ -1672,131 +1672,133 @@ void UpdateRender()
 	if(g_rendtopo)
 	{
 		OrRender(RENDSTAGE_COLOR, Vec3f(0,0,0));
-		return;
+		//return;
 	}
-
-	ResetView(true);
-
-	RotateView();
-
-	SortEdB(&g_edmap, g_cam.m_view, g_cam.m_pos);
-
-	/////AdjustFrame(false);
-	//AllScreenMinMax needs to be called again because the pixels center of rendering depends on the window width and height, influencing the clip min/max
-	AllScreenMinMax(&g_clipmin, &g_clipmax, g_width, g_height);
-	//FitFocus(g_clipmin, g_clipmax);
-	//AllScreenMinMax(&g_clipmin, &g_clipmax, g_width, g_height);
-
-#if 0
-	char msg[128];
-	sprintf(msg, "clip %d,%d->%d,%d", g_clipmin.x, g_clipmin.y, g_clipmax.x, g_clipmax.y);
-	InfoMess(msg, msg);
-#endif
-
-	//Because we're always centered on origin, we can do this:
-	g_spritecenter.x = g_width/2 - g_clipmin.x;
-	g_spritecenter.y = g_height/2 - g_clipmin.y;
-
-	glEnable(GL_BLEND);
-
-	APPMODE oldmode = g_mode;
-	g_mode = EDITOR;
-	Draw();
-	Draw();	//double buffered
-	g_mode = oldmode;
-#if 0
-	Draw();
-#elif 0
-	Ortho(g_width, g_height, 1, 1, 1, 1);
-	DrawViewport(3, 0, 0, g_width, g_height);
-	EndS();
-#else
-	//glBindFramebuffer(GL_FRAMEBUFFER, g_renderfb[0]);
-#ifdef DEBUG
-//	Log(__FILE__<<":"<<__LINE__<<"check frame buf stat: "<<glCheckFramebufferStatus(GL_FRAMEBUFFER_EXT)<<std::endl;
-	CHECKGLERROR();
-#endif
-	glViewport(0, 0, g_width, g_height);
-#ifdef DEBUG
-	CHECKGLERROR();
-#endif
-	glClearColor(1.0, 1.0, 1.0, 0.0);
-	glEnable(GL_DEPTH_TEST);
-#ifdef DEBUG
-	CHECKGLERROR();
-#endif
-
-	//get clip coordinates now that we've adjusted screen size (?)
-	//AllScreenMinMax(&g_clipmin, &g_clipmax, g_width, g_height);
-
-#if 0
-	char msg[128];
-	sprintf(msg, "clip %d,%d->%d,%d", g_clipmin.x, g_clipmin.y, g_clipmax.x, g_clipmax.y);
-	InfoMess(msg, msg);
-#endif
-
-	Vec3f offset;
-
-	//g_1tilewidth
-	//TILE_RISE
-
-	//if(!g_antialias)
+	else
 	{
-		MakeFBO(0, RENDSTAGE_COLOR);
-		glBindFramebuffer(GL_FRAMEBUFFER, g_renderfb[0]);
-		if(!g_rendtopo)
-		{
-			SpriteRender(RENDSTAGE_COLOR, offset);
-			SaveRender(RENDSTAGE_COLOR);
-		}
-		else
-		{ 
-			OrRender(RENDSTAGE_COLOR, offset);
-		}
-		DelFBO(0);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	#ifdef DEBUG
-		CHECKGLERROR();
-	#endif
-		if(g_rendertype != RENDER_TERRTILE &&
-			g_exportteam)
-		{
-			MakeFBO(0, RENDSTAGE_TEAM);
-			glBindFramebuffer(GL_FRAMEBUFFER, g_renderfb[0]);
-			if(!g_rendtopo)
-			{
-				SpriteRender(RENDSTAGE_TEAM, offset);
-				SaveRender(RENDSTAGE_TEAM);
-			}
-			else
-			{
-				OrRender(RENDSTAGE_TEAM, offset);
-			}
-			DelFBO(0);
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		}
-	#ifdef DEBUG
-		CHECKGLERROR();
-	#endif
-		
-		if(g_exportdepth)
-		{
-			MakeFBO(0, RENDSTAGE_DEPTH);
-			glBindFramebuffer(GL_FRAMEBUFFER, g_renderfb[0]);
-			if(!g_rendtopo)
-			{
-				SpriteRender(RENDSTAGE_DEPTH, offset);
-				SaveRender(RENDSTAGE_DEPTH);
-			}
-			else
-			{
-				OrRender(RENDSTAGE_DEPTH, offset);
-			}
-			DelFBO(0);
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		}
+		ResetView(true);
 
+		RotateView();
+
+		SortEdB(&g_edmap, g_cam.m_view, g_cam.m_pos);
+
+		/////AdjustFrame(false);
+		//AllScreenMinMax needs to be called again because the pixels center of rendering depends on the window width and height, influencing the clip min/max
+		AllScreenMinMax(&g_clipmin, &g_clipmax, g_width, g_height);
+		//FitFocus(g_clipmin, g_clipmax);
+		//AllScreenMinMax(&g_clipmin, &g_clipmax, g_width, g_height);
+
+	#if 0
+		char msg[128];
+		sprintf(msg, "clip %d,%d->%d,%d", g_clipmin.x, g_clipmin.y, g_clipmax.x, g_clipmax.y);
+		InfoMess(msg, msg);
 	#endif
+
+		//Because we're always centered on origin, we can do this:
+		g_spritecenter.x = g_width/2 - g_clipmin.x;
+		g_spritecenter.y = g_height/2 - g_clipmin.y;
+
+		glEnable(GL_BLEND);
+
+		APPMODE oldmode = g_mode;
+		g_mode = EDITOR;
+		Draw();
+		Draw();	//double buffered
+		g_mode = oldmode;
+	#if 0
+		Draw();
+	#elif 0
+		Ortho(g_width, g_height, 1, 1, 1, 1);
+		DrawViewport(3, 0, 0, g_width, g_height);
+		EndS();
+	#else
+		//glBindFramebuffer(GL_FRAMEBUFFER, g_renderfb[0]);
+	#ifdef DEBUG
+	//	Log(__FILE__<<":"<<__LINE__<<"check frame buf stat: "<<glCheckFramebufferStatus(GL_FRAMEBUFFER_EXT)<<std::endl;
+		CHECKGLERROR();
+	#endif
+		glViewport(0, 0, g_width, g_height);
+	#ifdef DEBUG
+		CHECKGLERROR();
+	#endif
+		glClearColor(1.0, 1.0, 1.0, 0.0);
+		glEnable(GL_DEPTH_TEST);
+	#ifdef DEBUG
+		CHECKGLERROR();
+	#endif
+
+		//get clip coordinates now that we've adjusted screen size (?)
+		//AllScreenMinMax(&g_clipmin, &g_clipmax, g_width, g_height);
+
+	#if 0
+		char msg[128];
+		sprintf(msg, "clip %d,%d->%d,%d", g_clipmin.x, g_clipmin.y, g_clipmax.x, g_clipmax.y);
+		InfoMess(msg, msg);
+	#endif
+
+		Vec3f offset;
+
+		//g_1tilewidth
+		//TILE_RISE
+
+		//if(!g_antialias)
+		{
+			MakeFBO(0, RENDSTAGE_COLOR);
+			glBindFramebuffer(GL_FRAMEBUFFER, g_renderfb[0]);
+			if(!g_rendtopo)
+			{
+				SpriteRender(RENDSTAGE_COLOR, offset);
+				SaveRender(RENDSTAGE_COLOR);
+			}
+			else
+			{ 
+				OrRender(RENDSTAGE_COLOR, offset);
+			}
+			DelFBO(0);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		#ifdef DEBUG
+			CHECKGLERROR();
+		#endif
+			if(g_rendertype != RENDER_TERRTILE &&
+				g_exportteam)
+			{
+				MakeFBO(0, RENDSTAGE_TEAM);
+				glBindFramebuffer(GL_FRAMEBUFFER, g_renderfb[0]);
+				if(!g_rendtopo)
+				{
+					SpriteRender(RENDSTAGE_TEAM, offset);
+					SaveRender(RENDSTAGE_TEAM);
+				}
+				else
+				{
+					OrRender(RENDSTAGE_TEAM, offset);
+				}
+				DelFBO(0);
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			}
+		#ifdef DEBUG
+			CHECKGLERROR();
+		#endif
+			
+			if(g_exportdepth)
+			{
+				MakeFBO(0, RENDSTAGE_DEPTH);
+				glBindFramebuffer(GL_FRAMEBUFFER, g_renderfb[0]);
+				if(!g_rendtopo)
+				{
+					SpriteRender(RENDSTAGE_DEPTH, offset);
+					SaveRender(RENDSTAGE_DEPTH);
+				}
+				else
+				{
+					OrRender(RENDSTAGE_DEPTH, offset);
+				}
+				DelFBO(0);
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			}
+
+		#endif
+		}
 	}
 
 #if 0
@@ -1834,6 +1836,7 @@ void UpdateRender()
 		AdjustFrame();
 	}
 #else
+	
 	//Advance render states
 	//Are we doing sides and if so will the current side + 1 be valid? If so, advance
 	if(g_dosides && !g_dorots && g_rendside+1 < g_nrendsides)

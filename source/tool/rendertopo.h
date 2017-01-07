@@ -20,6 +20,7 @@ void PrepareTopo(const char* fullpath, int rendtype);
 void OrRender(int rendstage, Vec3f offset);
 void GenTexEq(Tet *tet, Vec3f tri[3], Vec2f txc[3]);
 
+void DrawClip();
 void SepPt(Tet *tet,
 		   SurfPt *sp,
 		   std::list<Tet*>* checkremove);
@@ -107,6 +108,7 @@ public:
 class Tet
 {
 public:
+	bool gone;
 	//int level;
 	SurfPt* neib[4];
 	Plane3f texceq[2];
@@ -128,6 +130,7 @@ public:
 
 	Tet()
 	{
+		gone = false;
 		edgeposx[0]=edgeposx[1]=edgeposx[2]=edgeposy[0]=edgeposy[1]=edgeposy[2]=0;
 		edgeplaced[0]=edgeplaced[1]=edgeplaced[2]=false;
 		////edgeoutx[0]=false;

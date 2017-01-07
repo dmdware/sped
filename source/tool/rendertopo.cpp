@@ -19,9 +19,13 @@
 #include "../math/hmapmath.h"
 #include "../render/heightmap.h"
 
+Surf g_surf;
+Surf g_fullsurf;
+
 
 //#define BIGTEX	4096
 #define BIGTEX	256
+#define CLOSEPOSF	0.1f
 
 bool g_rendtopo = false;
 
@@ -917,7 +921,7 @@ winding_t *ClipWinding (winding_t *in, plane_t *split, qboolean keepon)
 	int		i, j;
 	vec_t	*p1, *p2;
 	vec3_t	mid;
-	winding_t	*neww;
+	winding_t	*newtet;
 	int		maxpts;
 	
 	counts[0] = counts[1] = counts[2] = 0;
@@ -954,7 +958,7 @@ winding_t *ClipWinding (winding_t *in, plane_t *split, qboolean keepon)
 	
 	maxpts = in->numpoints+4;	// can't use counts[0]+2 because
 								// of fp grouping errors
-	neww = NewWinding (maxpts);
+	newtet = NewWinding (maxpts);
 		
 	for (i=0 ; i<in->numpoints ; i++)
 	{
@@ -962,15 +966,15 @@ winding_t *ClipWinding (winding_t *in, plane_t *split, qboolean keepon)
 		
 		if (sides[i] == SIDE_ON)
 		{
-			VectorCopy (p1, neww->points[neww->numpoints]);
-			neww->numpoints++;
+			VectorCopy (p1, newtet->points[newtet->numpoints]);
+			newtet->numpoints++;
 			continue;
 		}
 	
 		if (sides[i] == SIDE_FRONT)
 		{
-			VectorCopy (p1, neww->points[neww->numpoints]);
-			neww->numpoints++;
+			VectorCopy (p1, newtet->points[newtet->numpoints]);
+			newtet->numpoints++;
 		}
 		
 		if (sides[i+1] == SIDE_ON || sides[i+1] == sides[i])
@@ -990,17 +994,17 @@ winding_t *ClipWinding (winding_t *in, plane_t *split, qboolean keepon)
 				mid[j] = p1[j] + dot*(p2[j]-p1[j]);
 		}
 			
-		VectorCopy (mid, neww->points[neww->numpoints]);
-		neww->numpoints++;
+		VectorCopy (mid, newtet->points[newtet->numpoints]);
+		newtet->numpoints++;
 	}
 	
-	if (neww->numpoints > maxpts)
+	if (newtet->numpoints > maxpts)
 		Error ("ClipWinding: points exceeded estimate");
 		
 // free the original winding
 	FreeWinding (in);
 	
-	return neww;
+	return newtet;
 }
 #endif
 
@@ -1025,7 +1029,7 @@ bool AddClipMesh(Surf *surf, Surf *fullsurf)
 		++mit)
 	{
 		mit->addclipmesh(surf);
-		//mit->addclipmesh(fullsurf);
+		mit->addclipmesh(fullsurf);
 	}
 
 	for(std::list<Brush>::iterator bit=g_edmap.m_brush.begin();
@@ -1033,10 +1037,117 @@ bool AddClipMesh(Surf *surf, Surf *fullsurf)
 		++bit)
 	{
 		bit->addclipmesh(surf);
-		//bit->addclipmesh(fullsurf);
+		bit->addclipmesh(fullsurf);
 	}
 
 	return true;
+}
+
+
+SurfPt* RepPt(Surf *surf,
+			   SurfPt *sp, Tet *totet,
+			   bool replacesp)
+{
+	for(int vi=0; vi<4; ++vi)
+	{
+		if(!totet->neib[vi])//remember remove parents of sp from sp2
+		{
+			SurfPt* sp2 = new SurfPt;
+			surf->pts2.push_back(sp2);
+			totet->neib[vi] = sp2;
+	//		sp2->gen = sp->gen+1;
+			sp2->holder.push_back(totet);
+	//		sp2->norm = sp->norm;
+			sp2->pos = sp->pos;
+	//		sp2->tex = sp->tex;
+	//		sp2->stex = sp->stex;
+	//		sp2->ntex = sp->ntex;
+
+			for(std::list<Tet*>::iterator hit=sp->holder.begin();
+				hit!=sp->holder.end();
+				++hit)
+			{
+				sp2->holder.push_back(*hit);
+
+				if(replacesp)
+				{
+					for(int vi2=0; vi2<4; ++vi2)
+					{
+						if((*hit)->neib[vi2] == sp)
+							(*hit)->neib[vi2] = sp2;
+					}
+				}
+			}
+
+			//add sp2! (not sp) to previous tet's!!!
+
+			sp2->holder.unique(UniqueTet);
+
+			return sp2;
+		}
+	}
+	ErrMess("!4","!4");
+	return NULL;
+}
+
+/*
+Replace all occurances of sp with sp2
+Holders list of sp should already be added to sp2
+*/
+void RepPt2(Surf *surf,
+			   SurfPt *sp,
+			   SurfPt *sp2)
+{
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet *tet = *tit;
+
+		for(int vi=0; vi<4; vi++)
+		{
+			if(tet->neib[vi] == sp)
+			{
+#if 0
+				for(std::list<Tet*>::iterator hit=sp->holder.begin();
+					hit!=sp->holder.end();
+					++hit)
+				{
+					sp2->holder.push_back(*hit);
+				}
+#endif
+				tet->neib[vi] = sp2;
+				//sp2->holder.unique(UniqueTet);
+			}
+		}
+	}
+}
+
+void AddPt(Surf *surf,
+			   SurfPt *sp, Tet *totet)
+{
+	for(int vi=0; vi<4; ++vi)
+	{
+		if(!totet->neib[vi])//remember remove parents of sp from sp2
+		{
+		//	surf->pts2.push_back(sp);
+			totet->neib[vi] = sp;
+	//		sp2->gen = sp->gen+1;
+			sp->holder.push_back(totet);
+	//		sp2->norm = sp->norm;
+		//	sp->pos = sp->pos;
+	//		sp2->tex = sp->tex;
+	//		sp2->stex = sp->stex;
+	//		sp2->ntex = sp->ntex;
+
+			//add sp2! (not sp) to previous tet's!!!
+
+			sp->holder.unique(UniqueTet);
+
+			return;
+		}
+	}
+	ErrMess("!4","!4");
 }
 
 SurfPt* CopyPt(Surf *surf,
@@ -1044,6 +1155,58 @@ SurfPt* CopyPt(Surf *surf,
 {
 	for(int vi=0; vi<4; ++vi)
 	{
+		if(!totet->neib[vi])//remember remove parents of sp from sp2
+		{
+			SurfPt* sp2 = new SurfPt;
+			surf->pts2.push_back(sp2);
+			totet->neib[vi] = sp2;
+	//		sp2->gen = sp->gen+1;
+			sp2->holder.push_back(totet);
+	//		sp2->norm = sp->norm;
+			sp2->pos = sp->pos;
+			sp2->wrappos = sp->wrappos;
+			sp2->orc = sp->orc;
+	//		sp2->tex = sp->tex;
+	//		sp2->stex = sp->stex;
+	//		sp2->ntex = sp->ntex;
+
+			for(std::list<Tet*>::iterator hit=sp->holder.begin();
+				hit!=sp->holder.end();
+				++hit)
+			{
+				sp2->holder.push_back(*hit);
+#if 0
+				if(replacesp)
+				{
+					for(int vi2=0; vi2<4; ++vi2)
+					{
+						if((*hit)->neib[vi2] == sp)
+							(*hit)->neib[vi2] = sp2;
+					}
+				}
+#endif	//RepSp
+			}
+
+			//add sp2! (not sp) to previous tet's!!!
+
+			sp2->holder.unique(UniqueTet);
+
+			return sp2;
+		}
+	}
+	ErrMess("!4","!4");
+	return NULL;
+}
+
+//2=backward copy
+SurfPt* CopyPt2(Surf *surf,
+			   SurfPt *sp, Tet *totet)
+{
+	//return CopyPt(surf,sp,totet);
+	for(int fvi=2; fvi>=-1; --fvi)
+	{
+		int vi = (fvi+4)%4;
+
 		if(!totet->neib[vi])//remember remove parents of sp from sp2
 		{
 			SurfPt* sp2 = new SurfPt;
@@ -1070,6 +1233,7 @@ SurfPt* CopyPt(Surf *surf,
 	ErrMess("!4","!4");
 	return NULL;
 }
+
 void GenTexEq1(
 	float &a,
 	float &b,
@@ -1393,13 +1557,17 @@ void FreeTet(Surf *surf, Tet *tet, bool freepts)	//entry must be freed from surf
 			}
 		}
 	}
+	tet->gone=true;
 	delete tet;
 }
 /*
 If there's 4 verts in this tet, break it into two 3-vert tets
 The original tet should then be removed from the list because it is freed
+Connections to other tets should be maintained correctly
 */
-void SplitTris(Surf *surf, Tet *fourtet)
+void SplitQuad(Surf *surf, Tet *fourtet,
+			   std::list<SurfPt*> *substfrom,
+			   std::list<SurfPt*> *substto)
 {
 	if(!fourtet)
 		ErrMess("asd","!t1444");
@@ -1434,10 +1602,28 @@ void SplitTris(Surf *surf, Tet *fourtet)
 	{
 		//01
 		//32
+		//fourtet->neib[vi]->gone=true;
+		//delete fourtet->neib[vi];
+		//SurfPt *newp = CopyPt(surf, fourtet->neib[vi], tet1);
+		//use this only with ClipTris
+		SurfPt *newp;
+		/*
+		if(vi&&vi!=2)
+		{
+			newp = CopyPt(surf, fourtet->neib[vi], tet1);
+			SepPt(fourtet, newp, NULL);
+			//use this only with ClipTris
+			AddPt(surf, newp, tet2);
+			fpts++;
+			bpts++;
+		}
+		else */
 		if(vi)
 		{
 			//tet2->neib[vi-1] = new SurfPt;
-			SurfPt* newp = CopyPt(surf, fourtet->neib[vi], tet2);
+			//SurfPt* newp = RepPt(surf, fourtet->neib[vi], tet2, true);
+			newp = CopyPt(surf, fourtet->neib[vi], tet2);	
+			//use this only with ClipTris
 			if(!newp)
 				ErrMess("!v","!v");
 			SepPt(fourtet, newp, NULL);
@@ -1445,10 +1631,13 @@ void SplitTris(Surf *surf, Tet *fourtet)
 				ErrMess("g123123","n133sfgn");
 			fpts++;
 		}
+		//else 
 		if(vi!=2)
 		{
 			//tet1->neib[vi] = new SurfPt;
-			SurfPt* newp = CopyPt(surf, fourtet->neib[vi], tet1);
+			//SurfPt* newp = RepPt(surf, fourtet->neib[vi], tet1, true);
+			newp = CopyPt(surf, fourtet->neib[vi], tet1);
+			//use this only with ClipTris
 			if(!newp)
 				ErrMess("!v2","!v2");
 			SepPt(fourtet, newp, NULL);
@@ -1456,7 +1645,11 @@ void SplitTris(Surf *surf, Tet *fourtet)
 				ErrMess("g123123","sdf");
 			bpts++;
 		}
+		//fourtet->neib[vi]=NULL;
+		///substfrom->push_back(fourtet->neib[vi]);
+		///substto->push_back(newp);
 	}
+	//FreeTet(surf, fourtet, false);
 	FreeTet(surf, fourtet, true);
 	//remember to remove fourtet from tets2 list
 	//
@@ -1472,6 +1665,23 @@ void SplitTris(Surf *surf, Tet *fourtet)
 		}
 		++tit;
 	}
+
+#if 0
+	std::list<SurfPt*>::iterator fromit = substfrom->begin();
+	std::list<SurfPt*>::iterator toit = substto->begin();
+
+	while(fromit != substfrom->end() &&
+		toit != substto->end())
+	{
+		RepPt2(surf, *fromit, *toit);
+
+		fromit++;
+		toit++;
+	}
+
+	substfrom->clear();
+	substto->clear();
+#endif
 
 	if(fpts<3)
 		ErrMess("f<","f<ff");
@@ -1552,6 +1762,705 @@ discard:
 	return true;
 }
 
+bool ShouldClip(Surf *surf, Tet *in, Plane3f split, 
+				Vec3f* tri1, Vec3f* fulltri)
+{
+	Vec3f norm1 = Normal(tri1);
+	//Vec3f fulltri[3];
+	//fulltri[0] = (*fulltit)->neib[0]->pos;
+	//fulltri[1] = (*fulltit)->neib[1]->pos;
+	//fulltri[2] = (*fulltit)->neib[2]->pos;
+	Vec3f fullnorm = Normal(fulltri);
+
+	//if(fullnorm == norm1)
+	//	continue;
+
+	//Plane3f split;
+	//MakePlane(&split.m_normal, &split.m_d, (fulltri[0]+fulltri[1]+fulltri[2])/3.0f,
+	//	fullnorm);
+	bool keepon = false;
+
+#define MAX_POINTS_ON_WINDING 7
+
+	float	dists[MAX_POINTS_ON_WINDING];
+	int		sides[MAX_POINTS_ON_WINDING];
+	int		counts[3];
+	float	dot;
+	int		i, j;
+	SurfPt	*p1, *p2;
+	Vec3f	mid;
+	Tet		*newtet;//, *backw;
+	int		maxpts;
+
+	counts[0] = counts[1] = counts[2] = 0;
+
+#define SIDE_BACK	0
+#define SIDE_ON		1
+#define SIDE_FRONT	2
+
+	int fpts = 0;
+//	int bpts = 0;
+
+	// determine sides for each point
+	for (i=0 ; i<3 ; i++)
+	{
+		dot = Dot (in->neib[i]->pos, split.m_normal);
+		//dot -= split.m_d;
+		dot += split.m_d;
+		dists[i] = dot;
+#define ON_EPSILONF	0.3f
+		if (dot > ON_EPSILONF)
+			sides[i] = SIDE_FRONT;
+		else if (dot < -ON_EPSILONF)
+			sides[i] = SIDE_BACK;
+		else
+		{
+			sides[i] = SIDE_ON;
+		}
+		counts[sides[i]]++;
+	}
+	sides[i] = sides[0];
+	dists[i] = dists[0];
+
+	if (//keepon && 
+		!counts[0] && !counts[1])
+		return false;
+
+	//if(counts[1]>1)
+	//	return false;
+
+	if (!counts[0])
+	{
+		//FreeWinding (in);
+		//return NULL;
+		return false;	//don't know enough to say that it is truly hidden or if just random tri in front
+		//goto again;
+	}
+	//if (!counts[1])
+	//	continue;	//don't know enough to say that it is truly hidden or if just random tri in front
+	if(!counts[2])
+		return false;
+
+	//check tri-tri
+	if(!TriTri(tri1, fulltri))
+		return false;
+
+	//if(ShareEdge(tri1, fulltri))
+	//	return false;
+
+	return true;
+}
+
+/*
+ShouldClip checks to make sure the triangles are intersecting
+CanClip just checks the triangle to a PLANE
+*/
+bool CanClip(Surf *surf, Tet *in, Plane3f split, 
+				Vec3f* tri1, Vec3f* fulltri)
+{
+	Vec3f norm1 = Normal(tri1);
+	//Vec3f fulltri[3];
+	//fulltri[0] = (*fulltit)->neib[0]->pos;
+	//fulltri[1] = (*fulltit)->neib[1]->pos;
+	//fulltri[2] = (*fulltit)->neib[2]->pos;
+	Vec3f fullnorm = Normal(fulltri);
+
+	//if(fullnorm == norm1)
+	//	continue;
+
+	//Plane3f split;
+	//MakePlane(&split.m_normal, &split.m_d, (fulltri[0]+fulltri[1]+fulltri[2])/3.0f,
+	//	fullnorm);
+	bool keepon = false;
+
+#define MAX_POINTS_ON_WINDING 7
+
+	float	dists[MAX_POINTS_ON_WINDING];
+	int		sides[MAX_POINTS_ON_WINDING];
+	int		counts[3];
+	float	dot;
+	int		i, j;
+	SurfPt	*p1, *p2;
+	Vec3f	mid;
+	Tet		*newtet;//, *backw;
+	int		maxpts;
+
+	counts[0] = counts[1] = counts[2] = 0;
+
+#define SIDE_BACK	0
+#define SIDE_ON		1
+#define SIDE_FRONT	2
+
+	int fpts = 0;
+//	int bpts = 0;
+
+	// determine sides for each point
+	for (i=0 ; i<3 ; i++)
+	{
+		dot = Dot (in->neib[i]->pos, split.m_normal);
+		//dot -= split.m_d;
+		dot += split.m_d;
+		dists[i] = dot;
+#define ON_EPSILONF	0.3f
+		if (dot > ON_EPSILONF)
+			sides[i] = SIDE_FRONT;
+		else if (dot < -ON_EPSILONF)
+			sides[i] = SIDE_BACK;
+		else
+		{
+			sides[i] = SIDE_ON;
+		}
+		counts[sides[i]]++;
+	}
+	sides[i] = sides[0];
+	dists[i] = dists[0];
+
+	if (//keepon && 
+		!counts[0] && !counts[1])
+		return false;
+
+	if(counts[2]+counts[1]>=3||counts[1]+counts[0]>=3)
+		return false;
+
+	if (!counts[0])
+	{
+		//FreeWinding (in);
+		//return NULL;
+		return false;	//don't know enough to say that it is truly hidden or if just random tri in front
+		//goto again;
+	}
+	//if (!counts[1])
+	//	continue;	//don't know enough to say that it is truly hidden or if just random tri in front
+	if(!counts[2])
+		return false;
+
+	//check tri-tri
+	//if(!TriTri(tri1, fulltri))
+	//	return false;
+
+	//if(ShareEdge(tri1, fulltri))
+	//	return false;
+
+	for (i=0 ; i<3 ; i++)
+	{
+		if(!in->neib[i])
+			ErrMess("44","44");
+		if(in->neib[i]->gone)
+			ErrMess("g123","g123");
+
+		if (sides[i] == SIDE_ON)
+		{
+			//newvi++;
+			//backvi++;
+
+			//bpts++;
+			fpts++;
+
+			//if(bpts>4)
+			//	ErrMess(">4",">4b");
+
+			if(fpts>4)
+				ErrMess(">4",">4f");
+
+			continue;
+		}
+
+		if (sides[i] == SIDE_FRONT)
+		{
+		//	newvi++;
+
+			fpts++;
+
+			if(fpts>4)
+				ErrMess(">4",">4fsdf");
+		}
+		if (sides[i+1] == SIDE_ON || sides[i+1] == sides[i])
+			continue;
+
+		//bpts++;
+		fpts++;
+
+		//if(bpts>4)
+		//	ErrMess(">4",">4bdsfgdfg");
+
+		if(fpts>4)
+			ErrMess(">4",">4fsdsdfsdf");
+	}
+
+	//if (newtet->numpoints > maxpts)
+	//	Error ("ClipWinding: points exceeded estimate");
+
+	// free the original winding
+	//FreeWinding (in);
+	/////FreeTet(surf, in, true);
+	//surf->tets2.erase(tit);	//tit invalided by CopyPt etc.
+/*
+	tit=surf->tets2.begin();
+	while(
+		tit!=surf->tets2.end())
+	{
+		if(*tit == in)
+		{
+			tit=surf->tets2.erase(tit);
+			//break;
+		}
+		else
+			++tit;
+	}
+
+	Test(surf);
+*/
+	if(fpts<3)
+		return false;
+
+	return true;
+}
+
+/*
+for all holders of sp, replace with sp2,
+except "in" tet.
+*/
+/*
+void RepSp()
+{
+}
+*/
+
+void ClipFront(Surf *surf, Tet *in, Plane3f split,
+			   std::list<SurfPt*> *substfrom,
+			   std::list<SurfPt*> *substto,
+			   Tet **retet)
+{
+	//Vec3f fulltri[3];
+	//fulltri[0] = (*fulltit)->neib[0]->pos;
+	//fulltri[1] = (*fulltit)->neib[1]->pos;
+	//fulltri[2] = (*fulltit)->neib[2]->pos;
+	//Vec3f fullnorm = Normal(fulltri);
+
+	//if(fullnorm == norm1)
+	//	continue;
+
+//#define MAX_POINTS_ON_WINDING 7
+
+	//split.m_d = -split.m_d;
+
+	float	dists[MAX_POINTS_ON_WINDING];
+	int		sides[MAX_POINTS_ON_WINDING];
+	int		counts[3];
+	float	dot;
+	int		i, j;
+	SurfPt	*p1, *p2;
+	Vec3f	mid;
+	Tet		*newtet;//, *backw;
+	int		maxpts;
+
+	counts[0] = counts[1] = counts[2] = 0;
+
+//#define SIDE_BACK	0
+//#define SIDE_ON		1
+//#define SIDE_FRONT	2
+
+	int fpts = 0;
+	int bpts = 0;
+
+	// determine sides for each point
+	for (i=0 ; i<3 ; i++)
+	{
+		dot = Dot (in->neib[i]->pos, split.m_normal);
+		//dot -= split.m_d;
+		dot += split.m_d;
+		//dot = Dot();
+		/*
+		fprintf(g_applog, "dot[%d] =%f= Dot((%f,%f,%f),(%f,%f,%f) - %f\r\n",
+			i, dot,
+			in->neib[i]->pos.x,
+			in->neib[i]->pos.y,
+			in->neib[i]->pos.z,
+			split.m_normal.x,
+			split.m_normal.y,
+			split.m_normal.z,
+			split.m_d);*/
+		dists[i] = dot;
+//#define ON_EPSILON	0.3f
+		if (dot > ON_EPSILONF)
+			sides[i] = SIDE_FRONT;
+		else if (dot < -ON_EPSILONF)
+			sides[i] = SIDE_BACK;
+		else
+		{
+			sides[i] = SIDE_ON;
+		}
+		counts[sides[i]]++;
+	}
+	sides[i] = sides[0];
+	dists[i] = dists[0];
+
+	//if (//keepon && 
+	//	!counts[0] && !counts[1])
+	//	return;
+
+	//if (!counts[0])
+	{
+		//FreeWinding (in);
+		//return NULL;
+	//	return;	//don't know enough to say that it is truly hidden or if just random tri in front
+		//goto again;
+	}
+	//if (!counts[1])
+	//	continue;	//don't know enough to say that it is truly hidden or if just random tri in front
+	//if(!counts[2])
+	//	return;
+
+	//check tri-tri
+	//if(!TriTri(tri1, fulltri))
+	//	continue;
+
+	maxpts = 3+4;	// can't use counts[0]+2 because
+	// of fp grouping errors
+	//newtet = NewWinding (maxpts);
+	//std::list<SurfPt*> neww2;
+	CopyTet(surf, in);
+	newtet = *surf->tets2.rbegin();
+	*retet = newtet;
+	//CopyTet(surf, in);
+	//backw = *surf->tets2.rbegin();
+
+	if(in->neib[3])
+		ErrMess("i4","i4");
+//
+	//if(newtet == backw)
+	//	ErrMess("nb","n=b");
+
+	if(!newtet)
+		ErrMess("n","N!");
+
+	//if(!backw)
+	//	ErrMess("b","B!");
+
+	int newvi = 0;
+	//int backvi = 0;
+
+	//fprintf(g_applog, "clipfront:\r\n");
+
+	//fprintf(g_applog, "split:(%f,%f,%f),%f\r\n",
+	//	split.m_normal.x,
+	//	split.m_normal.y,
+	//	split.m_normal.z,
+	//	split.m_d);
+
+	for (i=0 ; i<3 ; i++)
+	{
+	//	fprintf(g_applog, "in->neib[%d]=%f,%f,%f\r\n",
+	//		i,
+	//		in->neib[i]->pos.x,
+	//		in->neib[i]->pos.y,
+	//		in->neib[i]->pos.z
+	//		);
+
+		if(!in->neib[i])
+			ErrMess("44","44");
+		if(in->neib[i]->gone)
+			ErrMess("g123","g123");
+
+		//p1 = in->points[i];
+		p1 = in->neib[i];
+
+		if (sides[i] == SIDE_ON)
+		{
+			//VectorCopy (p1, newtet->points[newtet->numpoints]);
+			//newtet->numpoints++;
+
+			SurfPt* newp;
+			if(!(newp=CopyPt(surf, p1, newtet)))
+				ErrMess("123","12347");
+			if(newp->gone)
+				ErrMess("g123123","g123123");
+			SepPt(in, newp, NULL);
+			///substfrom->push_back(p1);
+			///substto->push_back(newp);
+			//if(!(newp=CopyPt(surf, p1, backw)))
+			//	ErrMess("123","12348");
+			//if(newp->gone)
+			//	ErrMess("g123123","g12312355");
+			//SepPt(in, newp, NULL);
+
+			newvi++;
+			//backvi++;
+
+			//bpts++;
+			fpts++;
+
+			//if(bpts>4)
+			//	ErrMess(">4",">4b");
+
+			if(fpts>4)
+				ErrMess(">4",">4f");
+
+			continue;
+		}
+
+		if (sides[i] == SIDE_FRONT)
+		{
+			//VectorCopy (p1, newtet->points[newtet->numpoints]);
+			//newtet->numpoints++;
+			SurfPt* newp;
+			if(!(newp=CopyPt(surf, p1, newtet)))
+				ErrMess("123","1234");
+			if(newp->gone)
+				ErrMess("g123123","g123123333");
+			SepPt(in, newp, NULL);
+			///substfrom->push_back(p1);
+			///substto->push_back(newp);
+			newvi++;
+
+			fpts++;
+
+			if(fpts>4)
+				ErrMess(">4",">4fsdf");
+		}
+/*
+		if (sides[i] == SIDE_BACK)
+		{
+			//VectorCopy (p1, newtet->points[newtet->numpoints]);
+			//newtet->numpoints++;
+			SurfPt* newp;
+			if(!(newp=CopyPt2(surf, p1, backw)))
+				ErrMess("123","12346");
+			SepPt(in, newp, NULL);
+			backvi++;
+
+			bpts++;
+
+			if(bpts>4)
+				ErrMess(">4",">4bsdd");
+		}
+*/
+		if (sides[i+1] == SIDE_ON || sides[i+1] == sides[i])
+			continue;
+
+		// generate a split point
+		p2 = in->neib[(i+1)%3];
+
+		if(!p2)
+			ErrMess("!2","22");
+		if(p2->gone)
+			ErrMess("g123123","g123123222");
+
+		dot = dists[i] / (dists[i]-dists[i+1]);
+		//dot = dists[i] / (dists[i+1]-dists[i]);
+		for (j=0 ; j<3 ; j++)
+		{	// avoid round off error when possible
+			//if (split.m_normal[j] == 1)
+			//	mid[j] = split.m_d;
+				//mid[j] = -split.m_d;
+			//else if (split.m_normal[j] == -1)
+			//	mid[j] = -split.m_d;
+				//mid[j] = split.m_d;
+			//else
+				mid[j] = p1->pos[j] + dot*(p2->pos[j]-p1->pos[j]);
+
+			//if(_isnan(mid[j]))
+			//	ErrMess("sfgdsfklg","nannanmidj");
+		}
+		Vec2f neworc = p1->orc + (p2->orc - p1->orc)*dot;
+		Vec3f newwrap = p1->wrappos + (p2->wrappos - p1->wrappos)*dot;
+#if 0
+		if(mid[0] == 300)
+		{
+			fprintf(g_applog, "dot = %f / (%f - %f)\r\n",
+				dists[i],
+				dists[i],
+				dists[i+1]);
+			fprintf(g_applog, "300 = %f + %f*(%f-%f)\r\n",
+				p1->pos[0], dot,
+				p2->pos[0], p1->pos[0]);
+		}
+#endif
+		if(_isnan(mid[0]))
+			ErrMess("sfgdsfklg","nannanmidj0");
+		if(_isnan(mid[1]))
+			ErrMess("sfgdsfklg","nannanmidj1");
+		if(_isnan(mid[2]))
+			ErrMess("sfgdsfklg","nannanmidj2");
+
+		//VectorCopy (mid, newtet->points[newtet->numpoints]);
+		//newtet->numpoints++;
+		SurfPt *news1 = CopyPt(surf, p2, newtet);
+		////SurfPt *news2 = CopyPt2(surf, p2, backw);
+
+		if(!news1)
+			ErrMess("1","1");
+		//if(!news2)
+		//	ErrMess("12","12");
+		if(news1->gone)
+			ErrMess("g123123","n1");
+		//if(news2->gone)
+		//	ErrMess("g123123","n12");
+
+		news1->pos = mid;
+		news1->wrappos = newwrap;
+		news1->orc = neworc;
+		////news2->pos = mid;
+
+		SepPt(in, news1, NULL);
+		///SepPt(in, news2, NULL);
+		if(news1->gone)
+			ErrMess("g123123","n133s");
+		//if(news2->gone)
+		//	ErrMess("g123123","n1233s");
+		///substfrom->push_back(NULL);
+		///substto->push_back(news1);
+
+		//backvi++;
+		newvi++;
+
+		//bpts++;
+		fpts++;
+
+		//if(bpts>4)
+		//	ErrMess(">4",">4bdsfgdfg");
+
+		if(fpts>4)
+			ErrMess(">4",">4fsdsdfsdf");
+	}
+
+	//if (newtet->numpoints > maxpts)
+	//	Error ("ClipWinding: points exceeded estimate");
+
+	// free the original winding
+	//FreeWinding (in);
+	/////FreeTet(surf, in, true);
+	//surf->tets2.erase(tit);	//tit invalided by CopyPt etc.
+/*
+	tit=surf->tets2.begin();
+	while(
+		tit!=surf->tets2.end())
+	{
+		if(*tit == in)
+		{
+			tit=surf->tets2.erase(tit);
+			//break;
+		}
+		else
+			++tit;
+	}
+
+	Test(surf);
+*/
+	if(fpts<3)
+		ErrMess("f<","f<");
+	//if(bpts<3)
+	//	ErrMess("b<","b<");
+
+	//std::list<Tet*>::iterator backwtit=surf->tets2.end();
+	//backwtit--;
+	//std::list<Tet*>::iterator newwtit=backwtit;
+	//newwtit--;
+
+	////
+#if 0
+	std::list<SurfPt*>::iterator fromit = substfrom->begin();
+	std::list<SurfPt*>::iterator toit = substto->begin();
+
+	while(fromit != substfrom->end() &&
+		toit != substto->end())
+	{
+		RepPt2(surf, *fromit, *toit);
+
+		fromit++;
+		toit++;
+	}
+
+	substfrom->clear();
+	substto->clear();
+#endif
+	/////
+
+	//if(VerifyTet(surf, newwtit))
+	//SplitQuad(surf, newtet,
+	//	substfrom, substto);
+	//newtet = NULL;
+	//else
+	//{
+	//	backwtit=surf->tets2.end();
+	//	backwtit--;
+	//}
+	//if(VerifyTet(surf, backwtit))
+	////SplitQuad(surf, backw);
+
+	//backw = NULL;
+
+	//return newtet;
+
+	//return true;
+	//goto again;
+}
+
+void GetClipNeib(Tet *in, std::list<Tet*> *neibclip,
+				 Vec3f *fulltri, Plane3f split, Plane3f backsplit, Surf *surf)
+{
+	for(int vi=0; vi<4; ++vi)
+	{
+		SurfPt *sp = in->neib[vi];
+
+		if(!sp)
+			continue;
+
+		for(std::list<Tet*>::iterator nit=surf->tets2.begin();
+			nit!=surf->tets2.end();
+			++nit)
+		{
+			Tet *nitt = *nit;
+
+			if(nitt == in)
+				continue;
+
+			for(int vi2=0; vi2<4; ++vi2)
+			{
+				SurfPt *sp2 = nitt->neib[vi2];
+
+				if(!sp2)
+					continue;
+
+				if(Magnitude(sp2->pos - sp->pos) <= CLOSEPOSF)
+					goto haveclose;
+			}
+
+			continue;
+
+haveclose:
+
+			Vec3f tri1[3];
+			tri1[0] = nitt->neib[0]->pos;
+			tri1[1] = nitt->neib[1]->pos;
+			tri1[2] = nitt->neib[2]->pos;
+
+			if(nitt->neib[0]->gone)
+				ErrMess("sdf","gg0");
+			if(nitt->neib[1]->gone)
+				ErrMess("sdf","gg1");
+			if(nitt->neib[2]->gone)
+				ErrMess("sdf","gg2");
+
+			if(!CanClip(surf,
+				nitt,
+				split,
+				tri1,
+				fulltri))
+				continue;
+			if(!CanClip(surf,
+				nitt,
+				backsplit,
+				tri1,
+				fulltri))
+				continue;
+
+			neibclip->push_back(nitt);
+			neibclip->unique(UniqueTet);
+		}
+	}
+}
+
 /*
 Use the full, unclipped mesh
 to cut approved non-hidden
@@ -1584,17 +2493,39 @@ again:
 		tri1[2] = (*tit)->neib[2]->pos;
 		Vec3f norm1 = Normal(tri1);
 		
-		for(std::list<Tet*>::iterator fulltit=surf->tets2.begin();
-			fulltit!=surf->tets2.end();
+		for(std::list<Tet*>::iterator fulltit=fullsurf->tets2.begin();
+			fulltit!=fullsurf->tets2.end();
 			++fulltit)
 		{
+			Tet *fullin = *fulltit;
 			//if(!VerifyTet(surf, fulltit))
 			//	goto again;
 
 			if(TestDiscard(surf, fulltit))
 				goto again;
 
-			if(*fulltit == *tit)
+			//if(*fulltit == *tit)
+			if(*fulltit == in)
+				continue;
+
+			int same = 0;
+
+			for(int v1=0; v1<4; v1++)
+			{
+				if(!in->neib[v1])
+					continue;
+
+				for(int v2=0; v2<4; v2++)
+				{
+					if(!fullin->neib[v2])
+						continue;
+
+					if(Magnitude( in->neib[v1]->pos - fullin->neib[v2]->pos ) <= CLOSEPOSF )
+						same++;
+				}
+			}
+
+			if(same>=2)
 				continue;
 
 			Vec3f fulltri[3];
@@ -1603,241 +2534,104 @@ again:
 			fulltri[2] = (*fulltit)->neib[2]->pos;
 			Vec3f fullnorm = Normal(fulltri);
 
-			//if(fullnorm == norm1)
-			//	continue;
+			if(fullnorm == norm1)
+				continue;
 
 			Plane3f split;
 			MakePlane(&split.m_normal, &split.m_d, (fulltri[0]+fulltri[1]+fulltri[2])/3.0f,
 				fullnorm);
-			bool keepon = false;
 
-#define MAX_POINTS_ON_WINDING 7
+			Plane3f backsplit;
+			MakePlane(&backsplit.m_normal, &backsplit.m_d, 
+				(fulltri[0]+fulltri[1]+fulltri[2])/3.0f,
+				Vec3f(0,0,0) - fullnorm);
 
-			float	dists[MAX_POINTS_ON_WINDING];
-			int		sides[MAX_POINTS_ON_WINDING];
-			int		counts[3];
-			float	dot;
-			int		i, j;
-			SurfPt	*p1, *p2;
-			Vec3f	mid;
-			Tet		*neww, *backw;
-			int		maxpts;
+#if 00
+			tri1[0] = in->neib[0]->pos;
+			tri1[1] = in->neib[1]->pos;
+			tri1[2] = in->neib[2]->pos;
 
-			counts[0] = counts[1] = counts[2] = 0;
+			if(!CanClip(surf,
+				in,
+				split,
+				tri1,
+				fulltri))
+				continue;
 
-#define SIDE_BACK	0
-#define SIDE_ON		1
-#define SIDE_FRONT	2
+			Tet *front = NULL;
+			Tet *back = NULL;
 
-			int fpts = 0;
-			int bpts = 0;
+			std::list<SurfPt*> substfrom;
+			std::list<SurfPt*> substto;
 
-			// determine sides for each point
-			for (i=0 ; i<3 ; i++)
+			ClipFront(surf, in, split,
+				&substfrom, &substto, &front);
+			ClipFront(surf, in, backsplit,
+				&substfrom, &substto, &back);
+
+			SplitQuad(surf, front,
+				&substfrom, &substto);
+			SplitQuad(surf, back,
+				&substfrom, &substto);
+
+			FreeTet(surf, in, true);
+			//surf->tets2.erase(tit);	//tit invalided by CopyPt etc.
+
+			tit=surf->tets2.begin();
+			while(
+				tit!=surf->tets2.end())
 			{
-				dot = Dot (in->neib[i]->pos, split.m_normal);
-				dot -= split.m_d;
-				dists[i] = dot;
-#define ON_EPSILON	0.3f
-				if (dot > ON_EPSILON)
-					sides[i] = SIDE_FRONT;
-				else if (dot < -ON_EPSILON)
-					sides[i] = SIDE_BACK;
+				if(*tit == in)
+				{
+					tit=surf->tets2.erase(tit);
+					//break;
+				}
 				else
-				{
-					sides[i] = SIDE_ON;
-				}
-				counts[sides[i]]++;
+					++tit;
 			}
-			sides[i] = sides[0];
-			dists[i] = dists[0];
-
-			if (//keepon && 
-				!counts[0] && !counts[1])
+			goto again;
+#endif
+#if 01
+			if(!ShouldClip(surf,
+				in,
+				split,
+				tri1,
+				fulltri))
+				continue;
+			if(!CanClip(surf,
+				in,
+				split,
+				tri1,
+				fulltri))
 				continue;
 
-			if (!counts[0])
-			{
-				//FreeWinding (in);
-				//return NULL;
-				continue;	//don't know enough to say that it is truly hidden or if just random tri in front
-				//goto again;
-			}
-			//if (!counts[1])
-			//	continue;	//don't know enough to say that it is truly hidden or if just random tri in front
-			if(!counts[2])
-				continue;
+			std::list<Tet*> neibclip;
 
-			maxpts = 3+4;	// can't use counts[0]+2 because
-			// of fp grouping errors
-			//neww = NewWinding (maxpts);
-			//std::list<SurfPt*> neww2;
-			CopyTet(surf, in);
-			neww = *surf->tets2.rbegin();
-			CopyTet(surf, in);
-			backw = *surf->tets2.rbegin();
+			GetClipNeib(in, &neibclip,
+				fulltri, split, backsplit,
+				surf);
 
-			if(in->neib[3])
-				ErrMess("i4","i4");
+			std::list<SurfPt*> substfrom;
+			std::list<SurfPt*> substto;
 
-			if(neww == backw)
-				ErrMess("nb","n=b");
+			Tet *front=NULL, *back=NULL;
 
-			if(!neww)
-				ErrMess("n","N!");
+			ClipFront(surf, in, split,
+				&substfrom, &substto, &front);
 
-			if(!backw)
-				ErrMess("b","B!");
+			ClipFront(surf, in, backsplit,
+				&substfrom, &substto, &back);
 
-			int newvi = 0;
-			int backvi = 0;
+			SplitQuad(surf, front,
+				&substfrom, &substto);
+			SplitQuad(surf, back,
+				&substfrom, &substto);
 
-			for (i=0 ; i<3 ; i++)
-			{
-				if(!in->neib[i])
-					ErrMess("44","44");
-				if(in->neib[i]->gone)
-					ErrMess("g123","g123");
-
-				//p1 = in->points[i];
-				p1 = in->neib[i];
-
-				if (sides[i] == SIDE_ON)
-				{
-					//VectorCopy (p1, neww->points[neww->numpoints]);
-					//neww->numpoints++;
-
-					SurfPt* newp;
-					if(!(newp=CopyPt(surf, p1, neww)))
-						ErrMess("123","12347");
-					if(newp->gone)
-						ErrMess("g123123","g123123");
-					SepPt(in, newp, NULL);
-					if(!(newp=CopyPt(surf, p1, backw)))
-						ErrMess("123","12348");
-					if(newp->gone)
-						ErrMess("g123123","g12312355");
-					SepPt(in, newp, NULL);
-
-					newvi++;
-					backvi++;
-
-					bpts++;
-					fpts++;
-
-					if(bpts>4)
-						ErrMess(">4",">4b");
-
-					if(fpts>4)
-						ErrMess(">4",">4f");
-
-					continue;
-				}
-
-				if (sides[i] == SIDE_FRONT)
-				{
-					//VectorCopy (p1, neww->points[neww->numpoints]);
-					//neww->numpoints++;
-					SurfPt* newp;
-					if(!(newp=CopyPt(surf, p1, neww)))
-						ErrMess("123","1234");
-					if(newp->gone)
-						ErrMess("g123123","g123123333");
-					SepPt(in, newp, NULL);
-					newvi++;
-
-					fpts++;
-
-					if(fpts>4)
-						ErrMess(">4",">4fsdf");
-				}
-
-				if (sides[i] == SIDE_BACK)
-				{
-					//VectorCopy (p1, neww->points[neww->numpoints]);
-					//neww->numpoints++;
-					SurfPt* newp;
-					if(!(newp=CopyPt(surf, p1, backw)))
-						ErrMess("123","12346");
-					SepPt(in, newp, NULL);
-					backvi++;
-					
-					bpts++;
-
-					if(bpts>4)
-						ErrMess(">4",">4bsdd");
-				}
-
-				if (sides[i+1] == SIDE_ON || sides[i+1] == sides[i])
-					continue;
-
-				// generate a split point
-				p2 = in->neib[(i+1)%3];
-
-				if(!p2)
-					ErrMess("!2","22");
-				if(p2->gone)
-					ErrMess("g123123","g123123222");
-
-				dot = dists[i] / (dists[i]-dists[i+1]);
-				for (j=0 ; j<3 ; j++)
-				{	// avoid round off error when possible
-					if (split.m_normal[j] == 1)
-						mid[j] = split.m_d;
-					else if (split.m_normal[j] == -1)
-						mid[j] = -split.m_d;
-					else
-						mid[j] = p1->pos[j] + dot*(p2->pos[j]-p1->pos[j]);
-
-					//if(_isnan(mid[j]))
-					//	ErrMess("sfgdsfklg","nannanmidj");
-				}
-				if(_isnan(mid[0]))
-					ErrMess("sfgdsfklg","nannanmidj0");
-				if(_isnan(mid[1]))
-					ErrMess("sfgdsfklg","nannanmidj1");
-				if(_isnan(mid[2]))
-					ErrMess("sfgdsfklg","nannanmidj2");
-
-				//VectorCopy (mid, neww->points[neww->numpoints]);
-				//neww->numpoints++;
-				SurfPt *news1 = CopyPt(surf, p2, neww);
-				SurfPt *news2 = CopyPt(surf, p2, backw);
-
-				if(!news1)
-					ErrMess("1","1");
-				if(!news2)
-					ErrMess("12","12");
-				if(news1->gone)
-					ErrMess("g123123","n1");
-				if(news2->gone)
-					ErrMess("g123123","n12");
-
-				news1->pos = mid;
-				news2->pos = mid;
-				
-				SepPt(in, news1, NULL);
-				SepPt(in, news2, NULL);
-				if(news1->gone)
-					ErrMess("g123123","n133s");
-				if(news2->gone)
-					ErrMess("g123123","n1233s");
-
-				backvi++;
-				newvi++;
-
-				bpts++;
-				fpts++;
-
-				if(bpts>4)
-					ErrMess(">4",">4bdsfgdfg");
-
-				if(fpts>4)
-					ErrMess(">4",">4fsdsdfsdf");
-			}
-
-			//if (neww->numpoints > maxpts)
+			//if (newtet->numpoints > maxpts)
 			//	Error ("ClipWinding: points exceeded estimate");
+
+			//for all holders of old pt's in "in"
+			//replace each pt to new ones
 
 			// free the original winding
 			//FreeWinding (in);
@@ -1857,12 +2651,92 @@ again:
 					++tit;
 			}
 
+			neibclip.unique(UniqueTet);
+
+			for(std::list<Tet*>::iterator cit=neibclip.begin();
+				cit!=neibclip.end();
+				++cit)
+			{
+				Tet *ctit = *cit;
+
+				//?
+				if(!ctit->neib[0])
+					continue;
+				if(!ctit->neib[1])
+					continue;
+				if(!ctit->neib[2])
+					continue;
+
+			if(ctit->neib[0]->gone)
+				ErrMess("sdf","gg0r");
+			if(ctit->neib[1]->gone)
+				ErrMess("sdf","gg1r");
+			if(ctit->neib[2]->gone)
+				ErrMess("sdf","gg2r");
+
+				tri1[0] = ctit->neib[0]->pos;
+				tri1[1] = ctit->neib[1]->pos;
+				tri1[2] = ctit->neib[2]->pos;
+
+				if(!CanClip(surf,
+					ctit,
+					split,
+					tri1,
+					fulltri))
+					continue;
+
+				front = NULL;
+				back = NULL;
+
+				ClipFront(surf, ctit, split,
+					&substfrom, &substto, &front);
+				ClipFront(surf, ctit, backsplit,
+					&substfrom, &substto, &back);
+					
+				SplitQuad(surf, front,
+					&substfrom, &substto);
+				SplitQuad(surf, back,
+					&substfrom, &substto);
+
+				FreeTet(surf, ctit, true);
+				//surf->tets2.erase(tit);	//tit invalided by CopyPt etc.
+
+				tit=surf->tets2.begin();
+				while(
+					tit!=surf->tets2.end())
+				{
+					if(*tit == ctit)
+					{
+						tit=surf->tets2.erase(tit);
+						//break;
+					}
+					else
+						++tit;
+				}
+			}
+
+			neibclip.clear();
+#if 0
+			//reverse iterate to get the latest change first?
+			//or will there be a chain of changes?
+			std::list<SurfPt*>::iterator fromit = substfrom.begin();
+			std::list<SurfPt*>::iterator toit = substto.begin();
+
+			while(fromit != substfrom.end() &&
+				toit != substto.end())
+			{
+				RepPt2(surf, *fromit, *toit);
+
+				fromit++;
+				toit++;
+			}
+#endif
 			Test(surf);
 
-			if(fpts<3)
-				ErrMess("f<","f<");
-			if(bpts<3)
-				ErrMess("b<","b<");
+//			if(fpts<3)
+//				ErrMess("f<","f<");
+			//if(bpts<3)
+			//	ErrMess("b<","b<");
 
 			//std::list<Tet*>::iterator backwtit=surf->tets2.end();
 			//backwtit--;
@@ -1870,20 +2744,23 @@ again:
 			//newwtit--;
 
 			//if(VerifyTet(surf, newwtit))
-				SplitTris(surf, neww);
-				neww = NULL;
+			///	SplitQuad(surf, newtet);
+			////	newtet = NULL;
 			//else
 			//{
 			//	backwtit=surf->tets2.end();
 			//	backwtit--;
 			//}
 			//if(VerifyTet(surf, backwtit))
-				SplitTris(surf, backw);
+			///	SplitQuad(surf, backw);
 
-				backw = NULL;
+			///	backw = NULL;
 
-			//return neww;
+			//return newtet;
 			goto again;
+#endif
+	//return true;
+			//goto again;
 		}
 	}
 
@@ -1898,7 +2775,7 @@ bool UniqueTet(Tet *a, Tet *b)
 }
 
 //1gets2
-void MergePt(SurfPt *topt, SurfPt *frompt)
+void AddHolds(SurfPt *topt, SurfPt *frompt)
 {	if(topt == frompt)
 		return;
 
@@ -1999,7 +2876,169 @@ again:
 					if((*tit2)->neib[vin2]->gone)
 						ErrMess("g123123","tt2");
 
-					if(Magnitude( (*tit1)->neib[vin1]->pos - (*tit2)->neib[vin2]->pos ) <= 1.0f &&
+					if(Magnitude( (*tit1)->neib[vin1]->pos - (*tit2)->neib[vin2]->pos ) <= CLOSEPOSF &&
+						(*tit1)->neib[vin1] != (*tit2)->neib[vin2] &&
+						*tit1 != *tit2 )
+					{
+
+#if 0
+						fprintf(g_applog, "\r\nt\nvin%d,%d:(%f,%f,%f),(%f,%f,%f)\r\n(%f,%f,%f),(%f,%f,%f)\r\n(%f,%f,%f),(%f,%f,%f)\r\n",
+							vin1,vin2,
+							(*tit1)->neib[vin1]->pos.x,
+							(*tit1)->neib[vin1]->pos.y,
+							(*tit1)->neib[vin1]->pos.z,
+							(*tit2)->neib[vin2]->pos.x,
+							(*tit2)->neib[vin2]->pos.y,
+							(*tit2)->neib[vin2]->pos.z,
+							
+							(*tit1)->neib[(vin1+1)%3]->pos.x,
+							(*tit1)->neib[(vin1+1)%3]->pos.y,
+							(*tit1)->neib[(vin1+1)%3]->pos.z,
+							(*tit2)->neib[(vin2+1)%3]->pos.x,
+							(*tit2)->neib[(vin2+1)%3]->pos.y,
+							(*tit2)->neib[(vin2+1)%3]->pos.z,
+							
+							(*tit1)->neib[(vin1+2)%3]->pos.x,
+							(*tit1)->neib[(vin1+2)%3]->pos.y,
+							(*tit1)->neib[(vin1+2)%3]->pos.z,
+							(*tit2)->neib[(vin2+2)%3]->pos.x,
+							(*tit2)->neib[(vin2+2)%3]->pos.y,
+							(*tit2)->neib[(vin2+2)%3]->pos.z);
+						fflush(g_applog);
+#endif
+
+						if((*tit1)->neib[vin1]->gone)
+							ErrMess("g13","11111g");
+						//delete (*tit2)->neib[vin2];
+#if 0
+						if((*tit2)->neib[vin2]->holder.size() <= 1)
+						{
+							(*tit2)->neib[vin2]->gone=true;
+							delete (*tit2)->neib[vin2];
+							(*tit2)->neib[vin2]=NULL;
+						}
+#endif
+						SurfPt* oldpt = (*tit2)->neib[vin2];
+
+						SurfPt *topt = (*tit1)->neib[vin1];
+						SurfPt *frompt = (*tit2)->neib[vin2];
+
+						AddHolds((*tit1)->neib[vin1],
+							(*tit2)->neib[vin2]);
+
+#if 01
+						for(std::list<Tet*>::iterator remhit=frompt->holder.begin();
+								remhit!=frompt->holder.end();
+								++remhit)
+							{
+								//fromdel2
+						//1gets2hn
+								for(int vin=0; vin<4; ++vin)
+								{
+									if((*remhit)->neib[vin] == frompt)
+										(*remhit)->neib[vin] = topt;
+								}
+							}
+#endif
+#if 01
+						RepPt2(surf, frompt, topt);
+#endif
+						oldpt->gone=true;
+						delete oldpt;
+
+						topt->holder.push_back(*tit2);
+						topt->holder.unique(UniqueTet);
+//1gets2
+
+						//MigratePt((*tit2)->neib[vin2],
+						//	(*tit1)->neib[vin1]);
+						if((*tit2)->neib[vin2]->gone)
+							ErrMess("g13","g13");
+						//(*tit2)->neib[vin2]->gone=true;
+//1gets2
+						//delete (*tit2)->neib[vin2];
+						if(*tit1==*tit2)
+							ErrMess("t12","t12=");
+#if 0
+						if((*tit1)->neib[vin1]==(*tit2)->neib[vin2])
+							ErrMess("t12","t12=tn");
+						if((*tit1)->neib[vin1]->gone)
+							ErrMess("g13","111g");
+#endif
+
+						std::list<SurfPt*>::iterator pit=surf->pts2.begin();
+						while(
+							pit!=surf->pts2.end())
+						{
+							//if(*pit == (*tit2)->neib[vin2])
+							if(*pit == frompt)
+								pit = surf->pts2.erase(pit);
+							else
+								++pit;
+						}
+
+						//(*tit2)->neib[vin2] = (*tit1)->neib[vin1];
+						(*tit2)->neib[vin2] = topt;
+						if((*tit2)->neib[vin2]->gone)
+							ErrMess("g123123","tt2tt");
+						goto again;
+					}
+				}
+			}
+		}
+	}
+	Test(surf);
+
+	return true;
+}
+
+
+
+
+bool JoinPts2(Surf *surf, Surf *fullsurf)
+{//return 1;
+again:
+	Test(surf);
+	int i1=0;
+	for(std::list<Tet*>::iterator tit1=surf->tets2.begin();
+		tit1!=surf->tets2.end();
+		++tit1, ++i1)
+	{
+		if(TestDiscard(surf, tit1))
+			goto again;
+
+		int i2=i1+1;
+		std::list<Tet*>::iterator tit2;
+		tit2=tit1;
+		++tit2;
+		for(;
+			tit2!=surf->tets2.end();
+			++tit2, ++i2)
+		{
+			if(*tit2 == *tit1)
+				continue;
+
+			if(TestDiscard(surf, tit2))
+				goto again;
+
+			////fprintf(g_applog, "\r\ni%d,%d\r\n", i1,i2);
+			//fflush(g_applog);
+
+			for(int vin1=0; vin1<3; ++vin1)
+			{
+				if(!(*tit1)->neib[vin1])
+					ErrMess("1!","1!");
+				if((*tit1)->neib[vin1]->gone)
+					ErrMess("g123123","tt11");
+
+				for(int vin2=0; vin2<3; vin2++)
+				{
+					if(!(*tit2)->neib[vin2])
+						ErrMess("12!","12!");
+					if((*tit2)->neib[vin2]->gone)
+						ErrMess("g123123","tt2");
+
+					if(Magnitude( (*tit1)->neib[vin1]->pos - (*tit2)->neib[vin2]->pos ) <= CLOSEPOSF &&
 						(*tit1)->neib[vin1] != (*tit2)->neib[vin2] &&
 						*tit1 != *tit2 )
 					{
@@ -2040,14 +3079,15 @@ again:
 							(*tit2)->neib[vin2]=NULL;
 						}
 #endif
-						MergePt((*tit1)->neib[vin1],
-							(*tit2)->neib[vin2]);
-
 						SurfPt* oldpt = (*tit2)->neib[vin2];
 
 						SurfPt *topt = (*tit1)->neib[vin1];
 						SurfPt *frompt = (*tit2)->neib[vin2];
 
+						AddHolds((*tit1)->neib[vin1],
+							(*tit2)->neib[vin2]);
+
+#if 01
 						for(std::list<Tet*>::iterator remhit=frompt->holder.begin();
 								remhit!=frompt->holder.end();
 								++remhit)
@@ -2060,12 +3100,15 @@ again:
 										(*remhit)->neib[vin] = topt;
 								}
 							}
-
+#endif
+#if 01
+						RepPt2(surf, frompt, topt);
+#endif
 						oldpt->gone=true;
 						delete oldpt;
 
-						(*tit1)->neib[vin1]->holder.push_back(*tit2);
-						(*tit1)->neib[vin1]->holder.unique(UniqueTet);
+						topt->holder.push_back(*tit2);
+						topt->holder.unique(UniqueTet);
 //1gets2
 
 						//MigratePt((*tit2)->neib[vin2],
@@ -2088,13 +3131,15 @@ again:
 						while(
 							pit!=surf->pts2.end())
 						{
-							if(*pit == (*tit2)->neib[vin2])
+							//if(*pit == (*tit2)->neib[vin2])
+							if(*pit == frompt)
 								pit = surf->pts2.erase(pit);
 							else
 								++pit;
 						}
 
-						(*tit2)->neib[vin2] = (*tit1)->neib[vin1];
+						//(*tit2)->neib[vin2] = (*tit1)->neib[vin1];
+						(*tit2)->neib[vin2] = topt;
 						if((*tit2)->neib[vin2]->gone)
 							ErrMess("g123123","tt2tt");
 						goto again;
@@ -2418,22 +3463,39 @@ bool RemFloaters(Surf *surf, Surf *fullsurf)
 	//if a surfpt has less than 3 holders/owners,
 	//then it is a floater. test to confirm. TODO.
 
-again:
+	int irem = 0;
 
+again:
+#if 01
 	for(std::list<Tet*>::iterator tit1=surf->tets2.begin();
 		tit1!=surf->tets2.end();
 		++tit1)
 	{
 		for(int vin=0; vin<3; ++vin)
 		{
+			if(!(*tit1)->neib[vin])
+				continue;
 			if((*tit1)->neib[vin]->holder.size() < 3)
 			{
+				int c=0;
+				for(std::list<Tet*>::iterator tit2=surf->tets2.begin();
+					tit2!=surf->tets2.end();
+					tit2++)
+				{
+					for(int vin2=0; vin2<4; vin2++)
+						if((*tit2)->neib[vin2] == (*tit1)->neib[vin])
+							c++;
+				}
+				if(c>(*tit1)->neib[vin]->holder.size())
+					ErrMess(">c",">c");
 				RemTet(surf, tit1, vin);
+				irem++;
 				goto again;
 			}
 		}
 	}
-
+#endif
+#if 01
 	//also after above, there may be tets with less than 3 verts, so remove them
 	for(std::list<Tet*>::iterator tit1=surf->tets2.begin();
 			tit1!=surf->tets2.end();
@@ -2444,13 +3506,17 @@ again:
 			if(!(*tit1)->neib[vin])
 			{
 				RemTet2(surf, tit1);
+				++irem;
 				goto again;
 			}
 		}
 	}
-
+#endif
 	//if three tets share an edge (a set of two pt's)
 	//one of them must be covered by the others
+
+	fprintf(g_applog, "RemFloaters: %d removed\r\n",
+		irem);
 
 	return true;
 }
@@ -2491,7 +3557,9 @@ bool TetRayCollides(Surf *surf,
 			else
 			{
 				//front
-				return true;
+				//return true;
+				//return false;
+				continue;
 				//collides with a front side of tet
 			}
 		}
@@ -2502,6 +3570,7 @@ bool TetRayCollides(Surf *surf,
 
 bool InfectVis(Surf *surf, Surf *fullsurf)
 {
+again:
 	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
 		tit!=surf->tets2.end();
 		++tit)
@@ -2521,22 +3590,23 @@ bool InfectVis(Surf *surf, Surf *fullsurf)
 
 			//check for same winding as approved
 			//and a matching edge
-			for(int vin1=0; vin1<9; ++vin1)
-			{
 				int samec = 0;
-				for(int vin2=0; vin2<9; ++vin2)
+			for(int vin1=0; vin1<3; ++vin1)
+			{
+				for(int vin2=0; vin2<3; ++vin2)
 				{
 					if((*tit)->neib[vin1%3] == (*tit2)->neib[vin2%3])
 						samec++;
-					else
-						samec=0;
+					//else
+					//	samec=0;
 					
 					if(samec >= 2)
 					{
 						//success
 						(*tit)->approved = true;
 						(*tit2)->approved = true;
-						goto nexttit2;
+						//goto nexttit2;
+						goto again;
 					}
 				}
 			}
@@ -2550,6 +3620,8 @@ nexttit2:
 
 bool RemUnmarked(Surf *surf, Surf *fullsurf)
 {
+	int irem=0;
+	//return true;
 again:
 	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
 		tit!=surf->tets2.end();
@@ -2559,11 +3631,15 @@ again:
 		{
 			if(!(*tit)->approved)
 			{
+				irem++;
 				RemTet2(surf, tit);
 				goto again;
 			}
 		}
 	}
+
+	fprintf(g_applog, "RemUnmarked: %d removed\r\n",
+		irem);
 
 	return true;
 }
@@ -2599,7 +3675,7 @@ again:
 		for(int attempt=0; attempt<3; ++attempt)
 		{
 			Vec3f line[2];
-			line[0] = tri[attempt%3] + tnorm * 0.5f;
+			line[0] = tri[attempt%3] + tnorm * 1.5f;
 			line[1] = line[0] + tnorm * 3000;
 
 			if(TetRayCollides(surf, tit, line))
@@ -2612,6 +3688,7 @@ again:
 			{
 				(*tit)->approved = true;
 				(*tit)->hidden = false;
+				break;
 			}
 		}
 	}
@@ -4663,7 +5740,7 @@ bool PointInTriangle (Vec2f pt, Vec2f v1, Vec2f v2, Vec2f v3)
     return ((b1 == b2) && (b2 == b3));
 }
 
-bool TraceRay2(Surf* surf,
+bool TraceRay3(Surf* surf,
 			   Vec3f line[2], 
 			  LoadedTex **retex,
 			  LoadedTex **retexs,
@@ -4671,7 +5748,8 @@ bool TraceRay2(Surf* surf,
 			  Vec2f *retexc,
 			  Vec3f *rewp, Vec3f *rerp, 
 			  Vec3f* ren,
-			  Tet **retet)
+			  Tet **retet,
+			  double *refU, double *refV)
 {
 	bool re = false;
 	int nearesti = -1;
@@ -4716,6 +5794,9 @@ bool TraceRay2(Surf* surf,
 	{
 		Tet *tet = *tit;
 
+		if(tet != *retet)
+			continue;
+
 		Vec3f tr[3];
 		tr[0] = tet->neib[0]->wrappos;
 		tr[1] = tet->neib[1]->wrappos;
@@ -4732,9 +5813,9 @@ bool TraceRay2(Surf* surf,
 		{
 			goto interc;
 		}
-		if(IntersectedPolygon(tr2, line, 3, &ir))
+		//if(IntersectedPolygon(tr2, line, 3, &ir))
 		{
-			goto interc;
+		//	goto interc;
 		}
 
 		continue;
@@ -4833,6 +5914,9 @@ interc:
 			txc[1] * (fU) + 
 			txc[2] * (fV);
 
+		*refU = fU;
+		*refV = fV;
+
 		if(_isnan(fU))
 			ErrMess("sgfdfg","fUnandfdfg");
 		if(_isnan(fV))
@@ -4867,6 +5951,7 @@ interc:
 		if(_isnan(txcf.y))
 			ErrMess("dfdfgsd","nantxcf.y1");
 
+#if 01
 		if(txcf.x >= 1)
 			txcf.x -= 1;
 		if(txcf.y >= 1)
@@ -4876,13 +5961,245 @@ interc:
 			txcf.x += 1;
 		if(txcf.y < 0)
 			txcf.y += 1;
-
+#endif
 		if(_isnan(txcf.x))
 			ErrMess("dfdfgsd","nantxcf.x");
 		if(_isnan(txcf.y))
 			ErrMess("dfdfgsd","nantxcf.y");
 
 		*retexc = txcf;
+		*ren = Normal(rtr);
+	}
+
+	return re;
+}
+
+bool TraceRay2(Surf* surf,
+			   Vec3f line[2], 
+			  LoadedTex **retex,
+			  LoadedTex **retexs,
+			  LoadedTex **retexn,
+			  Vec2f *retexc,
+			  Vec3f *rewp, Vec3f *rerp, 
+			  Vec3f* ren,
+			  Tet **retet,
+			  double *refU, double *refV)
+{
+	bool re = false;
+	int nearesti = -1;
+	float nearestd = Magnitude(line[1]-line[0]);
+	char neartype = 0;
+	//Vec3f nearestv;
+	//Vec3f nearnorm;
+
+	//fprintf(g_applog, "ray%f,%f,%f->%f,%f,%f\r\n", 
+	//	line[0].x, line[0].y, line[0].z,
+	//	line[1].x, line[1].y, line[1].z);
+
+//	fprintf(g_applog, "\r\nsta\r\n");
+	
+
+//	if(line[0].y < 0 && line[0].z > 0)
+//	fprintf(g_applog, "\r\nstaaaaa\r\n");
+
+	//int ci = 0;
+
+	//Texture *retex, *retexs, *retexn;
+
+	//unsigned char pr2,pg2,pb2,pa2,
+	//	spr2,spg2,spb2,spa2,
+	//	npr2,npg2,npb2,npa2;
+
+	
+				///if(
+				//	line[0] == Vec3f(0,-30000,30000))
+				//		ErrMess("!66!244","!2443!66");
+
+//	for(std::list<ModelHolder>::iterator mit=g_modelholder.begin();
+	//	mit!=g_modelholder.end(); 
+//		++mit, ++ci)
+
+	Tet *itet = NULL;
+	Vec3f ir = line[1];
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet *tet = *tit;
+
+		Vec3f tr[3];
+		tr[0] = tet->neib[0]->wrappos;
+		tr[1] = tet->neib[1]->wrappos;
+		tr[2] = tet->neib[2]->wrappos;
+		
+		Vec3f tr2[3];
+		tr2[1] = tet->neib[0]->wrappos;
+		tr2[0] = tet->neib[1]->wrappos;
+		tr2[2] = tet->neib[2]->wrappos;
+
+		ir = line[1];
+
+		if(IntersectedPolygon(tr, line, 3, &ir))
+		{
+			goto interc;
+		}
+		//if(IntersectedPolygon(tr2, line, 3, &ir))
+		{
+		//	goto interc;
+		}
+
+		continue;
+
+interc:
+		re = true;
+		line[1] = ir;
+		itet = tet;
+	}
+
+	if(itet)
+	{
+		Vec3f tr[3];
+		tr[0] = itet->neib[0]->wrappos;
+		tr[1] = itet->neib[1]->wrappos;
+		tr[2] = itet->neib[2]->wrappos;
+		Vec3f rtr[3];
+		rtr[0] = itet->neib[0]->pos;
+		rtr[1] = itet->neib[1]->pos;
+		rtr[2] = itet->neib[2]->pos;
+
+		Vec2f txc[3];
+
+		for(int v=0; v<3; v++)
+		{
+			txc[v].x = 
+				itet->neib[v]->pos.x * itet->texceq[0].m_normal.x +
+				itet->neib[v]->pos.y * itet->texceq[0].m_normal.y +
+				itet->neib[v]->pos.z * itet->texceq[0].m_normal.z +
+				itet->texceq[0].m_d;
+			
+			txc[v].y = 
+				itet->neib[v]->pos.x * itet->texceq[1].m_normal.x +
+				itet->neib[v]->pos.y * itet->texceq[1].m_normal.y +
+				itet->neib[v]->pos.z * itet->texceq[1].m_normal.z +
+				itet->texceq[1].m_d;
+
+			if(_isnan(itet->neib[v]->pos.x))
+				ErrMess("sfgdfg","is nan itet->neib[v]->pos.x");
+			if(_isnan(itet->neib[v]->pos.y))
+				ErrMess("sfgdfg","is nan itet->neib[v]->pos.y");
+			if(_isnan(itet->neib[v]->pos.z))
+				ErrMess("sfgdfg","is nan itet->neib[v]->pos.z");
+
+			if(_isnan(itet->texceq[0].m_normal.x))
+				ErrMess("dsfgdfg", "itet->texceq[0].m_normal.x");
+			if(_isnan(itet->texceq[0].m_normal.y))
+				ErrMess("dsfgdfg", "itet->texceq[0].m_normal.y");
+			if(_isnan(itet->texceq[0].m_normal.z))
+				ErrMess("dsfgdfg", "itet->texceq[0].m_normal.z");
+			if(_isnan(itet->texceq[0].m_d))
+				ErrMess("dsfgdfg", "itet->texceq[0].m_d");
+
+			if(_isnan(itet->texceq[1].m_normal.x))
+				ErrMess("dsfgdfg", "itet->texceq[1].m_normal.x");
+			if(_isnan(itet->texceq[1].m_normal.y))
+				ErrMess("dsfgdfg", "itet->texceq[1].m_normal.y");
+			if(_isnan(itet->texceq[1].m_normal.z))
+				ErrMess("dsfgdfg", "itet->texceq[1].m_normal.z");
+			if(_isnan(itet->texceq[1].m_d))
+				ErrMess("dsfgdfg", "itet->texceq[1].m_d");
+
+			if(_isnan(txc[v].x))
+				ErrMess("sgfs","isnan txc v x");
+			if(_isnan(txc[v].y))
+				ErrMess("sgfs","isnan txc v y");
+		}
+
+		Vec3f v0 = tr[1] - tr[0],
+			v1 = tr[2] - tr[0],
+			v2 = ir - tr[0];
+
+		// do bounds test for each position
+		double f00 = Dot( v0, v0 );
+		double f01 = Dot( v0, v1 );
+		double f11 = Dot( v1, v1 );
+
+		double f02 = Dot( v0, v2 );
+		double f12 = Dot( v1, v2 );
+
+		// Compute barycentric coordinates
+		double invDenom = 1 / ( f00 * f11 - f01 * f01 );
+		if(_isnan(invDenom))
+			invDenom = 1;
+		double fU = ( f11 * f02 - f01 * f12 ) * invDenom;
+		double fV = ( f00 * f12 - f01 * f02 ) * invDenom;
+
+		// Check if point is in triangle
+		//if( ( fU >= 0.0 ) && ( fV >= 0.0 ) && ( fU + fV <= 1.0 ) )
+		//	goto dotex;
+		//continue;
+
+//dotex:
+
+		Vec2f txcf = txc[0] * (1 - fU - fV) + 
+			txc[1] * (fU) + 
+			txc[2] * (fV);
+
+		*refU = fU;
+		*refV = fV;
+
+		if(_isnan(fU))
+			ErrMess("sgfdfg","fUnandfdfg");
+		if(_isnan(fV))
+			ErrMess("sgfdfg","fVnandfdfg");
+
+		if(_isnan(txc[0].x))
+			ErrMess("dfdfgsd","nantxcf.x[0]1");
+		if(_isnan(txc[0].y))
+			ErrMess("dfdfgsd","nantxcf.y[0]1");
+		
+		if(_isnan(txc[1].x))
+			ErrMess("dfdfgsd","nantxcf.x[1]1");
+		if(_isnan(txc[1].y))
+			ErrMess("dfdfgsd","nantxcf.y[1]1");
+		
+		if(_isnan(txc[2].x))
+			ErrMess("dfdfgsd","nantxcf.x[2]1");
+		if(_isnan(txc[2].y))
+			ErrMess("dfdfgsd","nantxcf.y[2]1");
+
+		LoadedTex *diff = itet->tex->pixels;
+
+		*retex = diff;
+		*rewp = ir;
+		*rerp = rtr[0] * (1 - fU - fV) + 
+			rtr[1] * (fU) + 
+			rtr[2] * (fV);
+		*retet = itet;
+
+		if(_isnan(txcf.x))
+			ErrMess("dfdfgsd","nantxcf.x1");
+		if(_isnan(txcf.y))
+			ErrMess("dfdfgsd","nantxcf.y1");
+
+#if 01
+		if(txcf.x >= 1)
+			txcf.x -= 1;
+		if(txcf.y >= 1)
+			txcf.y -= 1;
+
+		if(txcf.x < 0)
+			txcf.x += 1;
+		if(txcf.y < 0)
+			txcf.y += 1;
+#endif
+		if(_isnan(txcf.x))
+			ErrMess("dfdfgsd","nantxcf.x");
+		if(_isnan(txcf.y))
+			ErrMess("dfdfgsd","nantxcf.y");
+
+		*retexc = txcf;
+		*ren = Normal(rtr);
 	}
 
 	return re;
@@ -4892,10 +6209,123 @@ interc:
 //bounce rays with "globe" to get intersections and map those by long,lat to orientability map
 void OutTex2(Surf *surf, LoadedTex* out)
 {
+#if 0
+	int t=0;
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet *tet = *tit;
+
+		LoadedTex ltex;
+		AllocTex(&ltex, BIGTEX, BIGTEX, 3);
+
+
+		for(int outpx=0; outpx<BIGTEX; outpx++)
+		{
+			for(int outpy=0; outpy<BIGTEX; outpy++)
+			{
+				Vec3f line[2];
+
+				line[1] = Vec3f(0,0,0);
+				line[0] = Vec3f(30000,0,0);
+
+				float lat = M_PI*
+					(float)outpy/(float)BIGTEX;
+				line[0] = Rotate(line[0], lat, 0, 0, 1);
+				//fprintf(g_applog, "prepos3 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
+				float yaw = M_PI*
+					(float)2.0f*(float)outpx/(float)BIGTEX;
+				line[0] = Rotate(line[0], -yaw, 0, 1, 0);
+
+				LoadedTex *tex=NULL, *ntex=NULL, *stex=NULL;
+				Vec2f texc;
+				Vec3f wp, rp, n;
+				Tet *tet2 = tet;
+				double fU, fV;
+
+				if(TraceRay3(surf,
+					line,
+					&tex,
+					&stex,
+					&ntex,
+					&texc,
+					&wp,&rp,
+					&n,
+					&tet2,
+					&fU, &fV))
+				{
+					if(tet2!=tet)
+						continue;
+
+					unsigned char c[4];
+
+					//texc.x = texc.x - (int)texc.x;
+					//texc.y = texc.y - (int)texc.y;
+
+					int intx = texc.x * tex->sizex;
+					int inty = texc.y * tex->sizey;
+
+					while(intx < 0)
+						intx += tex->sizex;
+					while(inty < 0)
+						inty += tex->sizey;
+					while(intx >= tex->sizex)
+						intx -= tex->sizex;
+					while(inty >= tex->sizey)
+						inty -= tex->sizey;
+
+					c[0] = tex->data[ tex->channels * (intx + inty * tex->sizex) + 0 ];
+					c[1] = tex->data[ tex->channels * (intx + inty * tex->sizex) + 1 ];
+					c[2] = tex->data[ tex->channels * (intx + inty * tex->sizex) + 2 ];
+
+					unsigned short vx = 30000 + rp.x;
+					unsigned short vy = 30000 + rp.y;
+					unsigned short vz = 30000 + rp.z;
+
+					//	unsigned short vx = 30000 + wp.x;
+					//		unsigned short vy = 30000 + wp.y;
+					//		unsigned short vz = 30000 + wp.z;
+
+					Vec3f trg = Vec3f(255,0,0) * (1 - fU - fV) + 
+						Vec3f(0,255,0) * (fU) + 
+						Vec3f(0,0,255) * (fV);
+
+					c[0] = trg.x;
+					c[1] = trg.y;
+					c[2] = trg.z;
+
+					ltex.data[ 3 * (outpx + outpy * ltex.sizex) + 0 ] = c[0];
+					ltex.data[ 3 * (outpx + outpy * ltex.sizex) + 1 ] = c[1];
+					ltex.data[ 3 * (outpx + outpy * ltex.sizex) + 2 ] = c[2];
+
+					//*((unsigned short*)&(out[1].data[ 3 * (outpx + outpy * out[1].sizex) + 0 ])) = vx;
+					//out[1].data[ 3 * (outpx + outpy * out[1].sizex) + 2 ] = 0;
+				}
+			}
+		}
+
+		char file[32];
+		sprintf(file, "renders/outaa%d.png", t);
+		char full[SPE_MAX_PATH+1];
+		FullPath(file, full);
+		SavePNG2(full, &ltex);
+		++t;
+
+	}
+	return;
+#endif
 	for(int outpx=0; outpx<BIGTEX; outpx++)
 	{
 		for(int outpy=0; outpy<BIGTEX; outpy++)
 		{
+			bool focus = false;
+
+			if(outpx == 148 && 61 == outpy)
+				focus = true;
+			if(outpx == 133 && 58 == outpy)
+				focus = true;
+
 			Vec3f line[2];
 
 			line[1] = Vec3f(0,0,0);
@@ -4913,6 +6343,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 			Vec2f texc;
 			Vec3f wp, rp, n;
 			Tet *tet;
+			double fU, fV;
 
 			if(TraceRay2(surf,
 				line,
@@ -4922,7 +6353,8 @@ void OutTex2(Surf *surf, LoadedTex* out)
 				&texc,
 				&wp,&rp,
 				&n,
-				&tet))
+				&tet,
+				&fU, &fV))
 			{
 				unsigned char c[4];
 
@@ -4948,13 +6380,53 @@ void OutTex2(Surf *surf, LoadedTex* out)
 				unsigned short vx = 30000 + rp.x;
 				unsigned short vy = 30000 + rp.y;
 				unsigned short vz = 30000 + rp.z;
+				
+			//	unsigned short vx = 30000 + wp.x;
+		//		unsigned short vy = 30000 + wp.y;
+		//		unsigned short vz = 30000 + wp.z;
+
+				Vec3f trg = Vec3f(255,0,0) * (1 - fU - fV) + 
+					Vec3f(0,255,0) * (fU) + 
+					Vec3f(0,0,255) * (fV);
+
+				c[0] = trg.x;
+				c[1] = trg.y;
+				c[2] = trg.z;
 
 				out[0].data[ 3 * (outpx + outpy * out[0].sizex) + 0 ] = c[0];
 				out[0].data[ 3 * (outpx + outpy * out[0].sizex) + 1 ] = c[1];
 				out[0].data[ 3 * (outpx + outpy * out[0].sizex) + 2 ] = c[2];
-
+/*
+				if(focus)
+				{
+					fprintf(g_applog, "focus(%d,%d): rp:(%f,%f,%f) wp:(%f,%f,%f)\r\n",
+						outpx, outpy,
+						rp.x,rp.y,rp.z,
+						wp.x,wp.y,wp.z);
+					for(int vii=0; vii<4; ++vii)
+					{
+						if(!tet->neib[vii])
+							continue;
+						fprintf(g_applog, "tet->neib[%d] = \r\n\tpos=(%f,%f,%f)\r\n\twrap=(%f,%f,%f)\r\n",
+							vii,
+							tet->neib[vii]->pos.x,
+							tet->neib[vii]->pos.y,
+							tet->neib[vii]->pos.z,
+							tet->neib[vii]->wrappos.x,
+							tet->neib[vii]->wrappos.y,
+							tet->neib[vii]->wrappos.z);
+					}
+					fflush(g_applog);
+				}
+*/
 				unsigned short vd = 30000 - Magnitude(rp);
 
+				//if(vx == 30000)
+			//		vx=0;
+		//		if(vy == 30000)
+	//				vy=0;
+//				if(vz == 30000)
+//					vz=0;
 				
 				*((unsigned short*)&(out[1].data[ 3 * (outpx + outpy * out[1].sizex) + 0 ])) = vx;
 				out[1].data[ 3 * (outpx + outpy * out[1].sizex) + 2 ] = 0;
@@ -4964,9 +6436,118 @@ void OutTex2(Surf *surf, LoadedTex* out)
 				
 				*((unsigned short*)&(out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 0 ])) = vz;
 				out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 2 ] = 0;
+
+				float nx = n.x;
+				float ny = n.y;
+				float nz = n.z;
 				
-				*((unsigned short*)&(out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 0 ])) = vd;
-				out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 2 ] = 0;
+				out[5].data[ 3 * (outpx + outpy * out[5].sizex) + 0 ] = (unsigned char)(nx*127)+127;
+				out[5].data[ 3 * (outpx + outpy * out[5].sizex) + 1 ] = (unsigned char)(ny*127)+127;
+				out[5].data[ 3 * (outpx + outpy * out[5].sizex) + 2 ] = (unsigned char)(nz*127)+127;
+
+				/*
+				out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 0 ] = (unsigned char)((rp.x+1000/4+1)/(10));
+				out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 1 ] = (unsigned char)((rp.y+1000/4+1)/(10));
+				out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 2 ] = (unsigned char)((rp.z+1000/4+1)/(10));
+				
+				out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 0 ] = (unsigned char)((wp.x+1000/4+1)/(10));
+				out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 1 ] = (unsigned char)((wp.y+1000/4+1)/(10));
+				out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 2 ] = (unsigned char)((wp.z+1000/4+1)/(10));
+*/
+				//*((unsigned short*)&(out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 0 ])) = vd;
+				//out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 2 ] = 0;
+
+				unsigned short hash = 1;
+
+				unsigned int ti=0;
+
+				for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+					tit!=surf->tets2.end();
+					++tit)
+				{
+					if(*tit == tet)
+						break;
+					++ti;
+				}
+
+				struct PlayerColor
+				{
+					unsigned char color[3];
+					char name[32];
+				};
+
+				#define PLAYER_COLORS	48
+
+				//if(ti>=PLAYER_COLORS)
+				//	ErrMess(">pc",">pc");
+
+				//extern PlayerColor g_pycols[PLAYER_COLORS];
+
+				PlayerColor g_pycols[PLAYER_COLORS] =
+				{
+					{{0x7e, 0x1e, 0x9c}, "Purple"},
+					{{0x15, 0xb0, 0x1a}, "Green"},
+					{{0x03, 0x43, 0xdf}, "Blue"},
+					{{0xff, 0x81, 0xc0}, "Pink"},
+					{{0x65, 0x37, 0x00}, "Brown"},
+					{{0xe5, 0x00, 0x00}, "Red"},
+					{{0x95, 0xd0, 0xfc}, "Light Blue"},
+					{{0x02, 0x93, 0x86}, "Teal"},
+					{{0xf9, 0x73, 0x06}, "Orange"},
+					{{0x96, 0xf9, 0x7b}, "Light Green"},
+					{{0xc2, 0x00, 0x78}, "Magenta"},
+					{{0xff, 0xff, 0x14}, "Yellow"},
+					{{0x75, 0xbb, 0xfd}, "Sky Blue"},
+					{{0x92, 0x95, 0x91}, "Grey"},
+					{{0x89, 0xfe, 0x05}, "Lime Green"},
+					{{0xbf, 0x77, 0xf6}, "Light Purple"},
+					{{0x9a, 0x0e, 0xea}, "Violet"},
+					{{0x33, 0x35, 0x00}, "Dark Green"},
+					{{0x06, 0xc2, 0xac}, "Turquoise"},
+					{{0xc7, 0x9f, 0xef}, "Lavender"},
+					{{0x00, 0x03, 0x5b}, "Dark Blue"},
+					{{0xd1, 0xb2, 0x6f}, "Tan"},
+					{{0x00, 0xff, 0xff}, "Cyan"},
+					{{0x13, 0xea, 0xc9}, "Aqua"},
+					{{0x06, 0x47, 0x0c}, "Forest Green"},
+					{{0xae, 0x71, 0x81}, "Mauve"},
+					{{0x35, 0x06, 0x3e}, "Dark Purple"},
+					{{0x01, 0xff, 0x07}, "Bright Green"},
+					{{0x65, 0x00, 0x21}, "Maroon"},
+					{{0x6e, 0x75, 0x0e}, "Olive"},
+					{{0xff, 0x79, 0x6c}, "Salmon"},
+					{{0xe6, 0xda, 0xa6}, "Beige"},
+					{{0x05, 0x04, 0xaa}, "Royal Blue"},
+					{{0x00, 0x11, 0x46}, "Navy Blue"},
+					{{0xce, 0xa2, 0xfd}, "Lilac"},
+					{{0x00, 0x00, 0x00}, "Black"},
+					{{0xff, 0x02, 0x8d}, "Hot Pink"},
+					{{0xad, 0x81, 0x50}, "Light Brown"},
+					{{0xc7, 0xfd, 0xb5}, "Pale Green"},
+					{{0xff, 0xb0, 0x7c}, "Peach"},
+					{{0x67, 0x7a, 0x04}, "Olive Green"},
+					{{0xcb, 0x41, 0x6b}, "Dark Pink"},
+					{{0x8e, 0x82, 0xfe}, "Periwinkle"},
+					{{0x53, 0xfc, 0xa1}, "Sea Green"},
+					{{0xaa, 0xff, 0x32}, "Lime"},
+					{{0x38, 0x02, 0x82}, "Indigo"},
+					{{0xce, 0xb3, 0x01}, "Mustard"},
+					{{0xff, 0xd1, 0xdf}, "Light Pink"}
+				};
+
+				//out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 0 ] = g_pycols[ti%PLAYER_COLORS].color[0];
+				//out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 1 ] = g_pycols[ti%PLAYER_COLORS].color[1];
+				//out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 2 ] = g_pycols[ti%PLAYER_COLORS].color[2];
+
+				//for(int hti=0; hti<ti; hti++)
+				//	hash = ((hash<<11)|(hash>>(16-11)))^(111+hti);
+				
+				//*((unsigned short*)&(out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 0 ])) = hash;
+				//out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 2 ] = 0;
+			}
+			else
+			{
+				//ErrMess("tr!~","tr!");
 			}
 
 		}
@@ -5003,6 +6584,9 @@ void OutTex(Surf *surf, LoadedTex out[6])
 
 		Tet* tet = *tit;
 		Texture *diff = tet->tex;
+
+		if(tet->gone)
+			ErrMess("ssdf","tet->gone\r\n");
 
 		if(!tet->placed)
 			continue;
@@ -5197,7 +6781,7 @@ void OutTex(Surf *surf, LoadedTex out[6])
 		orcf[0] = sp[0]->orc;
 		orcf[1] = sp[1]->orc;
 		orcf[2] = sp[2]->orc;
-
+/*
 		for(int v=0; v<3; ++v)
 		{
 			fprintf(g_applog, "start pl%d,%d tet%d v%d = %f,%f  edge(pos)(x,y),(same)(x,y)=%f,%f,%d,%d\r\n",
@@ -5213,7 +6797,7 @@ void OutTex(Surf *surf, LoadedTex out[6])
 				(int)(tet->edgeplaced[v]));
 			fflush(g_applog);
 		}
-
+*/
 		for(int v=0; v<3; v++)
 		{
 			TrueNextPt(orcf[v%3],
@@ -5222,7 +6806,7 @@ void OutTex(Surf *surf, LoadedTex out[6])
 				tet->edgeposy[v%3],
 				0,
 				orcf[(v+1)%3], &orcf[(v+1)%3]);
-			
+			/*
 		//	for(int v=0; v<3; ++v)
 			{
 				fprintf(g_applog, "mid tet%d v%d = %f,%f  edge(pos)(x,y),(same)(x,y)=%f,%f,%d,%d\r\n",
@@ -5235,8 +6819,9 @@ void OutTex(Surf *surf, LoadedTex out[6])
 				(int)(tet->edgeplaced[v]),
 				(int)(tet->edgeplaced[v]));
 				fflush(g_applog);
-			}
+			}*/
 		}
+		/*
 		for(int v=0; v<3; ++v)
 		{
 			fprintf(g_applog, "final tet%d v%d = %f,%f  edge(pos)(x,y),(same)(x,y)=%f,%f,%d,%d\r\n",
@@ -5249,7 +6834,7 @@ void OutTex(Surf *surf, LoadedTex out[6])
 				(int)(tet->edgeplaced[v]),
 				(int)(tet->edgeplaced[v]));
 			fflush(g_applog);
-		}
+		}*/
 
 		//float fminz3 = fmin(tri3[0].z, fmin(tri3[1].z, tri3[2].z));
 		//float fmaxz3 = fmax(tri3[0].z, fmax(tri3[1].z, tri3[2].z));
@@ -5510,6 +7095,84 @@ dotex:
 	}
 }
 
+void DrawClip()
+{
+	Surf *surf = &g_surf;
+	Shader *s = &g_shader[g_curS];
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		tit++)
+	{
+		Tet *tet = *tit;
+		Vec3f tri[3];
+		tri[0] = tet->neib[0]->pos;
+		tri[1] = tet->neib[1]->pos;
+		tri[2] = tet->neib[2]->pos;
+
+		Vec2f texc[3];
+		Vec3f norm[3];
+
+		for(int i=0; i<3; i++)
+		{
+			norm[i] = Normal(tri);
+
+			texc[i].x =
+				tet->texceq[0].m_normal.x * tri[i].x +
+				tet->texceq[0].m_normal.y * tri[i].y +
+				tet->texceq[0].m_normal.z * tri[i].z +
+				tet->texceq[0].m_d;
+			
+			texc[i].y =
+				tet->texceq[1].m_normal.x * tri[i].x +
+				tet->texceq[1].m_normal.y * tri[i].y +
+				tet->texceq[1].m_normal.z * tri[i].z +
+				tet->texceq[1].m_d;
+		}
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, tet->tex->texname);
+			glUniform1i(g_shader[g_curS].m_slot[SSLOT_TEXTURE0], 0);
+
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, tet->tex->texname);
+			glUniform1i(g_shader[g_curS].m_slot[SSLOT_SPECULARMAP], 1);
+
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, tet->tex->texname);
+			glUniform1i(g_shader[g_curS].m_slot[SSLOT_NORMALMAP], 2);
+
+			glActiveTexture(GL_TEXTURE3);
+			glBindTexture(GL_TEXTURE_2D, tet->tex->texname);
+			glUniform1i(g_shader[g_curS].m_slot[SSLOT_OWNERMAP], 3);
+
+
+		//const unsigned int numindices = m_Entries[i].NumIndices;
+		//const unsigned int basevertex = m_Entries[i].BaseVertex;
+		//const unsigned int baseindex = m_Entries[i].BaseIndex;
+		//const unsigned int numunique = m_Entries[i].NumUniqueVerts;
+
+		//glVertexPointer(3, GL_FLOAT, 0, &Positions[basevertex]);
+		glVertexPointer(3, GL_FLOAT, 0, (float*)&tri);
+		glTexCoordPointer(2, GL_FLOAT, 0, (float*)&texc);
+		//glNormalPointer(GL_FLOAT, 0, &Normals[basevertex]);
+		glNormalPointer(GL_FLOAT, 0, (float*)&norm);
+		//glIndexPointer(GL_UNSIGNED_INT, 0, &Indices[baseindex]);
+		//glVertexAttribPointer(s->m_slot[SSLOT_NORMAL], 3, GL_FLOAT, GL_FALSE, 0, va->normals);
+#ifdef DEBUG
+		CHECKGLERROR();
+#endif
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+		//glDrawElements(GL_TRIANGLES, 0, numindices);
+		//glDrawElements(GL_TRIANGLES, numindices, GL_UNSIGNED_INT, &Indices[baseindex]);
+		//glDrawRangeElements(GL_TRIANGLES, 0, numunique, numindices, GL_UNSIGNED_INT, &Indices[baseindex]);
+		//glDrawRangeElements(GL_TRIANGLES, 0, 3, numindices, GL_UNSIGNED_INT, &Indices[baseindex]);
+
+	}
+
+	//UseS(SHADER_MAPPERSP);
+}
+
 //arrange the orc's on a globe and then balance it so everything is seen
 bool MapGlobe(Surf *surf)
 {
@@ -5583,6 +7246,8 @@ bool MapGlobe(Surf *surf)
 		}
 #endif
 	}
+
+	//return true;
 
 	bool haveupdown = false;
 
@@ -6023,60 +7688,70 @@ again3:
 
 void OrRender(int rendstage, Vec3f offset)
 {
-	Surf surf, fullsurf;
+	//Surf surf, fullsurf;
 	//SurfPt *p1;
 	//StartRay(&surf, tet, Vec3f(0,30000,0), &p1);
 
 	//fprintf(g_applog, "\r\n111\r\n");
 	//fflush(g_applog);
 
-	if(!AddClipMesh(&surf, &fullsurf))
+	if(!AddClipMesh(&g_surf, &g_fullsurf))
 		return;
 
-	Test(&surf);
+	Test(&g_surf);
 	
 	//fprintf(g_applog, "\r\n222\r\n");
 	//fflush(g_applog);
 
+	/*
+problem: non-continuous/non-connected "real" triangles
+are connected continuously, giving uneven jumps in the posxyz maps
+
+also, if a triangle is clipped into two that used to share an edge
+with another triangle, there will be free floating vertices!
+
+	*/
 	do
 	{
-		//if(!ClipTris(&surf, &fullsurf))
-		//	break;
-		Test(&surf);
+		if(!ClipTris(&g_surf, &g_fullsurf))
+			break;
+		Test(&g_surf);
 	fprintf(g_applog, "\r\n333\r\n");
 	fflush(g_applog);
-		if(!JoinPts(&surf, &fullsurf))
+		if(!JoinPts(&g_surf, &g_fullsurf))
 			break;
 	fprintf(g_applog, "\r\n444\r\n");
 	fflush(g_applog);
-		//if(!RemFloaters(&surf, &fullsurf))
-		//	break;
+		if(!RemFloaters(&g_surf, &g_fullsurf))
+			break;
 	fprintf(g_applog, "\r\n555\r\n");
 	fflush(g_applog);
-		//if(MarkVis(&surf, &fullsurf))
-		//	break;
+		if(MarkVis(&g_surf, &g_fullsurf))
+			break;
 	fprintf(g_applog, "\r\n666\r\n");
 	fflush(g_applog);
-		//if(!RemHidden(&surf, &fullsurf))
-		//	break;
+		if(!RemHidden(&g_surf, &g_fullsurf))
+			break;
 	fprintf(g_applog, "\r\n777\r\n");
 	fflush(g_applog);
 		Vec2f vmin(0.5f,0.5f), vmax(0.5,0.5);
-		//if(!SplitEdges(&surf, &fullsurf, &vmin, &vmax))
-		//	break;
+		if(!SplitEdges(&g_surf, &g_fullsurf, &vmin, &vmax))
+			break;
 		//Test2(&surf);
 	fprintf(g_applog, "\r\n888111\r\n");
 	fflush(g_applog);
 	//	if(!GrowMapMesh(&surf, &fullsurf, &vmin, &vmax))
 	//		break;
-	if(!MapGlobe(&surf))
+		if(!JoinPts2(&g_surf, &g_fullsurf))
+			break;
+	if(!MapGlobe(&g_surf))
 		break;
 
 	LoadedTex outtex[6];
 	for(int i=0; i<6; i++)
 		AllocTex(&outtex[i], BIGTEX, BIGTEX, 3);
 	//OutTex(&surf, outtex);
-	OutTex2(&surf, outtex);
+	OutTex2(&g_surf, outtex);
 	for(int t=0; t<6; t++)
 	{
 		char outpath[SPE_MAX_PATH+1];
@@ -6104,7 +7779,7 @@ void OrRender(int rendstage, Vec3f offset)
 		AllocTex(&outtex[i], BIGTEX, BIGTEX, 3);
 
 	//OutTex(&surf, outtex);
-	OutTex2(&surf, outtex);
+	//OutTex2(&g_surf, outtex);
 
 	for(int t=0; t<6; t++)
 	{

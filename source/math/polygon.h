@@ -23,4 +23,6 @@ public:
 bool InsidePolygon(Vec3f vIntersection, Vec3f Poly[], long verticeCount);
 bool IntersectedPolygon(Vec3f vPoly[], Vec3f vLine[], int verticeCount, Vec3f* vIntersection=NULL);
 
+bool TriTri(Vec3f *t1, Vec3f *t2);
+
 #endif

@@ -70,7 +70,7 @@ public:
 
 	float& operator[](int i)
 	{
-		return (float&)*((float*)(this)+i);
+		return (float&)*(((float*)(this))+i);
 	}
 
 	inline void set(const float* values)
