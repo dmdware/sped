@@ -7713,7 +7713,7 @@ again:
 
 			if(ISNAN(dot2))
 			{
-				dot = 1.0f / (0.1f);
+				dot = -1.0f / (0.1f);
 			}
 			else
 				dot = dot2;
@@ -7791,6 +7791,7 @@ again:
 	{
 		std::string dt = DateTime();
 		fprintf(g_applog, "curr updown: %d (%s)\r\n", currupdown, dt.c_str());
+		fflush(g_applog);
 
 		//if(bestupdown < 0 ||
 		//	currupdown < bestupdown)
