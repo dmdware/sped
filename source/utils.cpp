@@ -568,7 +568,7 @@ float StrToFloat(const char *s)
 	std::istringstream iss(s);
 	iss >> x;
 
-	if(_isnan(x))
+	if(ISNAN(x))
 		x = 1.0f;
 
 	return x;

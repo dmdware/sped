@@ -1,6 +1,7 @@
 
 #include "polygon.h"
 #include "math3d.h"
+#include "../tool/rendertopo.h"
 #include "../utils.h"
 
 Polyg::Polyg()
@@ -813,7 +814,34 @@ bool TriTri(Vec3f *t1, Vec3f *t2)
 		(float*)&t2[0], (float*)&t2[1], (float*)&t2[2],
 		&coplanar, 
 		(float*)&interline[0], (float*)&interline[1] ))
+	{
+
+		int samec=0;
+
+		for(int vi=0; vi<3; ++vi)
+		{
+			if(Magnitude(t1[vi] - interline[0]) <= CLOSEPOSF ||
+				Magnitude(t1[vi] - interline[1]) <= CLOSEPOSF)
+				samec++;
+		}
+
+		if(samec>=2)
+			return false;
+
+		samec=0;
+
+		for(int vi=0; vi<3; ++vi)
+		{
+			if(Magnitude(t2[vi] - interline[0]) <= CLOSEPOSF ||
+				Magnitude(t2[vi] - interline[1]) <= CLOSEPOSF)
+				samec++;
+		}
+
+		if(samec>=2)
+			return false;
+
 		return true;
+	}
 	if(coplanar)
 		return false;
 
@@ -833,7 +861,7 @@ bool TriTri(Vec3f *t1, Vec3f *t2)
 
 	// Compute barycentric coordinates
 	double invDenom = 1 / ( f00 * f11 - f01 * f01 );
-	if(_isnan(invDenom))
+	if(ISNAN(invDenom))
 		invDenom = 1;
 	double fU = ( f11 * f02 - f01 * f12 ) * invDenom;
 	double fV = ( f00 * f12 - f01 * f02 ) * invDenom;

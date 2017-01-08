@@ -210,6 +210,8 @@
 #define DIRENT_FILE		0x8
 #define DIRENT_FOLDER	0x4
 
+#define ISNAN(x)	(_isnan(x)||!_finite(x))
+
 #ifndef PLATFORM_WIN
 #define SOCKET int
 typedef unsigned char byte;
@@ -230,7 +232,7 @@ typedef unsigned int uint;
 
 /*
 #ifndef _isnan
-int _isnan(double x) { return x != x; }
+int ISNAN(double x) { return x != x; }
 #endif
 */
 

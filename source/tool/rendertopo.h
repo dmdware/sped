@@ -15,6 +15,7 @@ class Texture;
 class Tet;
 class SurfPt;
 class Surf;
+class LoadedTex;
 
 void PrepareTopo(const char* fullpath, int rendtype);
 void OrRender(int rendstage, Vec3f offset);
@@ -41,6 +42,25 @@ void UpdEdges(Surf *surf, SurfPt *p1, SurfPt *p2, float edgeposx, float edgeposy
 			  Tet* not);
 void UpdEdges2(Surf *surf, SurfPt *p1, SurfPt *p2, float* edgeposx, float* edgeposy,
 			  Tet* updtet, bool *edgeplaced);
+
+void CheckTet(Tet *tet, const char* file, int line);
+
+void GenTexC(Vec2f &retexc,
+				Vec3f ir,
+				Vec2f *texc,
+				Vec3f *tri);
+
+
+bool TraceRay2(Surf* surf,
+			   Vec3f line[2], 
+			  LoadedTex **retex,
+			  LoadedTex **retexs,
+			  LoadedTex **retexn,
+			  Vec2f *retexc,
+			  Vec3f *rewp, Vec3f *rerp, 
+			  Vec3f* ren,
+			  Tet **retet,
+			  double *refU, double *refV);
 
 class SurfPt
 {
@@ -111,7 +131,9 @@ public:
 	bool gone;
 	//int level;
 	SurfPt* neib[4];
-	Plane3f texceq[2];
+	//Plane3f texceq[2];
+	Vec3f texcpos[3];
+	Vec2f texc[3];
 	Texture *tex;//, *stex, *ntex;
 	//Vec3f norm;
 	bool hidden;
@@ -152,5 +174,8 @@ public:
 	//std::list<Tet> tets;
 	std::list<Tet*> tets2;
 };
+
+
+#define CLOSEPOSF	0.1f
 
 #endif

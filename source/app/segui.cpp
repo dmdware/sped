@@ -359,7 +359,7 @@ void Click_ExportTopo()
 
 	InfoMess("Info",
 		"Orientability maps are an experimental new feature.\r\n"\
-		"Avoid overlapping polygons, inner chasms, and small details.\r\n"\
+		"Avoid overlapping polygons, inner chasms, small details, and complex, non-orientable concavity.\r\n"\
 		"Try with a small example to see how long it takes to generate as it can take up to hours or days.");
 
 	//if(!SaveFileDialog(initdir, filepath))

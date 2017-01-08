@@ -192,7 +192,7 @@ double AngleBetweenVectors(Vec3f Vector1, Vec3f Vector2)
 	float vectorsMagnitude = Magnitude(Vector1) * Magnitude(Vector2) ;
 	double angle = acos( dotProduct / vectorsMagnitude );
 
-	if(_isnan(angle))
+	if(ISNAN(angle))
 		return 0;
 
 	return( angle );
