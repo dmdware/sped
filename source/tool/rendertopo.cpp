@@ -2713,6 +2713,7 @@ again:
 				if(rtet == tet2)
 				{
 					FreeTet(surf, tet2, true);
+					irem++;
 					goto again;
 				}
 				else if(rtet != tet2)
@@ -2727,6 +2728,7 @@ again:
 		}
 	}
 
+	fprintf(g_applog, "RemHid2: %d removed\r\n\r\n", irem);
 	return true;
 }
 
@@ -6805,15 +6807,15 @@ void OutTex2(Surf *surf, LoadedTex* out)
 				out[5].data[ 3 * (outpx + outpy * out[5].sizex) + 1 ] = (unsigned char)(ny*127)+127;
 				out[5].data[ 3 * (outpx + outpy * out[5].sizex) + 2 ] = (unsigned char)(nz*127)+127;
 
-				/*
-				out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 0 ] = (unsigned char)((rp.x+1000/4+1)/(10));
-				out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 1 ] = (unsigned char)((rp.y+1000/4+1)/(10));
-				out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 2 ] = (unsigned char)((rp.z+1000/4+1)/(10));
+				///*
+			//	out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 0 ] = (unsigned char)((rp.x+1000/4+1)/(10));
+			//	out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 1 ] = (unsigned char)((rp.y+1000/4+1)/(10));
+			//	out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 2 ] = (unsigned char)((rp.z+1000/4+1)/(10));
 				
-				out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 0 ] = (unsigned char)((wp.x+1000/4+1)/(10));
-				out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 1 ] = (unsigned char)((wp.y+1000/4+1)/(10));
-				out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 2 ] = (unsigned char)((wp.z+1000/4+1)/(10));
-*/
+			//	out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 0 ] = (unsigned char)((wp.x+1000/4+1)/(10));
+			//	out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 1 ] = (unsigned char)((wp.y+1000/4+1)/(10));
+			//	out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 2 ] = (unsigned char)((wp.z+1000/4+1)/(10));
+//*/
 				//*((unsigned short*)&(out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 0 ])) = vd;
 				//out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 2 ] = 0;
 
@@ -6895,9 +6897,9 @@ void OutTex2(Surf *surf, LoadedTex* out)
 					{{0xff, 0xd1, 0xdf}, "Light Pink"}
 				};
 
-				//out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 0 ] = g_pycols[ti%PLAYER_COLORS].color[0];
-				//out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 1 ] = g_pycols[ti%PLAYER_COLORS].color[1];
-				//out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 2 ] = g_pycols[ti%PLAYER_COLORS].color[2];
+				out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 0 ] = g_pycols[ti%PLAYER_COLORS].color[0];
+				out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 1 ] = g_pycols[ti%PLAYER_COLORS].color[1];
+				out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 2 ] = g_pycols[ti%PLAYER_COLORS].color[2];
 
 				//for(int hti=0; hti<ti; hti++)
 				//	hash = ((hash<<11)|(hash>>(16-11)))^(111+hti);
@@ -7573,7 +7575,7 @@ bool MapGlobe(Surf *surf)
 			pt->orc.x = yaw / (2.0f * M_PI);
 			pt->orc.y = lat / (1.0f * M_PI);
 
-			wrappos = Rotate(Vec3f(1000*100,0,0), lat, 0, 0, 1);
+			wrappos = Rotate(Vec3f(1000*1,0,0), lat, 0, 0, 1);
 			//fprintf(g_applog, "prepos3 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
 			wrappos = Rotate(wrappos, -yaw, 0, 1, 0);
 			pt->wrappos = wrappos;
@@ -7620,8 +7622,12 @@ bool MapGlobe(Surf *surf)
 
 	bool haveupdown = false;
 
+	int bestupdown = -1;
+
 again:
 	haveupdown = false;
+
+	int currupdown = 0;
 
 	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
 		tit!=surf->tets2.end();
@@ -7699,6 +7705,7 @@ again:
 
 		if(dot < 0)
 		{
+			currupdown++;
 			haveupdown = true;
 			//dot *= 2;
 			float dot2 = 1.0f / dot;
@@ -7779,6 +7786,18 @@ again:
 		}
 	}
 
+	if(currupdown < bestupdown ||
+		bestupdown < 0)
+	{
+		std::string dt = DateTime();
+		fprintf(g_applog, "curr updown: %d (%s)\r\n", currupdown, dt.c_str());
+
+		//if(bestupdown < 0 ||
+		//	currupdown < bestupdown)
+		bestupdown = currupdown;
+	}
+
+
 	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
 			tit!=surf->tets2.end();
 			++tit)
@@ -7793,7 +7812,7 @@ again:
 			tet->neib[v]->wrappos = 
 				tet->neib[v]->wrappos + tet->neib[v]->pressure;
 			tet->neib[v]->wrappos = 
-				(tet->neib[v]->wrappos * 1000*100 / mag );
+				(tet->neib[v]->wrappos * 1000*1 / mag );
 			tet->neib[v]->pressure = Vec3f(0,0,0);
 
 			
@@ -7976,7 +7995,7 @@ again2:
 			tet->neib[v]->wrappos = 
 				tet->neib[v]->wrappos + tet->neib[v]->pressure;
 			tet->neib[v]->wrappos = 
-				(tet->neib[v]->wrappos * 1000*100 / mag );
+				(tet->neib[v]->wrappos * 1000*1 / mag );
 			tet->neib[v]->pressure = Vec3f(0,0,0);
 		}
 	}
@@ -8112,8 +8131,8 @@ with another triangle, there will be free floating vertices!
 	fprintf(g_applog, "\r\n777\r\n");
 	fflush(g_applog);
 		Vec2f vmin(0.5f,0.5f), vmax(0.5,0.5);
-		//if(!SplitEdges(&g_surf, &g_fullsurf, &vmin, &vmax))
-		//	break;
+		if(!SplitEdges(&g_surf, &g_fullsurf, &vmin, &vmax))
+			break;
 		//Test2(&surf);
 	fprintf(g_applog, "\r\n888111\r\n");
 	fflush(g_applog);
@@ -8165,7 +8184,7 @@ with another triangle, there will be free floating vertices!
 		sprintf(file, "renders/out%d.png", t);
 		FullPath(file, outpath);
 
-		SavePNG2(outpath, &outtex[t]);
+		//SavePNG2(outpath, &outtex[t]);
 	}
 	InfoMess("Done", "Done rendering orientability map");
 
