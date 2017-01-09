@@ -4028,6 +4028,7 @@ again:
 				//new vert combo
 				int shared = 1;	//reset number of this edge's owners
 
+				//find another owner with vin1 and vin2
 				for(std::list<Tet*>::iterator hitv1=(*tit1)->neib[vin1]->holder.begin();
 					hitv1!=(*tit1)->neib[vin1]->holder.end();
 					++hitv1)
@@ -4121,6 +4122,146 @@ again:
 						}
 					}
 				}
+			}
+		}
+	}
+//new: if two tets share an edge with order p1,p2 (not p2,p1)
+	//then one must be behind
+
+	for(std::list<Tet*>::iterator tit1=surf->tets2.begin();
+		tit1!=surf->tets2.end();
+		++tit1)
+	{
+
+		for(std::list<Tet*>::iterator tit2=surf->tets2.begin();
+			tit2!=surf->tets2.end();
+			++tit2)
+		{
+			if(*tit1 == *tit2)
+				continue;
+
+			Tet *tet1 = *tit1;
+			Tet *tet2 = *tit2;
+
+			int fate1 = -1;
+			int fate2 = -1;
+
+			int t1e1 = -1;
+			int t1e2 = -1;
+
+			int t2e1 = -1;
+			int t2e2 = -1;
+
+			for(int v1=0; v1<3; ++v1)
+			{
+				for(int v2=0; v2<3; ++v2)
+				{
+					if(tet1->neib[v1] == tet2->neib[v2])
+					{
+						if(t1e1 >= 0 || t2e1 >= 0)
+						{
+							t1e2 = v1;
+							t2e2 = v2;
+						}
+						else
+						{
+							t1e1 = v1;
+							t2e1 = v2;
+						}
+					}
+				}
+			}
+
+			if( t1e1 >= 0 && t1e2 >= 0 &&
+				t2e1 >= 0 && t2e2 >= 0 &&
+				(((t1e2+3)%6)-((t1e1+3)%3)) == (((t2e2+3)%6)-((t2e1+3)%3)) )
+			{
+
+				//one of the three tets is hidden,
+				//so remove it.
+				//assuming at this point that all of them
+				//are already marked "approved".
+
+				Tet* tet[2];
+				tet[0] = *tit1;
+				tet[1] = *tit2;
+				//tet[2] = *hitv2;
+
+				//erase the one with the most back sides facing it by the others
+
+				Vec3f tri[2][3];
+				tri[0][0] = tet[0]->neib[0]->pos;
+				tri[0][1] = tet[0]->neib[1]->pos;
+				tri[0][2] = tet[0]->neib[2]->pos;
+				tri[1][0] = tet[1]->neib[0]->pos;
+				tri[1][1] = tet[1]->neib[1]->pos;
+				tri[1][2] = tet[1]->neib[2]->pos;
+				//tri[2][0] = tet[2]->neib[0]->pos;
+				//tri[2][1] = tet[2]->neib[1]->pos;
+				//tri[2][2] = tet[2]->neib[2]->pos;
+
+				Vec3f tnorm[2];
+				tnorm[0] = Normal(tri[0]);
+				tnorm[1] = Normal(tri[1]);
+				//tnorm[2] = Normal(tri[2]);
+
+				Plane3f tpl[2];
+				MakePlane(&tpl[0].m_normal, &tpl[0].m_d, (tri[0][0]+tri[0][1]+tri[0][2])/3.0f,
+					tnorm[0]);
+				MakePlane(&tpl[1].m_normal, &tpl[1].m_d, (tri[1][0]+tri[1][1]+tri[1][2])/3.0f,
+					tnorm[1]);
+				//MakePlane(&tpl[2].m_normal, &tpl[2].m_d, (tri[2][0]+tri[2][1]+tri[2][2])/3.0f,
+				//	tnorm[2]);
+
+				float cover[3] = {0,0,0};
+
+#if 0
+				for(int t1=0; t1<3; t1++)
+				{
+					for(int t2=0; t2<3; ++t2)
+					{
+						if(t1==t2)
+							continue;
+
+						if(PointOnOrBehindPlane( (tri[t1][0]+tri[t1][1]+tri[t1][2])/3.0f,
+							tpl[t2]))
+							cover[t1]+=1;
+					}
+				}
+#else
+				for(std::list<SurfPt*> pit=surf->pts2.begin();
+					pit!=surf->pts2.end();
+					++pit)
+				{
+					for(int ti=0; ti<2; ti++)
+					{
+						if(PointOnOrBehindPlane( (*pit)->pos,
+							tpl[ti]))
+							cover[ti]+=1;
+					}
+				}
+#endif
+
+				int largest=0;
+
+				for(int ti=1; ti<2; ++ti)
+					if(cover[ti]>cover[largest])
+						largest=ti;
+
+				std::list<Tet*>::iterator ret;
+
+				if(largest==0)
+					ret = tit1;
+				else if(largest ==1)
+					ret = tit2;
+				//else if(largest==2)
+				//	ret = hitv2;
+
+				RemTet2(surf, ret);
+
+
+				irem++;
+				goto again;
 			}
 		}
 	}
@@ -5328,8 +5469,8 @@ again:
 
 			for(int v=0; v<3; v++)
 			{
-				if( ((*sharetit)->neib[v] == p1 &&
-					(*sharetit)->neib[(v+1)%3] == p2) ||
+				if(// ((*sharetit)->neib[v] == p1 &&
+					//(*sharetit)->neib[(v+1)%3] == p2) ||
 					 ((*sharetit)->neib[v] == p2 &&
 					(*sharetit)->neib[(v+1)%3] == p1) )
 				{
@@ -7627,6 +7768,8 @@ bool MapGlobe(Surf *surf)
 again:
 	haveupdown = false;
 
+	//Test3(surf);
+
 	int currupdown = 0;
 
 	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
@@ -7708,12 +7851,28 @@ again:
 			currupdown++;
 			haveupdown = true;
 			//dot *= 2;
-			float dot2 = 1.0f / dot;
+			float dot2 = 10.0f / (dot - 0.1f);
 			//dot = fmax(dot, -10);
 
 			if(ISNAN(dot2))
 			{
-				dot = -1.0f / (0.1f);
+				dot = -10.0f / (0.001f);
+			}
+			else
+				dot = dot2;
+		}
+		else
+		{
+			//float dot2 = 1.0 / dot;
+
+			//if(ISNAN(dot2))
+			//	dot = 1.0 / 0.001f;
+			float dot2 = 10.0f / (0.1f + dot);
+			//dot = fmax(dot, -10);
+
+			if(ISNAN(dot2))
+			{
+				dot = 1.0f / (0.01f);
 			}
 			else
 				dot = dot2;
@@ -7722,10 +7881,10 @@ again:
 		//	dot += 1;
 
 
-		if(dot >= 0.5f)
-			;
-		else if(dot > 0 && dot < 0.5f)
-			dot *= 2.6f;
+		//if(dot >= 0.5f)
+		//	;
+		//else if(dot > 0 && dot < 0.5f)
+		//	dot *= 2.6f;
 
 		
 		float a,b,c,s,area;
@@ -7741,12 +7900,15 @@ again:
 		if(area == 0)
 			area = 1;
 
-		float strength = 10.0f / area;
+		float strength = 100.0f / area;
 
-		dot *= strength;
+		if(!ISNAN(strength))
+			dot *= strength;
 
-		dot = fmin(dot, 30);
-		dot = fmax(dot, -30);
+		dot = fmin(dot, 300);
+		dot = fmax(dot, -300);
+
+		dot *= abs(bestupdown+2)/300.0f;
 
 		//if(dot > 0)
 		//	continue;
@@ -7769,7 +7931,7 @@ again:
 					dir * dot;
 				tet->neib[v]->pressure =
 					tet->neib[v]->pressure +
-					Normal(wrappos) * 1;
+					Normal(wrappos) * 100;
 				
 				if(ISNAN(tet->neib[v]->pressure.x))
 					ErrMess("sdsfg","pressnanx");
@@ -7950,10 +8112,16 @@ again2:
 		if(area == 0)
 			area = 1;
 
-		float strength = 1.0f / area;
+		float strength = 10.0f / area;
 
-		strength = fmin(strength, 30);
-		strength = fmax(strength, -30);
+		if(!ISNAN(strength))
+		{
+
+			strength = fmin(strength, 30);
+			strength = fmax(strength, -30);
+		}
+		else
+			strength = 0.1f;
 
 #if 1
 		//if(dot > 0)

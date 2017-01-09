@@ -210,7 +210,8 @@
 #define DIRENT_FILE		0x8
 #define DIRENT_FOLDER	0x4
 
-#define ISNAN(x)	(_isnan(x)||!_finite(x))
+#define ISNAN(x)	(_isnan(x)||!_finite(x) /* ||_fpclass(x)==_FPCLASS_PD||_fpclass(x)==_FPCLASS_ND */)
+#define ISDEN(x)	(_fpclass(x)==_FPCLASS_PD||_fpclass(x)==_FPCLASS_ND)
 
 #ifndef PLATFORM_WIN
 #define SOCKET int
