@@ -7909,7 +7909,7 @@ again:
 		if(area == 0)
 			area = 1;
 
-		float strength = 1000.0f / area;
+		float strength = 10000.0f / area;
 
 		if(!ISNAN(strength))
 			dot *= strength;
@@ -7918,6 +7918,9 @@ again:
 		dot = fmax(dot, -30000);
 
 		dot *= abs(bestupdown+2)/200.0f;
+
+		//if(dot < 0 && area > 5000)
+		//	dot *= 1000;
 
 		//if(dot > 0)
 		//	continue;
@@ -8038,6 +8041,11 @@ again:
 
 				if(Magnitude(dir) <= 0)
 					dir = Vec3f(rand()%300-150, rand()%300-150, rand()%300-150);
+
+				dir = Normalize(dir);
+
+				//while(abs(dot) < 500)
+				//dot *= 30;
 
 				tet->neib[v]->pressure = 
 					tet->neib[v]->pressure + 
