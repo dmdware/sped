@@ -7909,8 +7909,8 @@ again:
 		if(!ISNAN(strength))
 			dot *= strength;
 
-		dot = fmin(dot, 3000);
-		dot = fmax(dot, -3000);
+		dot = fmin(dot, 300000);
+		dot = fmax(dot, -300000);
 
 		dot *= abs(bestupdown+2)/300.0f;
 
