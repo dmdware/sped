@@ -7932,14 +7932,44 @@ again:
 #endif
 		//if(dot < 0)
 		{
+			int minv = -1;
+			float minvlen = 0;
 			for(int v=0; v<3; v++)
 			{
+				float vlen = Magnitude(wrappos[v] - wrappos[(v+1)%3]);
+
+				if(vlen < minvlen || minv < 0)
+				{
+					minvlen = vlen;
+					minv = v;
+				}
+			}
+
+			for(int v=0; v<3; v++)
+			{
+				/*
 				Vec3f away = wrappos[v] - cen;
 
 				if(Magnitude(away) <= 0)
 					away = Vec3f(rand()%300-150, rand()%300-150, rand()%300-150);
 
 				Vec3f dir = Normalize(away);
+				*/
+
+				Vec3f dir = Vec3f(0,0,0);
+
+				if(v == minv)
+				{
+					dir = Normalize(wrappos[(v+1)%3] - wrappos[v]);
+				}
+				else if(v == (minv+1)%3)
+				{
+					dir = Normalize(wrappos[v] - wrappos[(v+3-1)%3]);
+				}
+
+				if(Magnitude(dir) <= 0)
+					dir = Vec3f(rand()%300-150, rand()%300-150, rand()%300-150);
+
 				tet->neib[v]->pressure = 
 					tet->neib[v]->pressure + 
 					dir * dot;
