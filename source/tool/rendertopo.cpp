@@ -4013,6 +4013,7 @@ bool RemHidden(Surf *surf, Surf *fullsurf)
 	//if three tets share an edge (a set of two pt's)
 	//one of them must be covered by the others
 
+	int irem = 0;
 again:
 
 	for(std::list<Tet*>::iterator tit1=surf->tets2.begin();
@@ -4114,6 +4115,7 @@ again:
 							else if(largest==2)
 								ret = hitv2;
 
+							irem++;
 							RemTet2(surf, ret);
 							//might have to go back to check for tets with less than 
 							//three neighbours owners at each of its pts.
@@ -4229,7 +4231,7 @@ again:
 					}
 				}
 #else
-				for(std::list<SurfPt*> pit=surf->pts2.begin();
+				for(std::list<SurfPt*>::iterator pit=surf->pts2.begin();
 					pit!=surf->pts2.end();
 					++pit)
 				{
@@ -4265,6 +4267,8 @@ again:
 			}
 		}
 	}
+
+	fprintf(g_applog, "RemHidden: %d removed \r\n", irem);
 
 	return true;
 }
@@ -7851,12 +7855,12 @@ again:
 			currupdown++;
 			haveupdown = true;
 			//dot *= 2;
-			float dot2 = 10.0f / (dot - 0.1f);
+			float dot2 = 10000.0f / (dot - 0.1f);
 			//dot = fmax(dot, -10);
 
 			if(ISNAN(dot2))
 			{
-				dot = -10.0f / (0.001f);
+				dot = -10000.0f / (0.001f);
 			}
 			else
 				dot = dot2;
@@ -7900,13 +7904,13 @@ again:
 		if(area == 0)
 			area = 1;
 
-		float strength = 100.0f / area;
+		float strength = 100000.0f / area;
 
 		if(!ISNAN(strength))
 			dot *= strength;
 
-		dot = fmin(dot, 300);
-		dot = fmax(dot, -300);
+		dot = fmin(dot, 3000);
+		dot = fmax(dot, -3000);
 
 		dot *= abs(bestupdown+2)/300.0f;
 
@@ -7931,7 +7935,7 @@ again:
 					dir * dot;
 				tet->neib[v]->pressure =
 					tet->neib[v]->pressure +
-					Normal(wrappos) * 100;
+					Normal(wrappos) * 10000;
 				
 				if(ISNAN(tet->neib[v]->pressure.x))
 					ErrMess("sdsfg","pressnanx");
