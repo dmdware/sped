@@ -3106,10 +3106,15 @@ now.
 */
 bool JoinPts(Surf *surf, Surf *fullsurf)
 {//return 1;
-again:
-	Test(surf);
 	int i1=0;
-	for(std::list<Tet*>::iterator tit1=surf->tets2.begin();
+again:
+	std::list<Tet*>::iterator tit1=surf->tets2.begin();
+
+	for(int i11=0; i11<i1 && tit1!=surf->tets2.end(); i11++)
+		tit1++;
+
+	Test(surf);
+	for(;
 		tit1!=surf->tets2.end();
 		++tit1, ++i1)
 	{
@@ -7855,12 +7860,12 @@ again:
 			currupdown++;
 			haveupdown = true;
 			//dot *= 2;
-			float dot2 = 10000.0f / (dot - 0.1f);
+			float dot2 = 1000.0f / (dot - 0.1f);
 			//dot = fmax(dot, -10);
 
 			if(ISNAN(dot2))
 			{
-				dot = -10000.0f / (0.001f);
+				dot = -1000.0f / (0.001f);
 			}
 			else
 				dot = dot2;
@@ -7904,13 +7909,13 @@ again:
 		if(area == 0)
 			area = 1;
 
-		float strength = 100000.0f / area;
+		float strength = 1000.0f / area;
 
 		if(!ISNAN(strength))
 			dot *= strength;
 
-		dot = fmin(dot, 300000);
-		dot = fmax(dot, -300000);
+		dot = fmin(dot, 30000);
+		dot = fmax(dot, -30000);
 
 		dot *= abs(bestupdown+2)/300.0f;
 
@@ -7935,7 +7940,7 @@ again:
 					dir * dot;
 				tet->neib[v]->pressure =
 					tet->neib[v]->pressure +
-					Normal(wrappos) * 10000;
+					Normal(wrappos) * 1000;
 				
 				if(ISNAN(tet->neib[v]->pressure.x))
 					ErrMess("sdsfg","pressnanx");
