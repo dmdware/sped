@@ -8011,6 +8011,9 @@ again:
 			}
 			}
 
+			//if(dot < 0)
+			//	minv = rand()%3;
+
 			for(int v=0; v<3; v++)
 			{
 				/*
@@ -8081,6 +8084,19 @@ again:
 		bestupdown = currupdown;
 	}
 
+	static float avgupdown = currupdown;
+	static __int64 lasttick = GetTicks();
+
+	avgupdown = avgupdown * 29999/30000.0 + currupdown * 1/30000.0;
+
+	if(GetTicks() - lasttick > 1000*60*3)
+	{
+		//avgupdown = avgupdown * 2/3.0 + currupdown * 1/3.0;
+		std::string dt2 = DateTime();
+		fprintf(g_applog, "avgupdown: %f (%s)\r\n", avgupdown, dt2.c_str());
+		fflush(g_applog);
+		lasttick = GetTicks();
+	}
 
 	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
 			tit!=surf->tets2.end();

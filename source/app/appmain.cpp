@@ -943,7 +943,7 @@ void Init()
 #endif
 
     SDL_Init(SDL_INIT_VIDEO);
-    OpenLog("log6.txt", APPVERSION);
+    OpenLog("log8.txt", APPVERSION);
     srand(GetTicks());
     g_lastsave[0] = '\0';
     LoadConfig();
@@ -1002,7 +1002,7 @@ extern "C" void __cdecl SteamAPIDebugTextHook( int32_t nSeverity, const char *pc
 #endif
 
 	if(!g_applog)
-		OpenLog("log6.txt", APPVERSION);
+		OpenLog("log8.txt", APPVERSION);
 
 	Log(pchDebugText);
 	
