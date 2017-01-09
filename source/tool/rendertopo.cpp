@@ -7934,6 +7934,8 @@ again:
 		{
 			int minv = -1;
 			float minvlen = 0;
+			if(dot < 0)
+			{
 			for(int v=0; v<3; v++)
 			{
 				float vlen = Magnitude(wrappos[v] - wrappos[(v+1)%3]);
@@ -7943,6 +7945,67 @@ again:
 					minvlen = vlen;
 					minv = v;
 				}
+			}
+
+			//check if there's an edge with another tet that it is correctly facing forward with
+			for(int v=0; v<3; v++)
+			{
+				//bool hasfair = false;
+
+				for(std::list<Tet*>::iterator htit1=tet->neib[v]->holder.begin();
+					htit1!=tet->neib[v]->holder.end();
+					htit1++)
+				{
+					Tet *htet1 = *htit1;
+
+					if(htet1 == tet)
+						continue;
+
+					for(std::list<Tet*>::iterator htit2=tet->neib[(v+1)%3]->holder.begin();
+										htit2!=tet->neib[(v+1)%3]->holder.end();
+										htit2++)
+					{
+						Tet *htet2 = *htit2;
+
+						if(htet2 == tet)
+							continue;
+						if(htet2 != htet1)
+							continue;
+
+						//got 2 pts with htet2/htet1(same)
+						//check winding to be clockwise
+
+						//should it go p1,p2 or p2,p1?
+						//and is it clockwise?
+						//given these two answers, should the edge to be flipped be set to v?
+						//bool edgeiscw = false;	//gives clockwise winding?
+						//bool givesposdot = false;	//gives positive dot product using normal and direction from origin?
+
+						//if(edgeiscw && !givesposdot
+
+						//just care if this tet needs to be flipped too
+
+						Vec3f tet2tri[3];
+						tet2tri[0] = htet2->neib[0]->pos;
+						tet2tri[1] = htet2->neib[1]->pos;
+						tet2tri[2] = htet2->neib[2]->pos;
+
+						float vlen = Dot( (tet2tri[0]+tet2tri[1]+tet2tri[2])/3.0f, Normal(tet2tri) );
+
+						if( vlen <= 0 && ( vlen < minvlen || minv < 0 ) )
+						{
+							minv = v;
+							minvlen = vlen;
+						}
+					}
+				}
+
+				//if(!hasfair)
+				{
+				//	minv = v;
+				//	break;
+				}
+			}
 			}
 
 			for(int v=0; v<3; v++)
@@ -7962,10 +8025,16 @@ again:
 				{
 					dir = Normalize(wrappos[(v+1)%3] - wrappos[v]);
 				}
-				else if(v == (minv+1)%3)
+				else if(v == (minv+1)%3 && minv >= 0)
 				{
 					dir = Normalize(wrappos[v] - wrappos[(v+3-1)%3]);
 				}
+				else if(minv < 0)
+				{
+					dir = wrappos[v] - cen;
+					dir = Normalize(dir);
+				}
+
 
 				if(Magnitude(dir) <= 0)
 					dir = Vec3f(rand()%300-150, rand()%300-150, rand()%300-150);
