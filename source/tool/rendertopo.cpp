@@ -7917,7 +7917,7 @@ again:
 		dot = fmin(dot, 30000);
 		dot = fmax(dot, -30000);
 
-		dot *= abs(bestupdown+2)/300.0f;
+		dot *= abs(bestupdown+2)/200.0f;
 
 		//if(dot > 0)
 		//	continue;
@@ -7934,7 +7934,12 @@ again:
 		{
 			for(int v=0; v<3; v++)
 			{
-				Vec3f dir = Normalize(wrappos[v] - cen);
+				Vec3f away = wrappos[v] - cen;
+
+				if(Magnitude(away) <= 0)
+					away = Vec3f(rand()%300-150, rand()%300-150, rand()%300-150);
+
+				Vec3f dir = Normalize(away);
 				tet->neib[v]->pressure = 
 					tet->neib[v]->pressure + 
 					dir * dot;

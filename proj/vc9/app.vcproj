@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="app"
+	Name="app4"
 	ProjectGUID="{CECE012A-0DC0-46CF-ACB6-46C095EE0830}"
 	RootNamespace="app"
 	Keyword="Win32Proj"
