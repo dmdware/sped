@@ -8517,7 +8517,8 @@ void CheckEmerged(Surf *surf, Tet** halfemerged);
 		//if(bestupdown < 0 ||
 		//	currupdown < bestupdown)
 		bestupdown = currupdown;
-		progress = true;
+		if(rand()%199==1)
+			progress = true;
 	}
 	else
 	{
