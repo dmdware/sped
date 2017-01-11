@@ -7917,6 +7917,8 @@ void GetCen(Surf *surf,
 			tri[v] = tet->neib[v]->wrappos;
 			if(tet->neib[v] == sp)
 				continue;
+			if(!tet->neib[v]->emerged)
+				continue;
 			*cen = *cen * count / (count + 1) + tet->neib[v]->wrappos / (count + 1);
 			count += 1;
 		}
@@ -7947,7 +7949,7 @@ void Emerge(Surf *surf,
 		
 		float amt = (1.0f + Dot( Normalize(sp->wrappos), Normalize(emline[1]) ))/2.0f;
 
-		sp->wrappos = Rotate(sp->wrappos, M_PI * amt / 10.0f, sidevec.x, sidevec.y, sidevec.z);
+		sp->wrappos = Rotate(sp->wrappos, M_PI * amt / 100.0f, sidevec.x, sidevec.y, sidevec.z);
 	}
 
 	esp->wrappos = emline[1];
