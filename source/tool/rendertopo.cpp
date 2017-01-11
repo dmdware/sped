@@ -8522,21 +8522,21 @@ void CheckEmerged(Surf *surf, Tet** halfemerged);
 	}
 	else
 	{
-		if(rand()%30==1)
+		if(rand()%10==1)
 		{
 			std::string dt = DateTime();
 			fprintf(g_applog, "curr bad updown: %d (%s)\r\n", currupdown, dt.c_str());
 			fflush(g_applog);
 		}
 
-		if(rand()%199==1)
+		if(rand()%19==1)
 			progress = false;
 	}
 
 	static float avgupdown = currupdown;
 	static __int64 lasttick = GetTicks();
 
-	avgupdown = avgupdown * 29999/30000.0 + currupdown * 1/30000.0;
+	avgupdown = avgupdown * 29/30.0 + currupdown * 1/30.0;
 
 	if(GetTicks() - lasttick > 1000*60*3)
 	{
