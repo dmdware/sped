@@ -7741,6 +7741,7 @@ void GetToEmerge(Surf *surf,
 	double refU, refV;
 
 	//and no occluders?
+#if 0
 	if( TraceRay2(surf,
 		line[0],
 		&retex,
@@ -7777,6 +7778,7 @@ void GetToEmerge(Surf *surf,
 	{
 		occluded = true;
 	}
+#endif
 ////////////////////
 
 	for(int vi=0; vi<3; ++vi)
@@ -7800,8 +7802,11 @@ void GetToEmerge(Surf *surf,
 		SurfPt *dsp[2];
 		int cursp = 0;
 
+		Vec3f tri[3];
+
 		for(int vi=0; vi<3; ++vi)
 		{
+			tri[vi] = etet->neib[vi]->wrappos;
 			if(etet->neib[vi]->emerged)
 				spe = etet->neib[vi];
 			else
@@ -7826,23 +7831,30 @@ void GetToEmerge(Surf *surf,
 		//float cdist = Magnitude( (spe->wrappos + dsp[1]->wrappos)/2.0f );
 		Vec3f vdir = (dsp[0]->wrappos + dsp[1]->wrappos)/2.0f - spe->wrappos;
 		float cdist = Magnitude( spe->wrappos );
-		vdir = Normalize(vdir) //* cdist / 10000.0f
-			;
+		//vdir = Normalize(vdir) //* cdist / 10000.0f
+		//	;
 
 		emline[0] = dsp[0]->wrappos;
 		//emline[1] = Normalize ( vdir * sign + (spe->wrappos + dsp[1]->wrappos)/2.0f ) * cdist;
-		////emline[1] = Normalize ( vdir * sign + spe->wrappos ) * cdist;
+		//emline[1] = Normalize ( vdir * sign + spe->wrappos ) * cdist;
+		Vec3f n = Normal(tri);
+		//cdist = 1000;
+		//emline[1] = Normalize( n ) * cdist + vdir;
 		*esp = dsp[0];
 		GetCen(surf, *esp, &emline[1]);
+		emline[1] = Normalize(emline[1]) * cdist;
 	}
 	else if(numem == 2)
 	{
 		SurfPt* spe[2]={NULL,NULL};
 		SurfPt *dsp;
 		int cursp=0;
+
+		Vec3f tri[3];
 		
 		for(int vi=0; vi<3; ++vi)
 		{
+			tri[vi] = etet->neib[vi]->wrappos;
 			if(etet->neib[vi]->emerged)
 			{
 				spe[cursp] = etet->neib[vi];
@@ -7867,14 +7879,18 @@ void GetToEmerge(Surf *surf,
 
 		Vec3f vdir = dsp->wrappos - (spe[0]->wrappos + spe[1]->wrappos)/2.0f;
 		float cdist = Magnitude( (spe[0]->wrappos + spe[1]->wrappos)/2.0f );
-		vdir = Normalize(vdir) //* cdist 
+		//vdir = Normalize(vdir) //* cdist 
 		//	/ 10000.0f
-		;
+		//;
 
 		emline[0] = dsp->wrappos;
-		///emline[1] = Normalize ( vdir * sign + (spe[0]->wrappos + spe[1]->wrappos)/2.0f ) * cdist;
+		//emline[1] = Normalize ( vdir * sign + (spe[0]->wrappos + spe[1]->wrappos)/2.0f ) * cdist;
+		Vec3f n = Normal(tri);
+		//cdist = 1000;
+		//emline[1] = Normalize( n ) * cdist + vdir;
 		*esp = dsp;
 		GetCen(surf, *esp, &emline[1]);
+		emline[1] = Normalize(emline[1]) * cdist;
 	}
 	else
 	{
@@ -7895,14 +7911,20 @@ void GetCen(Surf *surf,
 		++hit)
 	{
 		Tet *tet = *hit;
+		Vec3f tri[3];
 		for(int v=0; v<3; ++v)
 		{
+			tri[v] = tet->neib[v]->wrappos;
 			if(tet->neib[v] == sp)
 				continue;
 			*cen = *cen * count / (count + 1) + tet->neib[v]->wrappos / (count + 1);
 			count += 1;
 		}
+		//Vec3f n = Normal(tri);
+		//*cen = *cen * count / (count + 1) + n * 1000 / (count + 1);
+		//count += 1;
 	}
+	*cen = Normalize(*cen) * 1000;
 }
 
 void Emerge(Surf *surf,
@@ -7921,11 +7943,11 @@ void Emerge(Surf *surf,
 		Vec3f sidevec = Cross( Normalize(emline[1]), Normalize(sp->wrappos) );
 		//Vec3f sidevec = Cross( Normalize(sp->wrappos), Normalize(emline[1]) );
 		sidevec = Normalize( sidevec );
-		//Vec3f dirmove = Cross( Normalize(sp->wrappos), sidevec );
+		//Vec3f dirmove = Cross( Normalize(sp->w=rappos), sidevec );
 		
 		float amt = (1.0f + Dot( Normalize(sp->wrappos), Normalize(emline[1]) ))/2.0f;
 
-		sp->wrappos = Rotate(sp->wrappos, M_PI * amt / 10000.0f, sidevec.x, sidevec.y, sidevec.z);
+		sp->wrappos = Rotate(sp->wrappos, M_PI * amt / 10.0f, sidevec.x, sidevec.y, sidevec.z);
 	}
 
 	esp->wrappos = emline[1];
@@ -7941,9 +7963,9 @@ void CheckEmerged(Surf *surf, Tet** halfemerged)
 	{
 		Tet *tet = *tit;
 
-		tet->neib[0]->emerged = false;
-		tet->neib[1]->emerged = false;
-		tet->neib[2]->emerged = false;
+		tet->neib[0]->emerged = true;
+		tet->neib[1]->emerged = true;
+		tet->neib[2]->emerged = true;
 	}
 
 	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
@@ -7959,10 +7981,10 @@ void CheckEmerged(Surf *surf, Tet** halfemerged)
 
 		Vec3f norm = Normal(tri);
 
-		//takes just 1 to be emerged pt of tets
+		//takes just 1 to be not-emerged pt of tets
 
 		//facing up?
-		if( Dot(norm, Normalize( (tri[0]+tri[1]+tri[2])/3.0f )) <= 0.0f )
+		if( Dot(norm, Normalize( (tri[0]+tri[1]+tri[2])/3.0f )) > 0.0f )
 		{
 			//tet->neib[0]
 			continue;
@@ -8026,9 +8048,9 @@ void CheckEmerged(Surf *surf, Tet** halfemerged)
 		}
 #endif
 
-		tet->neib[0]->emerged = true;
-		tet->neib[1]->emerged = true;
-		tet->neib[2]->emerged = true;
+		tet->neib[0]->emerged = false;
+		tet->neib[1]->emerged = false;
+		tet->neib[2]->emerged = false;
 	}
 
 	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
@@ -8049,7 +8071,7 @@ void CheckEmerged(Surf *surf, Tet** halfemerged)
 		{
 			*halfemerged = tet;	//pick with 1 submerged
 
-			//if(rand()%300==1)
+			if(rand()%3000==1)
 				return;
 		}
 
@@ -8092,7 +8114,7 @@ void CheckEmerged(Surf *surf, Tet** halfemerged)
 			{
 				*halfemerged = tet;	//pick with 2 submerged
 
-			//	if(rand()%300==1)
+				if(rand()%3000==1)
 					return;
 			}
 		}
@@ -8189,7 +8211,7 @@ again:
 
 	int currupdown = 0;
 
-	//progress = false;
+	progress = false;
 	//progress = true;
 #if 011
 	if(progress)
@@ -8616,7 +8638,7 @@ void CheckEmerged(Surf *surf, Tet** halfemerged);
 	}
 	else
 	{
-		if(rand()%100==1)
+		if(rand()%1000==1)
 		{
 			std::string dt = DateTime();
 			fprintf(g_applog, "curr bad updown: %d (%s)\r\n", currupdown, dt.c_str());
@@ -8652,11 +8674,11 @@ void CheckEmerged(Surf *surf, Tet** halfemerged);
 			float mag = Magnitude( tet->neib[v]->wrappos );
 			if( mag == 0 )
 				mag = 1;
-			tet->neib[v]->wrappos = 
-				tet->neib[v]->wrappos + tet->neib[v]->pressure;
-			tet->neib[v]->wrappos = 
-				(tet->neib[v]->wrappos * 1000*1 / mag );
-			tet->neib[v]->pressure = Vec3f(0,0,0);
+	//		tet->neib[v]->wrappos = 
+	//			tet->neib[v]->wrappos + tet->neib[v]->pressure;
+	//		tet->neib[v]->wrappos = 
+	//			(tet->neib[v]->wrappos * 1000*1 / mag );
+	//		tet->neib[v]->pressure = Vec3f(0,0,0);
 
 			
 				if(ISNAN(tet->neib[v]->wrappos.x))
@@ -8671,7 +8693,7 @@ void CheckEmerged(Surf *surf, Tet** halfemerged);
 	static int times = 0;
 	times++;
 
-#if 001
+#if 0001
 	if(/* times < 3000 || */ haveupdown)
 	{
 	//	if(rand()%190==1)
