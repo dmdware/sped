@@ -7820,7 +7820,7 @@ void GetToEmerge(Surf *surf,
 		
 		Vec3f vdir = dsp[0]->wrappos - (spe->wrappos + dsp[1]->wrappos)/2.0f;
 		float cdist = Magnitude( (spe->wrappos + dsp[1]->wrappos)/2.0f );
-		vdir = Normalize(vdir) * cdist / 1000.0f;
+		vdir = Normalize(vdir) * cdist / 10000.0f;
 
 		emline[0] = dsp[0]->wrappos;
 		emline[1] = Normalize ( vdir * sign + (spe->wrappos + dsp[1]->wrappos)/2.0f ) * cdist;
@@ -7854,7 +7854,7 @@ void GetToEmerge(Surf *surf,
 		
 		Vec3f vdir = dsp->wrappos - (spe[0]->wrappos + spe[1]->wrappos)/2.0f;
 		float cdist = Magnitude( (spe[0]->wrappos + spe[1]->wrappos)/2.0f );
-		vdir = Normalize(vdir) * cdist / 1000.0f;
+		vdir = Normalize(vdir) * cdist / 10000.0f;
 
 		emline[0] = dsp->wrappos;
 		emline[1] = Normalize ( vdir * sign + (spe[0]->wrappos + spe[1]->wrappos)/2.0f ) * cdist;
@@ -7929,6 +7929,8 @@ void CheckEmerged(Surf *surf, Tet** halfemerged)
 			continue;
 		}
 
+#if 0	//necessary?
+
 		Vec3f line[3][2];
 
 		line[0][0] = norm * 0.1f + tri[0];
@@ -7983,6 +7985,7 @@ void CheckEmerged(Surf *surf, Tet** halfemerged)
 		{
 			continue;
 		}
+#endif
 
 		tet->neib[0]->emerged = true;
 		tet->neib[1]->emerged = true;
@@ -8004,7 +8007,9 @@ void CheckEmerged(Surf *surf, Tet** halfemerged)
 			tet->neib[2]->emerged) )
 		{
 			*halfemerged = tet;
-			return;
+
+			if(rand()%300==1)
+				return;
 		}
 	}
 }
@@ -8099,6 +8104,7 @@ again:
 
 	int currupdown = 0;
 
+	progress = false;
 #if 011
 	if(progress)
 	{
@@ -8522,7 +8528,7 @@ void CheckEmerged(Surf *surf, Tet** halfemerged);
 	}
 	else
 	{
-		if(rand()%10==1)
+		if(rand()%100==1)
 		{
 			std::string dt = DateTime();
 			fprintf(g_applog, "curr bad updown: %d (%s)\r\n", currupdown, dt.c_str());
@@ -8577,7 +8583,7 @@ void CheckEmerged(Surf *surf, Tet** halfemerged);
 	static int times = 0;
 	times++;
 
-#if 01
+#if 00
 	if(/* times < 3000 || */ haveupdown)
 	{
 	//	if(rand()%190==1)
