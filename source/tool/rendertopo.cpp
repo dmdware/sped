@@ -7886,7 +7886,7 @@ void Emerge(Surf *surf,
 		
 		float amt = (1.0f + Dot( Normalize(sp->pos), Normalize(emline[1]) ))/2.0f;
 
-		sp->wrappos = Rotate(sp->wrappos, M_PI * amt / 100.0f, sidevec.x, sidevec.y, sidevec.z);
+		sp->wrappos = Rotate(sp->wrappos, M_PI * amt / 10000.0f, sidevec.x, sidevec.y, sidevec.z);
 	}
 
 	esp->wrappos = emline[1];
@@ -7998,6 +7998,24 @@ void CheckEmerged(Surf *surf, Tet** halfemerged)
 	{
 		Tet *tet = *tit;
 
+		int emd = 0;
+
+		for(int v=0; v<3; v++)
+		{
+			if(tet->neib[v]->emerged)
+				emd++;
+		}
+
+		if(emd == 2)
+		{
+			*halfemerged = tet;	//pick with 1 submerged
+
+			if(rand()%300==1)
+				return;
+		}
+
+#if 0
+
 		//find tet with some emerged and some not pt's
 		if( !(tet->neib[0]->emerged &&
 			tet->neib[1]->emerged &&
@@ -8010,6 +8028,34 @@ void CheckEmerged(Surf *surf, Tet** halfemerged)
 
 			if(rand()%300==1)
 				return;
+		}
+#endif
+	}
+
+	//no 1 sub?
+	if(!*halfemerged)
+	{	
+		for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+			tit!=surf->tets2.end();
+			++tit)
+		{
+			Tet *tet = *tit;
+
+			int emd = 0;
+
+			for(int v=0; v<3; v++)
+			{
+				if(tet->neib[v]->emerged)
+					emd++;
+			}
+
+			if(emd == 1)
+			{
+				*halfemerged = tet;	//pick with 2 submerged
+
+				if(rand()%300==1)
+					return;
+			}
 		}
 	}
 }
