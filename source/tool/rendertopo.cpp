@@ -8522,7 +8522,7 @@ void CheckEmerged(Surf *surf, Tet** halfemerged);
 	}
 	else
 	{
-		if(rand()%300==1)
+		if(rand()%30==1)
 		{
 			std::string dt = DateTime();
 			fprintf(g_applog, "curr bad updown: %d (%s)\r\n", currupdown, dt.c_str());
@@ -8577,11 +8577,11 @@ void CheckEmerged(Surf *surf, Tet** halfemerged);
 	static int times = 0;
 	times++;
 
-#if 0
+#if 01
 	if(/* times < 3000 || */ haveupdown)
 	{
-		if(rand()%190==1)
-			SplitEdges(surf, NULL, NULL, NULL, 2);
+	//	if(rand()%190==1)
+	//		SplitEdges(surf, NULL, NULL, NULL, 2);
 
 		goto again;
 	}
