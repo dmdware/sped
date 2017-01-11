@@ -75,6 +75,11 @@ void Emerge(Surf *surf,
 
 void CheckEmerged(Surf *surf, Tet** halfemerged);
 
+
+void GetCen(Surf *surf,
+			SurfPt *sp,
+			Vec3f *cen);
+
 class SurfPt
 {
 public:

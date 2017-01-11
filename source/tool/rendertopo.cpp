@@ -7789,7 +7789,7 @@ void GetToEmerge(Surf *surf,
 	{
 		if(!etet->neib[vi]->emerged)
 		{
-			*esp = etet->neib[vi];
+			//*esp = etet->neib[vi];
 			break;
 		}
 	}
@@ -7813,18 +7813,27 @@ void GetToEmerge(Surf *surf,
 
 		float sign = 1;
 
-		if(facingdown)
+		//if(facingdown)
 		{
 			sign = -1;
 		}
+		//else
+		{
+		//	return;
+		}
 		
-		Vec3f vdir = dsp[0]->wrappos - (spe->wrappos + dsp[1]->wrappos)/2.0f;
-		float cdist = Magnitude( (spe->wrappos + dsp[1]->wrappos)/2.0f );
-		vdir = Normalize(vdir) * cdist / 10000.0f;
+		//Vec3f vdir = dsp[0]->wrappos - (spe->wrappos + dsp[1]->wrappos)/2.0f;
+		//float cdist = Magnitude( (spe->wrappos + dsp[1]->wrappos)/2.0f );
+		Vec3f vdir = (dsp[0]->wrappos + dsp[1]->wrappos)/2.0f - spe->wrappos;
+		float cdist = Magnitude( spe->wrappos );
+		vdir = Normalize(vdir) //* cdist / 10000.0f
+			;
 
 		emline[0] = dsp[0]->wrappos;
-		emline[1] = Normalize ( vdir * sign + (spe->wrappos + dsp[1]->wrappos)/2.0f ) * cdist;
+		//emline[1] = Normalize ( vdir * sign + (spe->wrappos + dsp[1]->wrappos)/2.0f ) * cdist;
+		////emline[1] = Normalize ( vdir * sign + spe->wrappos ) * cdist;
 		*esp = dsp[0];
+		GetCen(surf, *esp, &emline[1]);
 	}
 	else if(numem == 2)
 	{
@@ -7847,23 +7856,52 @@ void GetToEmerge(Surf *surf,
 
 		float sign = 1;
 
-		if(facingdown)
+		//if(facingdown)
 		{
 			sign = -1;
 		}
-		
+		//else
+		{
+		//	return;
+		}
+
 		Vec3f vdir = dsp->wrappos - (spe[0]->wrappos + spe[1]->wrappos)/2.0f;
 		float cdist = Magnitude( (spe[0]->wrappos + spe[1]->wrappos)/2.0f );
-		vdir = Normalize(vdir) * cdist / 10000.0f;
+		vdir = Normalize(vdir) //* cdist 
+		//	/ 10000.0f
+		;
 
 		emline[0] = dsp->wrappos;
-		emline[1] = Normalize ( vdir * sign + (spe[0]->wrappos + spe[1]->wrappos)/2.0f ) * cdist;
+		///emline[1] = Normalize ( vdir * sign + (spe[0]->wrappos + spe[1]->wrappos)/2.0f ) * cdist;
 		*esp = dsp;
+		GetCen(surf, *esp, &emline[1]);
 	}
 	else
 	{
 		//error
 		return;
+	}
+}
+
+void GetCen(Surf *surf,
+			SurfPt *sp,
+			Vec3f *cen)
+{
+	float count = 1;
+	*cen = sp->wrappos;
+
+	for(std::list<Tet*>::iterator hit=sp->holder.begin();
+		hit!=sp->holder.end();
+		++hit)
+	{
+		Tet *tet = *hit;
+		for(int v=0; v<3; ++v)
+		{
+			if(tet->neib[v] == sp)
+				continue;
+			*cen = *cen * count / (count + 1) + tet->neib[v]->wrappos / (count + 1);
+			count += 1;
+		}
 	}
 }
 
@@ -7880,11 +7918,12 @@ void Emerge(Surf *surf,
 		if(sp == esp)
 			continue;
 
-		Vec3f sidevec = Cross( Normalize(emline[1]), Normalize(sp->pos) );
+		Vec3f sidevec = Cross( Normalize(emline[1]), Normalize(sp->wrappos) );
+		//Vec3f sidevec = Cross( Normalize(sp->wrappos), Normalize(emline[1]) );
 		sidevec = Normalize( sidevec );
-		//Vec3f dirmove = Cross( Normalize(sp->pos), sidevec );
+		//Vec3f dirmove = Cross( Normalize(sp->wrappos), sidevec );
 		
-		float amt = (1.0f + Dot( Normalize(sp->pos), Normalize(emline[1]) ))/2.0f;
+		float amt = (1.0f + Dot( Normalize(sp->wrappos), Normalize(emline[1]) ))/2.0f;
 
 		sp->wrappos = Rotate(sp->wrappos, M_PI * amt / 10000.0f, sidevec.x, sidevec.y, sidevec.z);
 	}
@@ -8010,7 +8049,7 @@ void CheckEmerged(Surf *surf, Tet** halfemerged)
 		{
 			*halfemerged = tet;	//pick with 1 submerged
 
-			if(rand()%300==1)
+			//if(rand()%300==1)
 				return;
 		}
 
@@ -8053,7 +8092,7 @@ void CheckEmerged(Surf *surf, Tet** halfemerged)
 			{
 				*halfemerged = tet;	//pick with 2 submerged
 
-				if(rand()%300==1)
+			//	if(rand()%300==1)
 					return;
 			}
 		}
@@ -8150,7 +8189,8 @@ again:
 
 	int currupdown = 0;
 
-	progress = false;
+	//progress = false;
+	//progress = true;
 #if 011
 	if(progress)
 	{
@@ -8364,9 +8404,9 @@ again:
 								//just care if this tet needs to be flipped too
 
 								Vec3f tet2tri[3];
-								tet2tri[0] = htet2->neib[0]->pos;
-								tet2tri[1] = htet2->neib[1]->pos;
-								tet2tri[2] = htet2->neib[2]->pos;
+								tet2tri[0] = htet2->neib[0]->wrappos;
+								tet2tri[1] = htet2->neib[1]->wrappos;
+								tet2tri[2] = htet2->neib[2]->wrappos;
 
 								float vlen = Dot( (tet2tri[0]+tet2tri[1]+tet2tri[2])/3.0f, Normal(tet2tri) );
 
@@ -8546,6 +8586,7 @@ void Emerge(Surf *surf,
 void CheckEmerged(Surf *surf, Tet** halfemerged);
 #endif
 
+#if 01
 	Tet *emtet = NULL;
 	CheckEmerged(surf, &emtet);
 	if(emtet)
@@ -8558,6 +8599,7 @@ void CheckEmerged(Surf *surf, Tet** halfemerged);
 			Emerge(surf, esp, emline);
 		}
 	}
+#endif
 
 	if(currupdown < bestupdown ||
 		bestupdown < 0)
@@ -8581,7 +8623,7 @@ void CheckEmerged(Surf *surf, Tet** halfemerged);
 			fflush(g_applog);
 		}
 
-		if(rand()%19==1)
+		if(rand()%19==1 || currupdown > bestupdown * 1.1f)
 			progress = false;
 	}
 
@@ -8629,7 +8671,7 @@ void CheckEmerged(Surf *surf, Tet** halfemerged);
 	static int times = 0;
 	times++;
 
-#if 00
+#if 001
 	if(/* times < 3000 || */ haveupdown)
 	{
 	//	if(rand()%190==1)
