@@ -62,6 +62,19 @@ bool TraceRay2(Surf* surf,
 			  Tet **retet,
 			  double *refU, double *refV);
 
+
+void GetToEmerge(Surf *surf,
+				 Tet *etet,
+				 Vec3f *emline,
+				 SurfPt **esp);
+
+
+void Emerge(Surf *surf,
+			SurfPt *esp,
+			Vec3f emline[2]);
+
+void CheckEmerged(Surf *surf, Tet** halfemerged);
+
 class SurfPt
 {
 public:
@@ -79,6 +92,7 @@ public:
 	bool placed;
 	Vec3f wrappos;
 	Vec3f pressure;
+	bool emerged;
 
 	bool hasneib(SurfPt *neib)
 	{

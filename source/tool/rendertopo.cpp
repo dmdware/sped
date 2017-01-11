@@ -5305,6 +5305,9 @@ bool SplitEdge3(Surf *surf, Tet *tet,
 		//SurfPt* newp2 = CopyPt(surf, fatt[(fate+1)%3], newt2);
 		//SepPt(tet, newp2, NULL);
 		(*remidp)->pos = midp;
+		(*remidp)->orc = (tet->neib[e1]->orc + tet->neib[e2]->orc)/2.0f;
+		(*remidp)->wrappos = (tet->neib[e1]->wrappos + tet->neib[e2]->wrappos)/2.0f;
+		(*remidp)->pressure = (tet->neib[e1]->pressure + tet->neib[e2]->pressure)/2.0f;
 		//newp2->pos = midp;
 		(*remidp)->holder.clear();
 		(*remidp)->holder.push_back(newt1);
@@ -5377,14 +5380,14 @@ bool SplitEdge2(Surf *surf, SurfPt *epts[2])
 /*
 make triangles tesselated
 */
-bool SplitEdges(Surf *surf, Surf *fullsurf, Vec2f *vmin, Vec2f *vmax)
+bool SplitEdges(Surf *surf, Surf *fullsurf, Vec2f *vmin, Vec2f *vmax, int amt=BIGTEX*BIGTEX)
 {//return true;
 	int times = 0;
 again:
 
 	++times;
 
-	if(times > BIGTEX*BIGTEX)
+	if(times > amt)
 		return true;
 
 	float smallestratio = 9999999;
@@ -7694,6 +7697,318 @@ void DrawClip()
 	//UseS(SHADER_MAPPERSP);
 }
 
+void GetToEmerge(Surf *surf,
+				 Tet *etet,
+				 Vec3f *emline,
+				 SurfPt **esp)
+{
+	*esp = NULL;
+
+	int numem = 0;
+
+	bool occluded = false;
+	bool facingdown = false;
+
+	//////////////////
+	Vec3f tri[3];
+	tri[0] = etet->neib[0]->wrappos;
+	tri[1] = etet->neib[1]->wrappos;
+	tri[2] = etet->neib[2]->wrappos;
+
+	Vec3f norm = Normal(tri);
+
+	float dot = Dot( norm, Normalize( (tri[0]+tri[1]+tri[2])/3.0f ) );
+
+	if( dot <= 0.0f )
+		facingdown = true;
+
+	////////////////
+	Vec3f line[3][2];
+
+	line[0][0] = norm * 0.1f + tri[0];
+	line[0][1] = norm * 60000.0f + tri[0];
+
+	line[1][0] = norm * 0.1f + tri[1];
+	line[1][1] = norm * 60000.0f + tri[1];
+
+	line[2][0] = norm * 0.1f + tri[2];
+	line[2][1] = norm * 60000.0f + tri[2];
+
+	LoadedTex *retex, *retexn, *retexs;
+	Vec2f retexc;
+	Vec3f rewp, rerp, ren;
+	Tet *retet;
+	double refU, refV;
+
+	//and no occluders?
+	if( TraceRay2(surf,
+		line[0],
+		&retex,
+		&retexs,
+		&retexn,
+		&retexc,
+		&rewp,
+		&rerp,
+		&ren,
+		&retet,
+		&refU, &refV) ||
+		TraceRay2(surf,
+		line[1],
+		&retex,
+		&retexs,
+		&retexn,
+		&retexc,
+		&rewp,
+		&rewp,
+		&ren,
+		&retet,
+		&refU, &refV) ||
+		TraceRay2(surf,
+		line[2],
+		&retex,
+		&retexs,
+		&retexn,
+		&retexc,
+		&rewp,
+		&rewp,
+		&ren,
+		&retet,
+		&refU, &refV))
+	{
+		occluded = true;
+	}
+////////////////////
+
+	for(int vi=0; vi<3; ++vi)
+	{
+		if(etet->neib[vi]->emerged)
+			numem++;
+	}
+
+	for(int vi=0; vi<3; ++vi)
+	{
+		if(!etet->neib[vi]->emerged)
+		{
+			*esp = etet->neib[vi];
+			break;
+		}
+	}
+
+	if(numem == 1)
+	{
+		SurfPt* spe;
+		SurfPt *dsp[2];
+		int cursp = 0;
+
+		for(int vi=0; vi<3; ++vi)
+		{
+			if(etet->neib[vi]->emerged)
+				spe = etet->neib[vi];
+			else
+			{
+				dsp[cursp] = etet->neib[vi];
+				cursp++;
+			}
+		}
+
+		float sign = 1;
+
+		if(facingdown)
+		{
+			sign = -1;
+		}
+		
+		Vec3f vdir = dsp[0]->wrappos - (spe->wrappos + dsp[1]->wrappos)/2.0f;
+		float cdist = Magnitude( (spe->wrappos + dsp[1]->wrappos)/2.0f );
+		vdir = Normalize(vdir) * cdist / 1000.0f;
+
+		emline[0] = dsp[0]->wrappos;
+		emline[1] = Normalize ( vdir * sign + (spe->wrappos + dsp[1]->wrappos)/2.0f ) * cdist;
+		*esp = dsp[0];
+	}
+	else if(numem == 2)
+	{
+		SurfPt* spe[2]={NULL,NULL};
+		SurfPt *dsp;
+		int cursp=0;
+		
+		for(int vi=0; vi<3; ++vi)
+		{
+			if(etet->neib[vi]->emerged)
+			{
+				spe[cursp] = etet->neib[vi];
+				cursp++;
+			}
+			else
+			{
+				dsp = etet->neib[vi];
+			}
+		}
+
+		float sign = 1;
+
+		if(facingdown)
+		{
+			sign = -1;
+		}
+		
+		Vec3f vdir = dsp->wrappos - (spe[0]->wrappos + spe[1]->wrappos)/2.0f;
+		float cdist = Magnitude( (spe[0]->wrappos + spe[1]->wrappos)/2.0f );
+		vdir = Normalize(vdir) * cdist / 1000.0f;
+
+		emline[0] = dsp->wrappos;
+		emline[1] = Normalize ( vdir * sign + (spe[0]->wrappos + spe[1]->wrappos)/2.0f ) * cdist;
+		*esp = dsp;
+	}
+	else
+	{
+		//error
+		return;
+	}
+}
+
+void Emerge(Surf *surf,
+			SurfPt *esp,
+			Vec3f emline[2])
+{
+	for(std::list<SurfPt*>::iterator sit=surf->pts2.begin();
+		sit!=surf->pts2.end();
+		++sit)
+	{
+		SurfPt *sp = *sit;
+
+		if(sp == esp)
+			continue;
+
+		Vec3f sidevec = Cross( Normalize(emline[1]), Normalize(sp->pos) );
+		sidevec = Normalize( sidevec );
+		//Vec3f dirmove = Cross( Normalize(sp->pos), sidevec );
+		
+		float amt = (1.0f + Dot( Normalize(sp->pos), Normalize(emline[1]) ))/2.0f;
+
+		sp->wrappos = Rotate(sp->wrappos, M_PI * amt / 100.0f, sidevec.x, sidevec.y, sidevec.z);
+	}
+
+	esp->wrappos = emline[1];
+}
+
+void CheckEmerged(Surf *surf, Tet** halfemerged)
+{
+	*halfemerged = NULL;
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet *tet = *tit;
+
+		tet->neib[0]->emerged = false;
+		tet->neib[1]->emerged = false;
+		tet->neib[2]->emerged = false;
+	}
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet *tet = *tit;
+
+		Vec3f tri[3];
+		tri[0] = tet->neib[0]->wrappos;
+		tri[1] = tet->neib[1]->wrappos;;
+		tri[2] = tet->neib[2]->wrappos;;
+
+		Vec3f norm = Normal(tri);
+
+		//takes just 1 to be emerged pt of tets
+
+		//facing up?
+		if( Dot(norm, Normalize( (tri[0]+tri[1]+tri[2])/3.0f )) <= 0.0f )
+		{
+			//tet->neib[0]
+			continue;
+		}
+
+		Vec3f line[3][2];
+
+		line[0][0] = norm * 0.1f + tri[0];
+		line[0][1] = norm * 60000.0f + tri[0];
+		
+		line[1][0] = norm * 0.1f + tri[1];
+		line[1][1] = norm * 60000.0f + tri[1];
+		
+		line[2][0] = norm * 0.1f + tri[2];
+		line[2][1] = norm * 60000.0f + tri[2];
+
+		LoadedTex *retex, *retexn, *retexs;
+		Vec2f retexc;
+		Vec3f rewp, rerp, ren;
+		Tet *retet;
+		double refU, refV;
+
+		//and no occluders?
+		if( TraceRay2(surf,
+			line[0],
+			&retex,
+			&retexs,
+			&retexn,
+			&retexc,
+			&rewp,
+			&rerp,
+			&ren,
+			&retet,
+			&refU, &refV) ||
+		TraceRay2(surf,
+			line[1],
+			&retex,
+			&retexs,
+			&retexn,
+			&retexc,
+			&rewp,
+			&rewp,
+			&ren,
+			&retet,
+			&refU, &refV) ||
+		TraceRay2(surf,
+			line[2],
+			&retex,
+			&retexs,
+			&retexn,
+			&retexc,
+			&rewp,
+			&rewp,
+			&ren,
+			&retet,
+			&refU, &refV))
+		{
+			continue;
+		}
+
+		tet->neib[0]->emerged = true;
+		tet->neib[1]->emerged = true;
+		tet->neib[2]->emerged = true;
+	}
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet *tet = *tit;
+
+		//find tet with some emerged and some not pt's
+		if( !(tet->neib[0]->emerged &&
+			tet->neib[1]->emerged &&
+			tet->neib[2]->emerged) &&
+			(tet->neib[0]->emerged ||
+			tet->neib[1]->emerged ||
+			tet->neib[2]->emerged) )
+		{
+			*halfemerged = tet;
+			return;
+		}
+	}
+}
+
 //arrange the orc's on a globe and then balance it so everything is seen
 bool MapGlobe(Surf *surf)
 {
@@ -7774,6 +8089,9 @@ bool MapGlobe(Surf *surf)
 
 	int bestupdown = -1;
 
+	
+	bool progress = true;
+
 again:
 	haveupdown = false;
 
@@ -7781,294 +8099,411 @@ again:
 
 	int currupdown = 0;
 
-	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
-		tit!=surf->tets2.end();
-		++tit)
+#if 011
+	if(progress)
 	{
-		Tet * tet = *tit;
-	
-		for(int v=0; v<3; v++)
+			for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+			tit!=surf->tets2.end();
+			++tit)
 		{
-			tet->neib[v]->pressure = Vec3f(0,0,0);
-		}
-	}
-
-	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
-		tit!=surf->tets2.end();
-		++tit)
-	{
-		Tet * tet = *tit;
-
-		SurfPt *fatt[3];
-
-		fatt[0] = tet->neib[0];
-		fatt[1] = tet->neib[1];
-		fatt[2] = tet->neib[2];
-
-		Vec3f wrappos[3];
-		wrappos[0] = fatt[0]->wrappos;
-		wrappos[1] = fatt[1]->wrappos;
-		wrappos[2] = fatt[2]->wrappos;
-
-		//for(int v=0; v<3; v++)
-		//	fprintf(g_applog, "wrappos[%d]%f,%f,%f\r\n",
-		//	v,
-		//	wrappos[v].x,
-		//	wrappos[v].y,
-		//	wrappos[v].z);
-
-		Vec3f cen = (wrappos[0] + wrappos[1] + wrappos[2])/3.0f;
-		Vec3f norm = Normal(wrappos);
-
-			if(ISNAN(norm.x))
-				ErrMess("yhjgjf","nannormx");
-			if(ISNAN(norm.y))
-				ErrMess("yhjgjf","nannormy");
-			if(ISNAN(norm.z))
-				ErrMess("yhjgjf","nannormz");
-
-		Vec3f correctnorm = Normalize(cen);
-
+			Tet * tet = *tit;
 		
-			if(ISNAN(correctnorm.x))
-				ErrMess("yhjgjf","nannormxcc");
-			if(ISNAN(correctnorm.y))
-				ErrMess("yhjgjf","nannormycc");
-			if(ISNAN(correctnorm.z))
-				ErrMess("yhjgjf","nannormzcc");
-
-		//fprintf(g_applog, "corr%f,%f,%f nor%f,%f,%f\r\n", 
-		//	correctnorm.x,
-		//	correctnorm.y,
-		//	correctnorm.z,
-		//	norm.x,
-		//	norm.y,
-		//	norm.z);
-
-		float dot = Dot(correctnorm, norm);
-
-		//fprintf(g_applog, "dot%f\r\n", 
-		//	dot);
-
-		if(ISNAN(dot))
-		{
-			ErrMess("asfdgsdfg","dotnan");
-		}
-
-		if(dot < 0)
-		{
-			currupdown++;
-			haveupdown = true;
-			//dot *= 2;
-			float dot2 = 1000.0f / (dot - 0.1f);
-			//dot = fmax(dot, -10);
-
-			if(ISNAN(dot2))
+			for(int v=0; v<3; v++)
 			{
-				dot = -1000.0f / (0.001f);
+				tet->neib[v]->pressure = Vec3f(0,0,0);
 			}
-			else
-				dot = dot2;
 		}
-		else
+
+		for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+			tit!=surf->tets2.end();
+			++tit)
 		{
-			//float dot2 = 1.0 / dot;
+			Tet * tet = *tit;
 
-			//if(ISNAN(dot2))
-			//	dot = 1.0 / 0.001f;
-			float dot2 = 10.0f / (0.1f + dot);
-			//dot = fmax(dot, -10);
+			SurfPt *fatt[3];
 
-			if(ISNAN(dot2))
+			fatt[0] = tet->neib[0];
+			fatt[1] = tet->neib[1];
+			fatt[2] = tet->neib[2];
+
+			Vec3f wrappos[3];
+			wrappos[0] = fatt[0]->wrappos;
+			wrappos[1] = fatt[1]->wrappos;
+			wrappos[2] = fatt[2]->wrappos;
+
+			//for(int v=0; v<3; v++)
+			//	fprintf(g_applog, "wrappos[%d]%f,%f,%f\r\n",
+			//	v,
+			//	wrappos[v].x,
+			//	wrappos[v].y,
+			//	wrappos[v].z);
+
+			Vec3f cen = (wrappos[0] + wrappos[1] + wrappos[2])/3.0f;
+			Vec3f norm = Normal(wrappos);
+
+				if(ISNAN(norm.x))
+					ErrMess("yhjgjf","nannormx");
+				if(ISNAN(norm.y))
+					ErrMess("yhjgjf","nannormy");
+				if(ISNAN(norm.z))
+					ErrMess("yhjgjf","nannormz");
+
+			Vec3f correctnorm = Normalize(cen);
+
+			
+				if(ISNAN(correctnorm.x))
+					ErrMess("yhjgjf","nannormxcc");
+				if(ISNAN(correctnorm.y))
+					ErrMess("yhjgjf","nannormycc");
+				if(ISNAN(correctnorm.z))
+					ErrMess("yhjgjf","nannormzcc");
+
+			//fprintf(g_applog, "corr%f,%f,%f nor%f,%f,%f\r\n", 
+			//	correctnorm.x,
+			//	correctnorm.y,
+			//	correctnorm.z,
+			//	norm.x,
+			//	norm.y,
+			//	norm.z);
+
+			float dot = Dot(correctnorm, norm);
+
+			//fprintf(g_applog, "dot%f\r\n", 
+			//	dot);
+
+			if(ISNAN(dot))
 			{
-				dot = 1.0f / (0.01f);
+				ErrMess("asfdgsdfg","dotnan");
 			}
-			else
-				dot = dot2;
-		}
-		//if(dot == 0)
-		//	dot += 1;
 
-
-		//if(dot >= 0.5f)
-		//	;
-		//else if(dot > 0 && dot < 0.5f)
-		//	dot *= 2.6f;
-
-		
-		float a,b,c,s,area;
-
-		a = Magnitude(wrappos[0]-wrappos[1]);
-		b = Magnitude(wrappos[1]-wrappos[2]);
-		c = Magnitude(wrappos[2]-wrappos[0]);
-
-		s = (a+b+c)/2.0f;
-
-		area = sqrt(s*(s-a)*(s-b)*(s-c));
-
-		if(area == 0)
-			area = 1;
-
-		float strength = 10000.0f / area;
-
-		if(!ISNAN(strength))
-			dot *= strength;
-
-		dot = fmin(dot, 30000);
-		dot = fmax(dot, -30000);
-
-		dot *= abs(bestupdown+2)/200.0f;
-
-		//if(dot < 0 && area > 5000)
-		//	dot *= 1000;
-
-		//if(dot > 0)
-		//	continue;
-#if 1
-		if(dot > 0)
-		{
-			//continue;
-			//dot = 1.0f / dot / 100.0f;
-
-	//		dot = fmin(dot, 3);
-		}
-#endif
-		//if(dot < 0)
-		{
-			int minv = -1;
-			float minvlen = 0;
 			if(dot < 0)
 			{
-			for(int v=0; v<3; v++)
-			{
-				float vlen = Magnitude(wrappos[v] - wrappos[(v+1)%3]);
+				currupdown++;
+				haveupdown = true;
+				//dot *= 2;
+				float dot2 = 1000.0f / (dot - 0.1f);
+				//dot = fmax(dot, -10);
 
-				if(vlen < minvlen || minv < 0)
+				if(ISNAN(dot2))
 				{
-					minvlen = vlen;
-					minv = v;
+					dot = -1000.0f / (0.001f);
 				}
+				else
+					dot = dot2;
 			}
-
-			//check if there's an edge with another tet that it is correctly facing forward with
-			for(int v=0; v<3; v++)
+			else
 			{
-				//bool hasfair = false;
+				//float dot2 = 1.0 / dot;
 
-				for(std::list<Tet*>::iterator htit1=tet->neib[v]->holder.begin();
-					htit1!=tet->neib[v]->holder.end();
-					htit1++)
+				//if(ISNAN(dot2))
+				//	dot = 1.0 / 0.001f;
+				float dot2 = 10.0f / (0.1f + dot);
+				//dot = fmax(dot, -10);
+
+				if(ISNAN(dot2))
 				{
-					Tet *htet1 = *htit1;
+					dot = 1.0f / (0.01f);
+				}
+				else
+					dot = dot2;
+			}
+			//if(dot == 0)
+			//	dot += 1;
 
-					if(htet1 == tet)
-						continue;
 
-					for(std::list<Tet*>::iterator htit2=tet->neib[(v+1)%3]->holder.begin();
-										htit2!=tet->neib[(v+1)%3]->holder.end();
-										htit2++)
+			//if(dot >= 0.5f)
+			//	;
+			//else if(dot > 0 && dot < 0.5f)
+			//	dot *= 2.6f;
+
+			
+			float a,b,c,s,area;
+
+			a = Magnitude(wrappos[0]-wrappos[1]);
+			b = Magnitude(wrappos[1]-wrappos[2]);
+			c = Magnitude(wrappos[2]-wrappos[0]);
+
+			s = (a+b+c)/2.0f;
+
+			area = sqrt(s*(s-a)*(s-b)*(s-c));
+
+			if(area == 0)
+				area = 1;
+
+			float strength = 10000.0f / area;
+
+			if(!ISNAN(strength))
+				dot *= strength;
+
+			dot = fmin(dot, 30000);
+			dot = fmax(dot, -30000);
+
+			dot *= abs(bestupdown+2)/200.0f;
+
+			//if(dot < 0 && area > 5000)
+			//	dot *= 1000;
+
+			//if(dot > 0)
+			//	continue;
+	#if 1
+			if(dot > 0)
+			{
+				//continue;
+				//dot = 1.0f / dot / 100.0f;
+
+		//		dot = fmin(dot, 3);
+			}
+	#endif
+			//if(dot < 0)
+			{
+	#if 01
+				int minv = -1;
+				float minvlen = 0;
+				if(dot < 0)
+				{
+	#if 0
+					for(int v=0; v<3; v++)
 					{
-						Tet *htet2 = *htit2;
+						float vlen = Magnitude(wrappos[v] - wrappos[(v+1)%3]);
 
-						if(htet2 == tet)
-							continue;
-						if(htet2 != htet1)
-							continue;
+						if(vlen < minvlen || minv < 0)
+						{
+							minvlen = vlen;
+							minv = v;
+						}
+					}
+	#endif
+					//check if there's an edge with another tet that it is correctly facing forward with
+					for(int v=0; v<3; v++)
+					{
+						bool hasfair = false;
 
-						//got 2 pts with htet2/htet1(same)
-						//check winding to be clockwise
+						for(std::list<Tet*>::iterator htit1=tet->neib[v]->holder.begin();
+							htit1!=tet->neib[v]->holder.end();
+							htit1++)
+						{
+							Tet *htet1 = *htit1;
 
-						//should it go p1,p2 or p2,p1?
-						//and is it clockwise?
-						//given these two answers, should the edge to be flipped be set to v?
-						//bool edgeiscw = false;	//gives clockwise winding?
-						//bool givesposdot = false;	//gives positive dot product using normal and direction from origin?
+							if(htet1 == tet)
+								continue;
 
-						//if(edgeiscw && !givesposdot
+							for(std::list<Tet*>::iterator htit2=tet->neib[(v+1)%3]->holder.begin();
+												htit2!=tet->neib[(v+1)%3]->holder.end();
+												htit2++)
+							{
+								Tet *htet2 = *htit2;
 
-						//just care if this tet needs to be flipped too
+								if(htet2 == tet)
+									continue;
+								if(htet2 != htet1)
+									continue;
 
-						Vec3f tet2tri[3];
-						tet2tri[0] = htet2->neib[0]->pos;
-						tet2tri[1] = htet2->neib[1]->pos;
-						tet2tri[2] = htet2->neib[2]->pos;
+								//got 2 pts with htet2/htet1(same)
+								//check winding to be clockwise
 
-						float vlen = Dot( (tet2tri[0]+tet2tri[1]+tet2tri[2])/3.0f, Normal(tet2tri) );
+								//should it go p1,p2 or p2,p1?
+								//and is it clockwise?
+								//given these two answers, should the edge to be flipped be set to v?
+								//bool edgeiscw = false;	//gives clockwise winding?
+								//bool givesposdot = false;	//gives positive dot product using normal and direction from origin?
 
-						if( vlen <= 0 && ( vlen < minvlen || minv < 0 ) )
+								//if(edgeiscw && !givesposdot
+
+								//just care if this tet needs to be flipped too
+
+								Vec3f tet2tri[3];
+								tet2tri[0] = htet2->neib[0]->pos;
+								tet2tri[1] = htet2->neib[1]->pos;
+								tet2tri[2] = htet2->neib[2]->pos;
+
+								float vlen = Dot( (tet2tri[0]+tet2tri[1]+tet2tri[2])/3.0f, Normal(tet2tri) );
+
+								//if( vlen <= 0 && ( vlen < minvlen || minv < 0 ) )
+								if(vlen < 0)
+								{
+								//	minv = v;
+								//	minvlen = vlen;
+								}
+								else
+								{
+									hasfair = true;
+									continue;
+								}
+							}
+						}
+
+						if(!hasfair)
 						{
 							minv = v;
-							minvlen = vlen;
+							break;
 						}
 					}
 				}
+	#endif
 
-				//if(!hasfair)
+				//if(dot < 0)
+				//	minv = rand()%3;
+
+				for(int v=0; v<3; v++)
 				{
-				//	minv = v;
-				//	break;
-				}
-			}
-			}
+	#if 00
+					///*
+					Vec3f away = wrappos[v] - cen;
 
-			//if(dot < 0)
-			//	minv = rand()%3;
+					if(Magnitude(away) <= 0)
+						away = Vec3f(rand()%300-150, rand()%300-150, rand()%300-150);
 
-			for(int v=0; v<3; v++)
-			{
-				/*
-				Vec3f away = wrappos[v] - cen;
+					Vec3f dir = Normalize(away);
+					//*/
+	#endif
+				//	/*
+					Vec3f dir = Vec3f(0,0,0);
 
-				if(Magnitude(away) <= 0)
-					away = Vec3f(rand()%300-150, rand()%300-150, rand()%300-150);
+					if(v == minv)
+					{
+						dir = Normalize(wrappos[(v+1)%3] - wrappos[v]);
+					}
+					else if(v == (minv+1)%3 && minv >= 0)
+					{
+						dir = Normalize(wrappos[v] - wrappos[(v+3-1)%3]);
+					}
+					else if(minv < 0)
+					{
+						dir = wrappos[v] - cen;
+						dir = Normalize(dir);
+					}
 
-				Vec3f dir = Normalize(away);
-				*/
 
-				Vec3f dir = Vec3f(0,0,0);
+					if(Magnitude(dir) <= 0)
+						dir = Vec3f(rand()%300-150, rand()%300-150, rand()%300-150);
 
-				if(v == minv)
-				{
-					dir = Normalize(wrappos[(v+1)%3] - wrappos[v]);
-				}
-				else if(v == (minv+1)%3 && minv >= 0)
-				{
-					dir = Normalize(wrappos[v] - wrappos[(v+3-1)%3]);
-				}
-				else if(minv < 0)
-				{
-					dir = wrappos[v] - cen;
 					dir = Normalize(dir);
+	//*/
+					//while(abs(dot) < 500)
+					//dot *= 30;
+
+					tet->neib[v]->pressure = 
+						tet->neib[v]->pressure + 
+						dir * dot / 10;
+					tet->neib[v]->pressure =
+						tet->neib[v]->pressure +
+						Normal(wrappos) * 1000;
+					//tet->neib[v]->pressure = 
+					//	tet->neib[v]->pressure +
+					//	Vec3f(rand()%300-150, rand()%300-150, rand()%300-150)/100.0f;
+					
+					if(ISNAN(tet->neib[v]->pressure.x))
+						ErrMess("sdsfg","pressnanx");
+					if(ISNAN(tet->neib[v]->pressure.y))
+						ErrMess("sdsfg","pressnany");
+					if(ISNAN(tet->neib[v]->pressure.z))
+						ErrMess("sdsfg","pressnanz");
+			//	fprintf(g_applog, "1dot%f press%f,%f,%f dir%f,%f,%f\r\n", dot, 
+			//		tet->neib[v]->pressure.x,
+			//		tet->neib[v]->pressure.y,
+			//		tet->neib[v]->pressure.z,
+			//		dir.x, dir.y, dir.z);
 				}
-
-
-				if(Magnitude(dir) <= 0)
-					dir = Vec3f(rand()%300-150, rand()%300-150, rand()%300-150);
-
-				dir = Normalize(dir);
-
-				//while(abs(dot) < 500)
-				//dot *= 30;
-
-				tet->neib[v]->pressure = 
-					tet->neib[v]->pressure + 
-					dir * dot;
-				tet->neib[v]->pressure =
-					tet->neib[v]->pressure +
-					Normal(wrappos) * 1000;
-				
-				if(ISNAN(tet->neib[v]->pressure.x))
-					ErrMess("sdsfg","pressnanx");
-				if(ISNAN(tet->neib[v]->pressure.y))
-					ErrMess("sdsfg","pressnany");
-				if(ISNAN(tet->neib[v]->pressure.z))
-					ErrMess("sdsfg","pressnanz");
-		//	fprintf(g_applog, "1dot%f press%f,%f,%f dir%f,%f,%f\r\n", dot, 
-		//		tet->neib[v]->pressure.x,
-		//		tet->neib[v]->pressure.y,
-		//		tet->neib[v]->pressure.z,
-		//		dir.x, dir.y, dir.z);
 			}
+		}
+	}
+#endif
+#if 01
+
+	else
+	{
+
+		for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+			tit!=surf->tets2.end();
+			++tit)
+		{
+			Tet * tet = *tit;
+
+			SurfPt *fatt[3];
+
+			fatt[0] = tet->neib[0];
+			fatt[1] = tet->neib[1];
+			fatt[2] = tet->neib[2];
+
+			Vec3f wrappos[3];
+			wrappos[0] = fatt[0]->wrappos;
+			wrappos[1] = fatt[1]->wrappos;
+			wrappos[2] = fatt[2]->wrappos;
+
+			//for(int v=0; v<3; v++)
+			//	fprintf(g_applog, "wrappos[%d]%f,%f,%f\r\n",
+			//	v,
+			//	wrappos[v].x,
+			//	wrappos[v].y,
+			//	wrappos[v].z);
+
+			Vec3f cen = (wrappos[0] + wrappos[1] + wrappos[2])/3.0f;
+			Vec3f norm = Normal(wrappos);
+
+				if(ISNAN(norm.x))
+					ErrMess("yhjgjf","nannormx");
+				if(ISNAN(norm.y))
+					ErrMess("yhjgjf","nannormy");
+				if(ISNAN(norm.z))
+					ErrMess("yhjgjf","nannormz");
+
+			Vec3f correctnorm = Normalize(cen);
+
+			
+				if(ISNAN(correctnorm.x))
+					ErrMess("yhjgjf","nannormxcc");
+				if(ISNAN(correctnorm.y))
+					ErrMess("yhjgjf","nannormycc");
+				if(ISNAN(correctnorm.z))
+					ErrMess("yhjgjf","nannormzcc");
+
+			//fprintf(g_applog, "corr%f,%f,%f nor%f,%f,%f\r\n", 
+			//	correctnorm.x,
+			//	correctnorm.y,
+			//	correctnorm.z,
+			//	norm.x,
+			//	norm.y,
+			//	norm.z);
+
+			float dot = Dot(correctnorm, norm);
+
+			//fprintf(g_applog, "dot%f\r\n", 
+			//	dot);
+
+			if(ISNAN(dot))
+			{
+				ErrMess("asfdgsdfg","dotnan");
+			}
+
+			if(dot < 0)
+			{
+				currupdown++;
+				haveupdown = true;
+			}
+		}
+	}
+#endif
+
+#if 0
+void GetToEmerge(Tet *etet,
+				 Vec3f *emline,
+				 SurfPt **esp);
+void Emerge(Surf *surf,
+			SurfPt *esp,
+			Vec3f emline[2]);
+void CheckEmerged(Surf *surf, Tet** halfemerged);
+#endif
+
+	Tet *emtet = NULL;
+	CheckEmerged(surf, &emtet);
+	if(emtet)
+	{
+		Vec3f emline[2];
+		SurfPt *esp = NULL;
+		GetToEmerge(surf, emtet, emline, &esp);
+		if(esp)
+		{
+			Emerge(surf, esp, emline);
 		}
 	}
 
@@ -8082,6 +8517,11 @@ again:
 		//if(bestupdown < 0 ||
 		//	currupdown < bestupdown)
 		bestupdown = currupdown;
+		progress = true;
+	}
+	else
+	{
+		progress = false;
 	}
 
 	static float avgupdown = currupdown;
@@ -8128,9 +8568,15 @@ again:
 	static int times = 0;
 	times++;
 
+#if 0
 	if(/* times < 3000 || */ haveupdown)
-		goto again;
+	{
+		if(rand()%190==1)
+			SplitEdges(surf, NULL, NULL, NULL, 2);
 
+		goto again;
+	}
+#endif
 	//return true;
 again2:
 
@@ -8222,7 +8668,8 @@ again2:
 		if(dot < 0)
 		{
 			haveupdown = true;
-			goto again;
+			//continue;
+			//goto again;
 			//dot *= 2;
 			//dot = 1.0f / dot;
 			//dot = fmax(dot, -10);
