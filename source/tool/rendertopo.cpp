@@ -8522,7 +8522,15 @@ void CheckEmerged(Surf *surf, Tet** halfemerged);
 	}
 	else
 	{
-		progress = false;
+		if(rand()%300==1)
+		{
+			std::string dt = DateTime();
+			fprintf(g_applog, "curr bad updown: %d (%s)\r\n", currupdown, dt.c_str());
+			fflush(g_applog);
+		}
+
+		if(rand()%199==1)
+			progress = false;
 	}
 
 	static float avgupdown = currupdown;
