@@ -107,8 +107,6 @@ public:
 
 	bool hasneib(SurfPt *neib)
 	{
-		ring = -1;
-		file = -1;
 		//for(std::list<SurfPt*>::iterator nit=neibs.begin();
 		//	nit!=neibs.end();
 		//	++nit)
@@ -140,6 +138,8 @@ public:
 
 	SurfPt()
 	{
+		ring = -1;
+		file = -1;
 		//neib[0] = NULL;
 		//neib[1] = NULL;
 		//neib[2] = NULL;

@@ -8447,12 +8447,70 @@ void NextEmerge(SurfPt *frompt, SurfPt *parpt, SurfPt *topot, bool cw, Vec3f *em
 	Vec3f out = Normalize( midp );
 	Vec3f cross = Cross( along, out );
 
+	if(ISNAN(midp.x))
+		ErrMess("asdasd","isnanex2midp");
+	if(ISNAN(midp.y))
+		ErrMess("asdasd","isnaney2midp");
+	if(ISNAN(midp.z))
+		ErrMess("asdasd","isnanez2midp");
+
+	if(ISNAN(along.x))
+		ErrMess("asdasd","isnanex2along");
+	if(ISNAN(along.y))
+		ErrMess("asdasd","isnaney2along");
+	if(ISNAN(along.z))
+		ErrMess("asdasd","isnanez2along");
+
+	if(ISNAN(out.x))
+		ErrMess("asdasd","isnanex2out");
+	if(ISNAN(out.y))
+		ErrMess("asdasd","isnaney2out");
+	if(ISNAN(out.z))
+		ErrMess("asdasd","isnanez2out");
+
+	if(ISNAN(cross.x))
+		ErrMess("asdasd","isnanex2cross");
+	if(ISNAN(cross.y))
+		ErrMess("asdasd","isnaney2cross");
+	if(ISNAN(cross.z))
+		ErrMess("asdasd","isnanez2cross");
+
 	Vec3f dir = Normalize( cross );
 
 	if(!cw)
 		dir = Vec3f(0,0,0) - dir;
 
-	*emerge = Normalize( midp ) * 1000 + dir * Magnitude(along);
+	midp = Normalize( midp );
+	
+	if(ISNAN(midp.x))
+		ErrMess("asdasd","isnanex2");
+	if(ISNAN(midp.y))
+		ErrMess("asdasd","isnaney2");
+	if(ISNAN(midp.z))
+		ErrMess("asdasd","isnanez2");
+
+	float len = Magnitude(along);
+
+	if(ISNAN(len))
+	{
+		ErrMess("asdasd","isnanez22");
+
+		char mm[123];
+		sprintf(mm, "len%f=%f,%f,%f",
+			len,
+			along.x,along.y,along.z);
+		ErrMess("asd",mm);
+	}
+
+	len = 1;
+	*emerge = midp * 1000 + dir * len;
+
+	if(ISNAN(emerge->x))
+		ErrMess("asdasd","isnanex");
+	if(ISNAN(emerge->y))
+		ErrMess("asdasd","isnaney");
+	if(ISNAN(emerge->z))
+		ErrMess("asdasd","isnanez");
 }
 
 //make room for placement of new points in a sub-ring
@@ -8470,6 +8528,8 @@ void Emerge2(Surf *surf,
 
 		if(sp == esp)
 			continue;
+		//if(sp->ring < 0)
+		//	continue;
 
 		Vec3f sidevec = Cross( Normalize(place), Normalize(sp->wrappos) );
 		//Vec3f sidevec = Cross( Normalize(sp->wrappos), Normalize(emline[1]) );
@@ -8478,7 +8538,7 @@ void Emerge2(Surf *surf,
 		
 		float amt = (1.0f + Dot( Normalize(sp->wrappos), Normalize(place) ))/2.0f;
 
-		sp->wrappos = Rotate(sp->wrappos, M_PI * amt / 2000.0f, sidevec.x, sidevec.y, sidevec.z);
+		sp->wrappos = Rotate(sp->wrappos, M_PI * amt / 1000.0f, sidevec.x, sidevec.y, sidevec.z);
 	}
 
 	esp->wrappos = place;
@@ -8487,6 +8547,7 @@ void Emerge2(Surf *surf,
 //jump along ring, add link
 bool TryJump(Surf *surf, SurfPt *frompt, SurfPt **topt)
 {
+	*topt = NULL;
 	//assumed, since this is within "frompt" linkhood
 	//bool haveneib = false;
 
