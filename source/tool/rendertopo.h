@@ -82,6 +82,7 @@ void GetCen(Surf *surf,
 
 
 bool MapGlobe2(Surf *surf);
+bool MapGlobe3(Surf *surf);
 
 class SurfPt
 {

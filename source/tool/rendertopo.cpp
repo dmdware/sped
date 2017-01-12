@@ -8551,30 +8551,44 @@ bool TryJump(SurfPt *frompt, SurfPt **topt)
 }
 
 //jump to next ring down
-bool LowJump(SurfPt *frompt, SurfPt **nextpt)
+bool LowJump(SurfPt *frompt, SurfPt **rep)
 {
+	*rep = NULL;
+
 	for(std::list<Tet*>::iterator hit=frompt->holder.begin();
 		hit!=frompt->holder.end();
 		++hit)
 	{
 		Tet *het = *hit;
+		int tovi = -1;
+		int par1vi = -1;
+		int par2vi = -1;
 		for(int v=0; v<3; v++)
 		{
 			SurfPt *p = het->neib[v];
 
 			if(p == frompt)
+			{
+				par1vi = v;
 				continue;
-
-			if(p->ring >= 0)
+			}
+			else if(p->ring >= 0)
+			{
+				par2vi = v;
 				continue;
-
-			if(p->file >= 0)
+			}
+			else if(p->ring < 0)
+			{
+				tovi = v;
 				continue;
+			}
+			//if(p->file >= 0)
+			//	continue;
 
-			p->ring = curpt->ring + 1;
-			p->file = 0;
-			*nextpt = p;
-			return true;
+			//p->ring = curpt->ring + 1;
+			//p->file = 0;
+			//*nextpt = p;
+			//return true;
 		}
 ///////////////
 		if(par1vi >= 0 &&
@@ -8691,8 +8705,8 @@ bool MissJump(Surf *surf, SurfPt **rep)
 				TryJump(*rep, rep);
 				return true;
 			}
-nexttet:
-			;
+//nexttet:
+//			;
 		}
 	}
 
@@ -8702,9 +8716,16 @@ nexttet:
 bool MapGlobe3(Surf *surf)
 {
 	//jump by one pt each iteration, keeping at least one parent and one neighbour in linkage
-	SurfPt* curpt = *surf->pts2.begin();
+	SurfPt* curpt;// = *surf->pts2.begin();
+	Tet* startt = *surf->tets2.begin();
+	for(int v=0; v<3; v++)
+	{
+		SurfPt *p = startt->neib[v];
+		p->ring = 0;
+		curpt = p;
+	}
 
-	curpt->file = 0;
+	//curpt->file = 0;
 
 	SurfPt *nextpt = NULL;
 
@@ -9716,7 +9737,7 @@ with another triangle, there will be free floating vertices!
 	//		break;
 	//	if(!JoinPts2(&g_surf, &g_fullsurf))
 	//		break;
-	if(!MapGlobe(&g_surf))
+	if(!MapGlobe3(&g_surf))
 		break;
 
 	LoadedTex outtex[6];
