@@ -8154,6 +8154,7 @@ void MapRing(std::list<SurfPt*> *rlist,
 			 float *exts,
 			 SurfPt *extstarts)
 {
+#if 0
 	exts[0] = -1;
 	exts[1] = -1;
 
@@ -8335,6 +8336,7 @@ found4:
 	//if(triedsearch && !changed)
 	if(changed)
 		goto again;
+#endif
 }
 
 void GetExts(float *exts, Surf *surf, std::list<SurfPt*>* curring)
@@ -8423,7 +8425,7 @@ void HuntCoords(Surf *surf)
 
 		ring++;
 		curring = nextring;
-	}while(curring.size();
+	}while(curring.size());
 
 }
 
@@ -8483,7 +8485,7 @@ void Emerge2(Surf *surf,
 }
 
 //jump along ring, add link
-bool TryJump(SurfPt *frompt, SurfPt **topt)
+bool TryJump(Surf *surf, SurfPt *frompt, SurfPt **topt)
 {
 	//assumed, since this is within "frompt" linkhood
 	//bool haveneib = false;
@@ -8517,7 +8519,8 @@ bool TryJump(SurfPt *frompt, SurfPt **topt)
 			{
 				fromvi = v;
 			}
-			else if(p == topt)
+			//else if(p == topt)
+			else if(p->ring < 0)
 			{
 				tovi = v;
 			}
@@ -8536,12 +8539,12 @@ bool TryJump(SurfPt *frompt, SurfPt **topt)
 				( (parvi==tovi-1) || (parvi==tovi+3-1) ));
 
 			//p = parent
-			*topt = tet->neib[tovi];
+			*topt = het->neib[tovi];
 			(*topt)->ring = frompt->ring;
 			(*topt)->file = frompt->file + 1;
 			Vec3f emerge;
-			NextEmerge(frompt, tet->neib[parvi], *topot, cw, &emerge);
-			Emerge2(surf, topt, emerge);
+			NextEmerge(frompt, het->neib[parvi], *topt, cw, &emerge);
+			Emerge2(surf, *topt, emerge);
 
 			return true;
 		}
@@ -8551,7 +8554,7 @@ bool TryJump(SurfPt *frompt, SurfPt **topt)
 }
 
 //jump to next ring down
-bool LowJump(SurfPt *frompt, SurfPt **rep)
+bool LowJump(Surf *surf, SurfPt *frompt, SurfPt **rep)
 {
 	*rep = NULL;
 
@@ -8563,6 +8566,8 @@ bool LowJump(SurfPt *frompt, SurfPt **rep)
 		int tovi = -1;
 		int par1vi = -1;
 		int par2vi = -1;
+		SurfPt *par1 = NULL;
+		SurfPt *par2 = NULL;
 		for(int v=0; v<3; v++)
 		{
 			SurfPt *p = het->neib[v];
@@ -8570,11 +8575,13 @@ bool LowJump(SurfPt *frompt, SurfPt **rep)
 			if(p == frompt)
 			{
 				par1vi = v;
+				par1 = p;
 				continue;
 			}
 			else if(p->ring >= 0)
 			{
 				par2vi = v;
+				par2 = p;
 				continue;
 			}
 			else if(p->ring < 0)
@@ -8599,14 +8606,14 @@ bool LowJump(SurfPt *frompt, SurfPt **rep)
 				( (par2vi==tovi-1) || (par2vi==tovi+3-1) ));
 
 			//p = parent
-			*topt = tet->neib[tovi];
-			(*topt)->ring = frompt->ring;
-			(*topt)->file = frompt->file + 1;
+			*rep = het->neib[tovi];
+			(*rep)->ring = frompt->ring + 1;
+			(*rep)->file = 0;
 			Vec3f emerge;
 			NextEmerge(par1, par2, *rep, cw, &emerge);
 			Emerge2(surf, *rep, emerge);
 
-			TryJump(*rep, rep);
+			TryJump(surf, *rep, rep);
 			return true;
 		}
 	}
@@ -8659,7 +8666,7 @@ bool MissJump(Surf *surf, SurfPt **rep)
 				{
 					if(par1vi < 0)
 					{
-						par1v1 = v;
+						par1vi = v;
 						par1 = p2;
 						continue;
 					}
@@ -8695,14 +8702,14 @@ bool MissJump(Surf *surf, SurfPt **rep)
 					( (par2vi==tovi-1) || (par2vi==tovi+3-1) ));
 
 				//p = parent
-				*topt = tet->neib[tovi];
-				(*topt)->ring = frompt->ring;
-				(*topt)->file = frompt->file + 1;
+				*rep = het->neib[tovi];
+				(*rep)->ring = max(par1->ring, par2->ring) + 1;
+				(*rep)->file = 0;
 				Vec3f emerge;
 				NextEmerge(par1, par2, *rep, cw, &emerge);
 				Emerge2(surf, *rep, emerge);
 
-				TryJump(*rep, rep);
+				TryJump(surf, *rep, rep);
 				return true;
 			}
 //nexttet:
@@ -8729,7 +8736,7 @@ bool MapGlobe3(Surf *surf)
 
 	SurfPt *nextpt = NULL;
 
-	if(!LowJump(curpt, &nextpt))
+	if(!LowJump(surf, curpt, &nextpt))
 		ErrMess("asdasd", "!lj");
 
 	curpt = nextpt;
@@ -8738,14 +8745,14 @@ bool MapGlobe3(Surf *surf)
 	{
 foundjump:
 
-		if(TryJump(curpt, &nextpt))
+		if(TryJump(surf, curpt, &nextpt))
 		{
 			curpt = nextpt;
 			continue;
 		}
 
 		nextpt = NULL;
-		if(LowJump(curpt, &nextpt))
+		if(LowJump(surf, curpt, &nextpt))
 		{
 			curpt = nextpt;
 			continue;
@@ -8774,7 +8781,7 @@ bool MapGlobe2(Surf *surf)
 	std::list<SurfPt*> curring;
 
 	if(!surf->tets2.size())
-		return;
+		return false;
 
 	Tet *starttet = *surf->tets2.begin();
 	starttet->ring = ring;
@@ -8836,7 +8843,8 @@ bool MapGlobe2(Surf *surf)
 
 		ring++;
 		curring = nextring;
-	}while(curring.size();
+	}while(curring.size());
+	return true;
 }
 
 
