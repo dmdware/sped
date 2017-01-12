@@ -8427,13 +8427,38 @@ void HuntCoords(Surf *surf)
 
 }
 
+//case 1: jump down to sub-ring, have two parents at least
+void DownEmerge()
+{
+}
+
+//case 2: jump down to sub-ring from starting point, only one parent
+void StartEmerge()
+{
+}
+
+//case 3: next point along ring, have previous neighbour and parent
+void NextEmerge(SurfPt *frompt, SurfPt *parpt, SurfPt *topot, bool cw, Vec3f *emerge)
+{
+	Vec3f along = parpt->wrappos - frompt->wrappos;
+	Vec3f midp = (parpt->wrappos + frompt->wrappos)/2.0f;
+	Vec3f out = Normalize( midp );
+	Vec3f cross = Cross( along, out );
+
+	Vec3f dir = Normalize( cross );
+
+	if(!cw)
+		dir = Vec3f(0,0,0) - dir;
+
+	*emerge = midp + dir;
+}
 
 //make room for placement of new points in a sub-ring
 //or perhaps a line forming a ring with part of itself 
 //(degenerate case where the ring closes off in one spot)
 void Emerge2(Surf *surf,
 			SurfPt *esp,
-			Vec3f emline[2])
+			Vec3f place)
 {
 	for(std::list<SurfPt*>::iterator sit=surf->pts2.begin();
 		sit!=surf->pts2.end();
@@ -8444,21 +8469,21 @@ void Emerge2(Surf *surf,
 		if(sp == esp)
 			continue;
 
-		Vec3f sidevec = Cross( Normalize(emline[1]), Normalize(sp->wrappos) );
+		Vec3f sidevec = Cross( Normalize(place), Normalize(sp->wrappos) );
 		//Vec3f sidevec = Cross( Normalize(sp->wrappos), Normalize(emline[1]) );
 		sidevec = Normalize( sidevec );
 		//Vec3f dirmove = Cross( Normalize(sp->w=rappos), sidevec );
 		
-		float amt = (1.0f + Dot( Normalize(sp->wrappos), Normalize(emline[1]) ))/2.0f;
+		float amt = (1.0f + Dot( Normalize(sp->wrappos), Normalize(place) ))/2.0f;
 
 		sp->wrappos = Rotate(sp->wrappos, M_PI * amt / 2000.0f, sidevec.x, sidevec.y, sidevec.z);
 	}
 
-	esp->wrappos = emline[1];
+	esp->wrappos = place;
 }
 
 //jump along ring, add link
-bool TryJump(SurfPt *frompt, SurfPt *topt)
+bool TryJump(SurfPt *frompt, SurfPt **topt)
 {
 	//assumed, since this is within "frompt" linkhood
 	//bool haveneib = false;
@@ -8467,32 +8492,56 @@ bool TryJump(SurfPt *frompt, SurfPt *topt)
 
 	//bool havefile = false;
 
-	if(topt->ring >= 0)
-		return false;
+	//if(topt->ring >= 0)
+	//	return false;
 
-	if(topt->file >= 0)
-		return false;
+	//if(topt->file >= 0)
+	//	return false;
 	
 	for(std::list<Tet*>::iterator hit=frompt->holder.begin();
 		hit!=frompt->holder.end();
 		++hit)
 	{
+		int parvi = -1;
+		int tovi = -1;
+		int fromvi = -1;
+		//neighbour of frompt, so will have fromvi
+		//not sure if will have parvi (parent)
+		//tovi is to be determined, must be unclaimed
 		Tet *het = *hit;
 		for(int v=0; v<3; v++)
 		{
 			SurfPt *p = het->neib[v];
 
 			if(p == frompt)
-				continue;
-			if(p == topt)
-				continue;
-			
-			if(p->ring < 0 &&
-				p->ring != frompt->ring)
-				continue;
+			{
+				fromvi = v;
+			}
+			else if(p == topt)
+			{
+				tovi = v;
+			}
+			else if(p->ring >= 0 &&
+				p->ring == frompt->ring - 1)
+			{
+				parvi = v;
+			}
+		}
 
-			//topt->ring = frompt->ring;
-			//topt->file = frompt->file + 1;
+		if(parvi >= 0 &&
+			fromvi >= 0 &&
+			tovi >= 0)
+		{
+			bool cw = (( (fromvi==parvi-1) || (fromvi==parvi+3-1) ) && 
+				( (parvi==tovi-1) || (parvi==tovi+3-1) ));
+
+			//p = parent
+			*topt = tet->neib[tovi];
+			(*topt)->ring = frompt->ring;
+			(*topt)->file = frompt->file + 1;
+			Vec3f emerge;
+			NextEmerge(frompt, tet->neib[parvi], *topot, cw, &emerge);
+			Emerge2(surf, topt, emerge);
 
 			return true;
 		}
@@ -8597,35 +8646,20 @@ bool MapGlobe3(Surf *surf)
 	{
 foundjump:
 
-		for(std::list<Tet*>::iterator hit=curpt->holder.begin();
-			hit!=curpt->holder.end();
-			++hit)
+		if(TryJump(curpt, &nextpt))
 		{
-			Tet *het = *hit;
-			for(int v=0; v<3; v++)
-			{
-				SurfPt *p = het->neib[v];
-
-				if(p == curpt)
-					continue;
-
-				if(TryJump(curpt, p))
-				{
-					p->ring = curpt->ring;
-					p->file = curpt->file + 1;
-					curpt = p;
-					goto foundjump;
-				}
-			}
+			curpt = nextpt;
+			continue;
 		}
 
 		nextpt = NULL;
 		if(LowJump(curpt, &nextpt))
 		{
 			curpt = nextpt;
+			continue;
 		}
-		else
-			break;
+
+		break;
 	}
 
 	if(MissJump(surf, &curpt))
