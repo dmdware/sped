@@ -7917,14 +7917,14 @@ void GetCen(Surf *surf,
 			tri[v] = tet->neib[v]->wrappos;
 			if(tet->neib[v] == sp)
 				continue;
-			if(!tet->neib[v]->emerged)
-				continue;
-			*cen = *cen * count / (count + 1) + tet->neib[v]->wrappos / (count + 1);
-			count += 1;
+			//if(!tet->neib[v]->emerged)
+			//	continue;
+			//*cen = *cen * count / (count + 1) + tet->neib[v]->wrappos / (count + 1);
+			//count += 1;
 		}
-		//Vec3f n = Normal(tri);
-		//*cen = *cen * count / (count + 1) + n * 1000 / (count + 1);
-		//count += 1;
+		Vec3f n = Normal(tri);
+		*cen = *cen * count / (count + 1) + n * 1000 / (count + 1);
+		count += 1;
 	}
 	*cen = Normalize(*cen) * 1000;
 }
@@ -7949,7 +7949,7 @@ void Emerge(Surf *surf,
 		
 		float amt = (1.0f + Dot( Normalize(sp->wrappos), Normalize(emline[1]) ))/2.0f;
 
-		sp->wrappos = Rotate(sp->wrappos, M_PI * amt / 100.0f, sidevec.x, sidevec.y, sidevec.z);
+		sp->wrappos = Rotate(sp->wrappos, M_PI * amt / 2000.0f, sidevec.x, sidevec.y, sidevec.z);
 	}
 
 	esp->wrappos = emline[1];
@@ -8069,7 +8069,7 @@ void CheckEmerged(Surf *surf, Tet** halfemerged)
 				emd++;
 		}
 
-		if(emd == 2)
+		if(emd <= 2)
 		{
 			*halfemerged = tet;	//pick with 1 submerged
 
@@ -8121,7 +8121,560 @@ void CheckEmerged(Surf *surf, Tet** halfemerged)
 			}
 		}
 	}
+
+	if(!*halfemerged)
+	{	
+		for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+			tit!=surf->tets2.end();
+			++tit)
+		{
+			Tet *tet = *tit;
+
+			int emd = 0;
+
+			for(int v=0; v<3; v++)
+			{
+				if(tet->neib[v]->emerged)
+					emd++;
+			}
+
+			if(emd == 0)
+			{
+				*halfemerged = tet;	//pick with 2 submerged
+
+				if(rand()%3000==1)
+					return;
+			}
+		}
+	}
 }
+
+//get the sideways order
+void MapRing(std::list<SurfPt*> *rlist,
+			 float *exts,
+			 SurfPt *extstarts)
+{
+	exts[0] = -1;
+	exts[1] = -1;
+
+	extstarts[0] = NULL;
+	extstarts[1] = NULL;
+
+	std::list<SurfPt*>::list nextfiles;
+	bool changed = false;
+
+	nextfiles.push_back( *rlist->begin() );
+
+again:
+
+	changed = false;
+
+	//for(std::list<SurfPt*>::iterator pit=rlist->begin();
+	//	pit!=rlist->end();
+	//	++pit)
+	for(std::list<SurfPt*>::iterator pit=nextfiles.begin();
+		pit=nextfiles.begin() && pit!=nextfiles.end();
+		)
+	{
+		SurfPt *ringneibs[9];
+		SurfPt *ringpars[9];
+		int ringneibc = 0;
+		int ringparc = 0;
+		SurfPt *p = *pit;
+
+		nextfiles.erase(pit);
+
+		if(p->file >= 0)
+			continue;
+
+		for(std::list<Tet*>::iterator hit=p->holder.begin();
+			hit!=p->holder.end();
+			++hit)
+		{
+			//get neibs
+			//get parents and their sideways order
+
+			Tet *het = *hit;
+
+			for(int v=0; v<3; v++)
+			{
+				SurfPt *p2 = het->neib[v];
+
+				if(p2 == p)
+					continue;
+
+				if(p2->ring == p->ring)
+				{
+					for(int ri=0; ri<ringneibc; ++ri)
+					{
+						if(ringneib[ri]==p2)
+						{
+							goto found;
+						}
+					}
+						ringneib[ringneibc] = p2;
+						ringneibc++;
+found:
+					;
+				}
+				else if(p2->ring == p->ring-1)
+				{
+					//parent
+					for(int ri=0; ri<ringparc; ++ri)
+					{
+						if(ringpars[ri]==p2)
+						{
+							goto found2;
+						}
+					}
+						ringpars[ringparc] = p2;
+						ringparc++;
+found2:
+					;
+				}
+			}
+		}
+
+		if(!ringneibc)
+			ErrMess("asdasd", "ringnc!");
+		if(!ringparc)
+			ErrMess("asdasd", "ringparc!");
+
+		/////////////////////
+		float *neibfiles[9];
+		int nunqfiles = 0;
+		for(int vi=0; vi<ringneibc; vi++)
+		{
+			if(ringneibs[vi]->file < 0)
+				continue;
+			for(int vi2=0; vi2<nunqfiles; vi2++)
+			{
+				if(ringneibs[vi]->file == *neibfiles[vi2])
+					goto found3;
+			}
+
+			neibfiles[nunqfiles] = &ringneibs[vi]->file;
+			nunqfiles++;
+
+found3:
+			;
+		}
+		float *parfiles[9];
+		int nunqparfiles = 0;
+		for(int vi=0; vi<ringparc; vi++)
+		{
+			if(ringpars[vi]->file < 0)
+				continue;
+			for(int vi2=0; vi2<nunqparfiles; vi2++)
+			{
+				if(ringpars[vi]->file == *parfiles[vi2])
+					goto found4;
+			}
+
+			pariles[nunqparfiles] = &ringpars[vi]->file;
+			nunqparfiles++;
+
+found4:
+			;
+		}
+		////////////////////////////
+
+		if(nunqfiles >= 3)
+		{
+			float high = 0;
+			for(int vi=0; vi<nunqfiles; vi++)
+			{
+				if(*neibfiles[vi] > high)
+					high = *neibfiles[vi];
+			}
+
+			p->file = high + 1;
+		}
+		else if(nunqfiles == 2)
+		{
+			//if( abs( *neibfiles[0] - *neibfiles[1] ) >= 2 )
+#if 0
+			if( abs( *neibfiles[0] - *neibfiles[1] ) > 0.0f )
+			{
+				p->file = ( *neibfiles[0] + *neibfiles[1] ) / 2.0f;
+			}
+#endif
+
+			float high = 0;
+			for(int vi=0; vi<nunqfiles; vi++)
+			{
+				if(*neibfiles[vi] > high)
+					high = *neibfiles[vi];
+			}
+
+			p->file = high + 1;
+		}
+		else if(nunqfiles == 1)
+		{
+			p->file = *neibfiles[0] + 1;
+
+#if 0
+			if(nunqparfiles == 0)
+			{
+				p->file = *neibfiles[0] + 1;
+			}
+			if(nunqparfiles == 1
+#endif
+		}
+		else if(nunqfiles == 0)
+		{
+			p->file = 0;
+		}
+
+		for(int vi=0; vi<ringneibc; vi++)
+		{
+			nextfiles.push_back(ringneibs[vi]);
+		}
+	}
+
+	//if(triedsearch && !changed)
+	if(changed)
+		goto again;
+}
+
+void GetExts(float *exts, Surf *surf, std::list<SurfPt*>* curring)
+{
+	//std::list<SurfPt*
+}
+
+void HuntCoords(Surf *surf)
+{
+	int ring = 0;
+	std::list<SurfPt*> nextring;
+	std::list<SurfPt*> curring;
+
+	if(!surf->tets2.size())
+		return;
+
+	Tet *starttet = *surf->tets2.begin();
+	
+	SurfPt *startpt = starttet->neib[0];
+	startpt->ring = ring;
+	startpt->file = 0;
+	//ring++;
+
+	curring.push_back(startpt);
+
+	float fileexts[2];
+
+	do
+	{
+		fileexts[0] = 0;
+		fileexts[1] = 0;
+
+		nextring.clear();
+		
+		for(std::list<SurfPt*>::iterator pit=curring.begin();
+			pit!=curring.end();
+			++pit)
+		{
+			SurfPt *p = *pit;
+
+			//get extents
+		}
+		
+		for(std::list<SurfPt*>::iterator pit=curring.begin();
+			pit!=curring.end();
+			++pit)
+		{
+			SurfPt *p = *pit;
+			//p->ring = ring;
+			//p->file = -1;
+		}
+
+		for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+			tit!=surf->tets2.end();
+			tit++)
+		{
+			Tet *tet = *tit;
+
+			if(tet->ring >= 0)
+				continue;
+
+			bool hasfree = false;
+			bool hascurr = false;
+
+			for(int v=0; v<3; v++)
+			{
+				if(tet->neib[v]->ring < 0)
+					hasfree = true;
+				if(tet->neib[v]->ring == ring)
+					hascurr = true;
+			}
+
+			if(hasfree && hascurr)
+			{
+				tet->ring = ring;
+
+				for(int v=0; v<3; v++)
+				{
+					if(tet->neib[v]->ring < 0)
+					{
+						nextring.push_back(tet->neib[v]);
+					}
+				}
+			}
+		}
+
+		ring++;
+		curring = nextring;
+	}while(curring.size();
+
+}
+
+//jump along ring, add link
+bool TryJump(SurfPt *frompt, SurfPt *topt)
+{
+	//assumed, since this is within "frompt" linkhood
+	//bool haveneib = false;
+
+	//test: bool havepar = false;
+
+	//bool havefile = false;
+
+	if(topt->ring >= 0)
+		return false;
+
+	if(topt->file >= 0)
+		return false;
+	
+	for(std::list<Tet*>::iterator hit=frompt->holder.begin();
+		hit!=frompt->holder.end();
+		++hit)
+	{
+		Tet *het = *hit;
+		for(int v=0; v<3; v++)
+		{
+			SurfPt *p = het->neib[v];
+
+			if(p == frompt)
+				continue;
+			if(p == topt)
+				continue;
+			
+			if(p->ring < 0 &&
+				p->ring != frompt->ring)
+				continue;
+
+			//topt->ring = frompt->ring;
+			//topt->file = frompt->file + 1;
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+//jump to next ring down
+bool LowJump(SurfPt *frompt, SurfPt **nextpt)
+{
+	for(std::list<Tet*>::iterator hit=frompt->holder.begin();
+		hit!=frompt->holder.end();
+		++hit)
+	{
+		Tet *het = *hit;
+		for(int v=0; v<3; v++)
+		{
+			SurfPt *p = het->neib[v];
+
+			if(p == frompt)
+				continue;
+
+			if(p->ring >= 0)
+				continue;
+
+			if(p->file >= 0)
+				continue;
+
+			p->ring = curpt->ring + 1;
+			p->file = 0;
+			*nextpt = p;
+			return true;
+		}
+	}
+	return false;
+}
+
+//check if there's a missing region for a new ring
+bool MissJump(Surf *surf, SurfPt **startpt)
+{
+	int parring = -1;
+	SurfPt *parp = NULL;
+
+	for(std::list<SurfPt*>::iterator pit=surf->pts2.begin();
+		pit!=surf->pts2.end();
+		++pit)
+	{
+		//bool havefile = false;
+		//bool haveparent = false;
+		
+		SurfPt *p = *pit;
+
+		if(p->ring >= 0)
+			continue;
+		if(p->file >= 0)
+			continue;
+
+		for(std::list<Tet*>::iterator hit=p->holder.begin();
+			hit!=p->holder.end();
+			++hit)
+		{
+			Tet *het = *hit;
+			for(int v=0; v<3; v++)
+			{
+				SurfPt *p2 = het->neib[v];
+
+				if(p2 == p)
+					continue;
+
+				//if(p2->file >= 0)
+				if(p2->ring >= 0)
+				{
+					//haveparent = true;
+					parring = p2->ring;
+					parp = p2;
+					*startpt = p;
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
+bool MapGlobe3(Surf *surf)
+{
+	//jump by one pt each iteration, keeping at least one parent and one neighbour in linkage
+	SurfPt* curpt = *surf->pts2.begin();
+
+	curpt->file = 0;
+
+	SurfPt *nextpt = NULL;
+
+	if(!LowJump(curpt, &nextpt))
+		ErrMess("asdasd", "!lj");
+
+	curpt = nextpt;
+
+	while(curpt)
+	{
+foundjump:
+
+		for(std::list<Tet*>::iterator hit=curpt->holder.begin();
+			hit!=curpt->holder.end();
+			++hit)
+		{
+			Tet *het = *hit;
+			for(int v=0; v<3; v++)
+			{
+				SurfPt *p = het->neib[v];
+
+				if(p == curpt)
+					continue;
+
+				if(TryJump(curpt, p))
+				{
+					p->ring = curpt->ring;
+					p->file = curpt->file + 1;
+					curpt = p;
+					goto foundjump;
+				}
+			}
+		}
+
+		nextpt = NULL;
+		if(LowJump(curpt, &nextpt))
+		{
+			curpt = nextpt;
+		}
+		else
+			break;
+	}
+
+	if(MissJump(surf, &curpt))
+		goto foundjump;
+}
+
+//ring,file
+bool MapGlobe2(Surf *surf)
+{
+	int ring = 0;
+	std::list<SurfPt*> nextring;
+	std::list<SurfPt*> curring;
+
+	if(!surf->tets2.size())
+		return;
+
+	Tet *starttet = *surf->tets2.begin();
+	starttet->ring = ring;
+	starttet->file = 0;
+
+	SurfPt *startpt = starttet->neib[0];
+	startpt->ring = ring;
+	startpt->file = 0;
+	ring++;
+
+	curring.push_back(startpt);
+
+	do
+	{
+		nextring.clear();
+		
+		for(std::list<SurfPt*>::iterator pit=curring.begin();
+			pit!=curring.end();
+			++pit)
+		{
+			SurfPt *p = *pit;
+			p->ring = ring;
+			p->file = -1;
+		}
+
+		for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+			tit!=surf->tets2.end();
+			tit++)
+		{
+			Tet *tet = *tit;
+
+			if(tet->ring >= 0)
+				continue;
+
+			bool hasfree = false;
+			bool hascurr = false;
+
+			for(int v=0; v<3; v++)
+			{
+				if(tet->neib[v]->ring < 0)
+					hasfree = true;
+				if(tet->neib[v]->ring == ring)
+					hascurr = true;
+			}
+
+			if(hasfree && hascurr)
+			{
+				tet->ring = ring;
+
+				for(int v=0; v<3; v++)
+				{
+					if(tet->neib[v]->ring < 0)
+					{
+						nextring.push_back(tet->neib[v]);
+					}
+				}
+			}
+		}
+
+		ring++;
+		curring = nextring;
+	}while(curring.size();
+}
+
 
 //arrange the orc's on a globe and then balance it so everything is seen
 bool MapGlobe(Surf *surf)

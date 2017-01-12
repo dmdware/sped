@@ -80,6 +80,9 @@ void GetCen(Surf *surf,
 			SurfPt *sp,
 			Vec3f *cen);
 
+
+bool MapGlobe2(Surf *surf);
+
 class SurfPt
 {
 public:
@@ -98,9 +101,13 @@ public:
 	Vec3f wrappos;
 	Vec3f pressure;
 	bool emerged;
+	int ring;
+	int file;
 
 	bool hasneib(SurfPt *neib)
 	{
+		ring = -1;
+		file = -1;
 		//for(std::list<SurfPt*>::iterator nit=neibs.begin();
 		//	nit!=neibs.end();
 		//	++nit)
@@ -169,8 +176,15 @@ public:
 	//bool edgesamex[3];	//does x stay same from first to second point on the edge?
 	///bool edgesamey[3];	//does y stay same from first to second point on the edge?
 
+	int ring;
+	float file;
+	int extdir;
+
 	Tet()
 	{
+		ring = -1;
+		file = -1;
+		extdir = -1;
 		gone = false;
 		edgeposx[0]=edgeposx[1]=edgeposx[2]=edgeposy[0]=edgeposy[1]=edgeposy[2]=0;
 		edgeplaced[0]=edgeplaced[1]=edgeplaced[2]=false;
