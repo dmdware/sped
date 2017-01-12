@@ -8427,6 +8427,36 @@ void HuntCoords(Surf *surf)
 
 }
 
+
+//make room for placement of new points in a sub-ring
+//or perhaps a line forming a ring with part of itself 
+//(degenerate case where the ring closes off in one spot)
+void Emerge2(Surf *surf,
+			SurfPt *esp,
+			Vec3f emline[2])
+{
+	for(std::list<SurfPt*>::iterator sit=surf->pts2.begin();
+		sit!=surf->pts2.end();
+		++sit)
+	{
+		SurfPt *sp = *sit;
+
+		if(sp == esp)
+			continue;
+
+		Vec3f sidevec = Cross( Normalize(emline[1]), Normalize(sp->wrappos) );
+		//Vec3f sidevec = Cross( Normalize(sp->wrappos), Normalize(emline[1]) );
+		sidevec = Normalize( sidevec );
+		//Vec3f dirmove = Cross( Normalize(sp->w=rappos), sidevec );
+		
+		float amt = (1.0f + Dot( Normalize(sp->wrappos), Normalize(emline[1]) ))/2.0f;
+
+		sp->wrappos = Rotate(sp->wrappos, M_PI * amt / 2000.0f, sidevec.x, sidevec.y, sidevec.z);
+	}
+
+	esp->wrappos = emline[1];
+}
+
 //jump along ring, add link
 bool TryJump(SurfPt *frompt, SurfPt *topt)
 {
