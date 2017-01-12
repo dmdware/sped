@@ -8576,15 +8576,37 @@ bool LowJump(SurfPt *frompt, SurfPt **nextpt)
 			*nextpt = p;
 			return true;
 		}
+///////////////
+		if(par1vi >= 0 &&
+			par2vi >= 0 &&
+			tovi >= 0)
+		{
+			bool cw = (( (par1vi==par2vi-1) || (par1vi==par2vi+3-1) ) && 
+				( (par2vi==tovi-1) || (par2vi==tovi+3-1) ));
+
+			//p = parent
+			*topt = tet->neib[tovi];
+			(*topt)->ring = frompt->ring;
+			(*topt)->file = frompt->file + 1;
+			Vec3f emerge;
+			NextEmerge(par1, par2, *rep, cw, &emerge);
+			Emerge2(surf, *rep, emerge);
+
+			TryJump(*rep, rep);
+			return true;
+		}
 	}
 	return false;
 }
 
 //check if there's a missing region for a new ring
-bool MissJump(Surf *surf, SurfPt **startpt)
+bool MissJump(Surf *surf, SurfPt **rep)
 {
 	int parring = -1;
-	SurfPt *parp = NULL;
+	//SurfPt *parp = NULL;
+	//*parpt = NULL;
+	//*startpt = NULL;
+	*rep = NULL;
 
 	for(std::list<SurfPt*>::iterator pit=surf->pts2.begin();
 		pit!=surf->pts2.end();
@@ -8605,23 +8627,72 @@ bool MissJump(Surf *surf, SurfPt **startpt)
 			++hit)
 		{
 			Tet *het = *hit;
+			int par1vi = -1;
+			int par2vi = -1;
+			int tovi = -1;
+			SurfPt *par1 = NULL;
+			SurfPt *par2 = NULL;
 			for(int v=0; v<3; v++)
 			{
 				SurfPt *p2 = het->neib[v];
 
 				if(p2 == p)
+				{
+					tovi = v;
 					continue;
+				}
+				else if(p2->ring >= 0)
+				{
+					if(par1vi < 0)
+					{
+						par1v1 = v;
+						par1 = p2;
+						continue;
+					}
+					else if(par2vi < 0)
+					{
+						par2 = p2;
+						//if(par2->ring != par1->ring &&
+						//	abs(par2->ring - par1->ring) != 1)
+						//	goto nexttet;
+						par2vi = v;
+						continue;
+					}
+				}
 
+#if 0
 				//if(p2->file >= 0)
 				if(p2->ring >= 0)
 				{
 					//haveparent = true;
 					parring = p2->ring;
-					parp = p2;
+					*parpt = p2;
 					*startpt = p;
 					return true;
 				}
+#endif
 			}
+
+			if(par1vi >= 0 &&
+				par2vi >= 0 &&
+				tovi >= 0)
+			{
+				bool cw = (( (par1vi==par2vi-1) || (par1vi==par2vi+3-1) ) && 
+					( (par2vi==tovi-1) || (par2vi==tovi+3-1) ));
+
+				//p = parent
+				*topt = tet->neib[tovi];
+				(*topt)->ring = frompt->ring;
+				(*topt)->file = frompt->file + 1;
+				Vec3f emerge;
+				NextEmerge(par1, par2, *rep, cw, &emerge);
+				Emerge2(surf, *rep, emerge);
+
+				TryJump(*rep, rep);
+				return true;
+			}
+nexttet:
+			;
 		}
 	}
 
@@ -8662,8 +8733,16 @@ foundjump:
 		break;
 	}
 
+trymiss:
 	if(MissJump(surf, &curpt))
-		goto foundjump;
+	{
+		if(curpt)
+			goto foundjump;
+		else
+			goto trymiss;
+	}
+
+	return true;
 }
 
 //ring,file
