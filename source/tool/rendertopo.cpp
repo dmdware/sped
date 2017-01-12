@@ -8452,7 +8452,7 @@ void NextEmerge(SurfPt *frompt, SurfPt *parpt, SurfPt *topot, bool cw, Vec3f *em
 	if(!cw)
 		dir = Vec3f(0,0,0) - dir;
 
-	*emerge = midp + dir;
+	*emerge = Normalize( midp ) * 1000 + dir * Magnitude(along);
 }
 
 //make room for placement of new points in a sub-ring
@@ -8731,6 +8731,9 @@ bool MapGlobe3(Surf *surf)
 		p->ring = 0;
 		curpt = p;
 	}
+	startt->neib[0]->wrappos = Vec3f(-1,10000-1,1);
+	startt->neib[1]->wrappos = Vec3f(1,10000-1,1);
+	startt->neib[2]->wrappos = Vec3f(0,10000,0);
 
 	//curpt->file = 0;
 
