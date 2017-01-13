@@ -62,6 +62,21 @@ bool TraceRay2(Surf* surf,
 			  Tet **retet,
 			  double *refU, double *refV);
 
+bool TraceRay4(Surf* surf,
+			   Vec3f line[2], 
+			  LoadedTex **retex,
+			  LoadedTex **retexs,
+			  LoadedTex **retexn,
+			  Vec2f *retexc,
+			  Vec3f *rewp, Vec3f *rerp, 
+			  Vec3f* ren,
+			  Tet **retet,
+			  double *refU, double *refV);
+
+void Balance4(Surf *surf);
+
+
+bool SplitEdges2(Surf *surf, Surf *fullsurf, Vec2f *vmin, Vec2f *vmax, float minlen);
 
 void GetToEmerge(Surf *surf,
 				 Tet *etet,
@@ -83,6 +98,9 @@ void GetCen(Surf *surf,
 
 bool MapGlobe2(Surf *surf);
 bool MapGlobe3(Surf *surf);
+
+void Balance3(Surf *surf, int bestupdown);
+void RemDupTet(std::list<Tet*>* tets);
 
 class SurfPt
 {
