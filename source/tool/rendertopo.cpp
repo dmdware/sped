@@ -2514,6 +2514,121 @@ setpt:
 	//goto again;
 }
 
+void TestD(Surf *surf, SurfPt *parp, SurfPt *neibp, SurfPt *newp)
+{
+	Vec3f line[6][2];
+	Plane3f plane[3];
+	Vec3f up[3];
+	Vec3f along[3];
+	Vec3f pnorm[3];
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet *tet = *tit;
+		int notsame = 0;
+
+		for(int v=0; v<3; v++)
+		{
+			if(tet->neib[v] == parp)
+				continue;
+			if(tet->neib[v] == neibp)
+				continue;
+			if(tet->neib[v] == newp)
+				continue;
+			if(tet->neib[v]->ring < 0)
+				goto next;
+
+			notsame++;
+		}
+
+		if(notsame == 0)
+			continue;
+
+///////////////////////////
+
+		for(int v=0; v<3; v++)
+		{
+			int e1 = v;
+			int e2 = (v+1)%3;
+			Vec3f midp = (tet->neib[e1]->wrappos + tet->neib[e2]->wrappos)/2.0f;
+			midp = Normalize(midp);
+			up[v] = midp;
+			along[v] = Normalize( tet->neib[e2]->wrappos - tet->neib[e1]->wrappos );
+			pnorm[v] = Cross( along[v], up[v] );//cw
+			pnorm[v] = Normalize( pnorm[v] );
+			MakePlane(&plane[v].m_normal, &plane[v].m_d, tet->neib[e1]->wrappos, pnorm[v]);
+		}
+		///////////////////
+		SurfPt *in[3];
+		in[0] = parp;
+		in[1] = neibp;
+		in[2] = newp;
+		for(int v=0; v<3; v++)
+		{
+			int e1 = v;
+			int e2 = (v+1)%3;
+			
+			Vec3f dir = in[e2]->wrappos - in[e1]->wrappos;
+			Vec3f ndir = Normalize(dir);
+
+			line[v*2+0][0] = in[e1]->wrappos + ndir * 0.2f;
+			line[v*2+0][1] = in[e2]->wrappos - ndir * 0.2f;
+
+			line[v*2+1][1] = line[v*2+0][0];
+			line[v*2+1][0] = line[v*2+0][1];
+		}
+		///////////////////
+		for(int vp=0; vp<3; vp++)
+		{
+			for(int vl=0; vl<3; vl++)
+			{
+				Vec3f i0;
+				if(!LineInterPlane(line[vl*2+0], plane[vp].m_normal, plane[vp].m_d, &i0) //&&
+				//	!LineInterPlane(line[vl*2+1], plane[vp].m_normal, plane[vp].m_d, &i0)
+					)
+					continue;
+				Vec3f i1;
+				if(!LineInterPlane(line[vl*2+0], plane[(vp+1)%3].m_normal, plane[vp].m_d, &i1) //&&
+				//	!LineInterPlane(line[vl*2+1], plane[(vp+1)%3].m_normal, plane[vp].m_d, &i1)
+					)
+					continue;
+				float indot = 
+					Dot( Normalize(i0 - in[vl]->wrappos), Normalize( in[(vl+1)%3]->wrappos - in[vl]->wrappos ) );
+				float outdot = 
+					Dot( Normalize(i1 - in[vl]->wrappos), Normalize( in[(vl+1)%3]->wrappos - in[vl]->wrappos ) );
+				char mm[123];
+				sprintf(mm, "inov\r\np1:(%f,%f,%f),%f\r\np2:(%f,%f,%f),%f\r\nl1:(%f,%f,%f)\r\nl2:(%f,%f,%f)\r\ni0:(%f,%f,%f)\r\ni1:(%f,%f,%f)",
+					plane[vp].m_normal.x,
+					plane[vp].m_normal.y,
+					plane[vp].m_normal.z,
+					plane[vp].m_d,
+					plane[(vp+1)%3].m_normal.x,
+					plane[(vp+1)%3].m_normal.y,
+					plane[(vp+1)%3].m_normal.z,
+					plane[(vp+1)%3].m_d,
+					line[vl*2+0][0].x,
+					line[vl*2+0][0].y,
+					line[vl*2+0][0].z,
+					line[vl*2+0][1].x,
+					line[vl*2+0][1].y,
+					line[vl*2+0][1].z,
+					i0.x,
+					i0.y,
+					i0.z,
+					i1.x,
+					i1.y,
+					i1.z
+					);
+				ErrMess(mm,mm);
+			}
+		}
+next:
+		;
+	}
+}
+
 void GetClipNeib(Tet *in, std::list<Tet*> *neibclip,
 				 Vec3f *fulltri, Plane3f split, Plane3f backsplit, Surf *surf)
 {
@@ -2754,6 +2869,9 @@ again:
 		Tet *tet = *tit;
 	
 		if(!tet->approved)
+			continue;
+
+		if(tet->ring < 0)
 			continue;
 
 		if(tet->gone)
@@ -7210,6 +7328,9 @@ bool TraceRay4(Surf* surf,
 	{
 		Tet *tet = *tit;
 
+		if(tet->ring < 0)
+			continue;
+
 		Vec3f tr[3];
 		tr[0] = tet->neib[0]->pos;
 		tr[1] = tet->neib[1]->pos;
@@ -9135,7 +9256,7 @@ void StartEmerge()
 }
 
 //case 3: next point along ring, have previous neighbour and parent
-void NextEmerge(SurfPt *frompt, SurfPt *parpt, SurfPt *topot, bool cw, Vec3f *emerge)
+void NextEmerge(Surf *surf, SurfPt *frompt, SurfPt *parpt, SurfPt *topot, bool cw, Vec3f *emerge)
 {
 	Vec3f along = parpt->wrappos - frompt->wrappos;
 	Vec3f midp = (parpt->wrappos + frompt->wrappos)/2.0f;
@@ -9200,6 +9321,33 @@ void NextEmerge(SurfPt *frompt, SurfPt *parpt, SurfPt *topot, bool cw, Vec3f *em
 
 	len = 1;
 	*emerge = midp * 1000 + dir * len * 1;
+
+	Vec3f line[2];
+	line[0] = Vec3f(0,0,0);
+	line[1] = Normalize( *emerge ) * 30000;
+
+	LoadedTex *retex, *retexn, *retexs;
+	Vec2f retexc;
+	Vec3f rewp, rerp, ren;
+	Tet *retet;
+	double refU, refV;
+
+	while(TraceRay4(surf,
+		line,
+		&retex,
+		&retexs,
+		&retexn,
+		&retexc,
+		&rewp,
+		&rerp,
+		&ren,
+		&retet,
+		&refU, &refV))
+	{
+		len+=1;
+		*emerge = midp * 1000 + dir * len * 1;
+		line[1] = Normalize( *emerge ) * 30000;
+	}
 
 	if(ISNAN(emerge->x))
 		ErrMess("asdasd","isnanex");
@@ -9309,8 +9457,10 @@ bool TryJump(Surf *surf, SurfPt *frompt, SurfPt **topt)
 			(*topt)->ring = frompt->ring;
 			(*topt)->file = frompt->file + 1;
 			Vec3f emerge;
-			NextEmerge(frompt, het->neib[parvi], *topt, cw, &emerge);
+			NextEmerge(surf, frompt, het->neib[parvi], *topt, cw, &emerge);
 			Emerge2(surf, *topt, emerge);
+
+			TestD(surf, frompt, het->neib[parvi], *topt);
 
 			return true;
 		}
@@ -9376,8 +9526,10 @@ bool LowJump(Surf *surf, SurfPt *frompt, SurfPt **rep)
 			(*rep)->ring = frompt->ring + 1;
 			(*rep)->file = 0;
 			Vec3f emerge;
-			NextEmerge(par1, par2, *rep, cw, &emerge);
+			NextEmerge(surf, par1, par2, *rep, cw, &emerge);
 			Emerge2(surf, *rep, emerge);
+			
+			TestD(surf, par1, par2, *rep);
 
 			TryJump(surf, *rep, rep);
 			return true;
@@ -9472,8 +9624,10 @@ bool MissJump(Surf *surf, SurfPt **rep)
 				(*rep)->ring = max(par1->ring, par2->ring) + 1;
 				(*rep)->file = 0;
 				Vec3f emerge;
-				NextEmerge(par1, par2, *rep, cw, &emerge);
+				NextEmerge(surf, par1, par2, *rep, cw, &emerge);
 				Emerge2(surf, *rep, emerge);
+				
+				TestD(surf, par1, par2, *rep);
 
 				TryJump(surf, *rep, rep);
 				return true;
