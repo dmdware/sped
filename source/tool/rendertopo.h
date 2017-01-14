@@ -78,6 +78,8 @@ void Balance4(Surf *surf);
 
 bool SplitEdges2(Surf *surf, Surf *fullsurf, Vec2f *vmin, Vec2f *vmax, float minlen);
 
+void TestC(Surf* surf, const char* file, int line);
+
 void GetToEmerge(Surf *surf,
 				 Tet *etet,
 				 Vec3f *emline,

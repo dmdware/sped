@@ -3932,6 +3932,42 @@ void RemTet2(Surf *surf,
 	}
 }
 
+void TestC(Surf* surf, const char* file, int line)
+{
+	
+	for(std::list<Tet*>::iterator tit1=surf->tets2.begin();
+		tit1!=surf->tets2.end();
+		++tit1)
+	{
+		for(int vin=0; vin<3; ++vin)
+		{
+			if(!(*tit1)->neib[vin])
+				continue;
+			if((*tit1)->neib[vin]->holder.size() < 3)
+			{
+				int c=0;
+				for(std::list<Tet*>::iterator tit2=surf->tets2.begin();
+					tit2!=surf->tets2.end();
+					tit2++)
+				{
+					for(int vin2=0; vin2<4; vin2++)
+						if((*tit2)->neib[vin2] == (*tit1)->neib[vin])
+							c++;
+				}
+				if(c>(*tit1)->neib[vin]->holder.size())
+				{
+					char mm[123];
+					sprintf(mm, "%d %s >c1", line, file);
+					ErrMess(">c1",mm);
+				}
+				//RemTet(surf, tit1, vin);
+				//irem++;
+				//goto again;
+			}
+		}
+	}
+}
+
 /*
 Remove free-floating triangles
 that are not attached to the main body mesh.
@@ -10866,8 +10902,10 @@ with another triangle, there will be free floating vertices!
 	*/
 	do
 	{
+	TestC(&g_surf, __FILE__, __LINE__);
 		if(!ClipTris(&g_surf, &g_fullsurf))
 			break;
+	TestC(&g_surf, __FILE__, __LINE__);
 		Test(&g_surf);
 	fprintf(g_applog, "\r\n333\r\n");
 	fflush(g_applog);
@@ -10875,10 +10913,12 @@ with another triangle, there will be free floating vertices!
 			break;
 	fprintf(g_applog, "\r\n444\r\n");
 	fflush(g_applog);
+	TestC(&g_surf, __FILE__, __LINE__);
 		if(!RemFloaters(&g_surf, &g_fullsurf))
 			break;
 	fprintf(g_applog, "\r\n444222\r\n");
 	fflush(g_applog);
+	TestC(&g_surf, __FILE__, __LINE__);
 		if(!RemHid2(&g_surf))
 			break;
 	fprintf(g_applog, "\r\n555\r\n");
