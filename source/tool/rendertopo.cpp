@@ -9375,9 +9375,9 @@ void NextEmerge(Surf *surf, SurfPt *frompt, SurfPt *parpt, SurfPt *topt, bool cw
 
 	Vec3f line[2][2];
 	line[0][0] = frompt->wrappos + ndir[0] * 0.1f;
-	line[0][1] = Normalize( *emerge ) - ndir[0] * 0.1f;
+	line[0][1] = ( *emerge ) - ndir[0] * 0.1f;
 	line[1][0] = parpt->wrappos + ndir[1] * 0.1f;
-	line[1][1] = Normalize( *emerge ) - ndir[1] * 0.1f;
+	line[1][1] = ( *emerge ) - ndir[1] * 0.1f;
 	//Vec3f triline[2][2];
 	//triline[0][0] = frompt->wrappos;
 	//triline[0][1] = 
@@ -9481,7 +9481,14 @@ again:
 				//	Dot( Normalize(i1 - in[vl]->wrappos), Normalize( in[(vl+1)%3]->wrappos - in[vl]->wrappos ) );
 #if 1
 				char mm[1233];
-				sprintf(mm, "\r\n call%d inov2 vp=%d vl=%d cw=%d notsame=%d \r\n collider discw=%d ring=%d,%d,%d file=%d,%d,%d \r\n ring=%d,%d,%d file=%d,%d,%d len=%f dir=(%f,%f,%f)\r\np1:(%f,%f,%f),%f\r\np2:(%f,%f,%f),%f\r\n p3:(%f,%f,%f),%f \r\nl1:(%f,%f,%f)\r\nl2:(%f,%f,%f)\r\ni0:(%f,%f,%f)\r\ni1:(%f,%f,%f)",
+				sprintf(mm, "\r\n call%d inov2 vp=%d vl=%d cw=%d notsame=%d \r\n "\
+					"collider discw=%d ring=%d,%d,%d file=%d,%d,%d \r\n "\
+					"n1: %f,%f,%f \r\n "\
+					"n2: %f,%f,%f \r\n "\
+					"n3: %f,%f,%f \r\n "\
+					"ring=%d,%d,%d file=%d,%d,%d len=%f dir=(%f,%f,%f)\r\n"\
+					"p1:(%f,%f,%f),%f\r\np2:(%f,%f,%f),%f\r\n p3:(%f,%f,%f),%f \r\n"\
+					"l1:(%f,%f,%f)\r\nl2:(%f,%f,%f)\r\ni0:(%f,%f,%f)\r\ni1:(%f,%f,%f)",
 					call,
 					(int)vp, (int)vl,
 					(int)cw, notsame,
@@ -9492,6 +9499,15 @@ again:
 					tet->neib[0]->file,
 					tet->neib[1]->file,
 					tet->neib[2]->file,
+					tet->neib[0]->wrappos.x,
+					tet->neib[0]->wrappos.y,
+					tet->neib[0]->wrappos.z,
+					tet->neib[1]->wrappos.x,
+					tet->neib[1]->wrappos.y,
+					tet->neib[1]->wrappos.z,
+					tet->neib[2]->wrappos.x,
+					tet->neib[2]->wrappos.y,
+					tet->neib[2]->wrappos.z,
 					frompt->ring,
 					parpt->ring,
 					topt->ring,
@@ -9537,9 +9553,9 @@ again:
 
 				//Vec3f line[2][2];
 				line[0][0] = frompt->wrappos + ndir[0] * 0.1f;
-				line[0][1] = Normalize( *emerge ) - ndir[0] * 0.1f;
+				line[0][1] = ( *emerge ) - ndir[0] * 0.1f;
 				line[1][0] = parpt->wrappos + ndir[1] * 0.1f;
-				line[1][1] = Normalize( *emerge ) - ndir[1] * 0.1f;
+				line[1][1] = ( *emerge ) - ndir[1] * 0.1f;
 
 				exit(0);
 				goto again;
