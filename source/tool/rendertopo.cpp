@@ -2599,6 +2599,12 @@ void TestD(Surf *surf, SurfPt *parp, SurfPt *neibp, SurfPt *newp)
 				//	!LineInterPlane(line[vl*2+1], plane[(vp+1)%3].m_normal, plane[vp].m_d, &i1)
 					)
 					continue;
+				////
+				if(PointOnOrBehindPlane(i0, plane[(vp+1)%3].m_normal, plane[(vp+1)%3].m_d))
+					continue;
+				if(PointOnOrBehindPlane(i1, plane[(vp+0)%3].m_normal, plane[(vp+0)%3].m_d))
+					continue;
+				////
 				if(PointOnOrBehindPlane(i0, plane[(vp+2)%3].m_normal, plane[(vp+2)%3].m_d))
 					continue;
 				if(PointOnOrBehindPlane(i1, plane[(vp+2)%3].m_normal, plane[(vp+2)%3].m_d))
@@ -9427,6 +9433,37 @@ again:
 		//backwards norm?
 		bool discw = (Dot(cennorm, trinorm) <= 0.0f);
 
+		if(discw)
+		{
+			fprintf(g_applog,
+				"\r\n trinorm=%f,%f,%f wp=(%f,%f,%f),(%f,%f,%f),(%f,%f,%f) "\
+				"\r\n cennorm=%f,%f,%f ring=%d,%d,%d file=%d,%d,%d "\
+				"\r\n dot=%f \r\n",
+				trinorm.x,
+				trinorm.y,
+				trinorm.z,
+				test[0].x,
+				test[0].y,
+				test[0].z,
+				test[1].x,
+				test[1].y,
+				test[1].z,
+				test[2].x,
+				test[2].y,
+				test[2].z,
+				cennorm.x,
+				cennorm.y,
+				cennorm.z,
+				tet->neib[0]->ring,
+				tet->neib[1]->ring,
+				tet->neib[2]->ring,
+				tet->neib[0]->file,
+				tet->neib[1]->file,
+				tet->neib[2]->file,
+				Dot(cennorm, trinorm));
+			fflush(g_applog);
+		}
+
 		//if(discw)	//error
 		//	ErrMess("asd","nn!");
 
@@ -9444,7 +9481,7 @@ again:
 				pnorm[v] = Vec3f(0,0,0) - pnorm[v];
 			Vec3f inoff = pnorm[v] * 0.4f;
 			MakePlane(&plane[v].m_normal, &plane[v].m_d, tet->neib[e1]->wrappos + inoff, pnorm[v]);
-			bool discw = false;
+			//bool discw = false;
 		}
 		///////////////////
 		for(int vp=0; vp<3; vp++)
@@ -9466,6 +9503,12 @@ again:
 				//	!LineInterPlane(line[vl*2+1], plane[(vp+1)%3].m_normal, plane[vp].m_d, &i1)
 					)
 					continue;
+				////
+				if(PointOnOrBehindPlane(i0, plane[(vp+1)%3].m_normal, plane[(vp+1)%3].m_d))
+					continue;
+				if(PointOnOrBehindPlane(i1, plane[(vp+0)%3].m_normal, plane[(vp+0)%3].m_d))
+					continue;
+				////
 				if(PointOnOrBehindPlane(i0, plane[(vp+2)%3].m_normal, plane[(vp+2)%3].m_d))
 					continue;
 				if(PointOnOrBehindPlane(i1, plane[(vp+2)%3].m_normal, plane[(vp+2)%3].m_d))
@@ -9977,16 +10020,18 @@ bool MapGlobe3(Surf *surf)
 		p->file = v;
 		curpt = p;
 	}
-	startt->neib[0]->wrappos = Vec3f(-1,10000,-1);
-	startt->neib[1]->wrappos = Vec3f(1,10000,-1);
-	startt->neib[2]->wrappos = Vec3f(0,10000,0);
+	startt->neib[0]->wrappos = Vec3f(-1,1000,-1);
+	startt->neib[1]->wrappos = Vec3f(1,1000,-1);
+	startt->neib[2]->wrappos = Vec3f(0,1000,0);
 
 	Vec3f test[3];
 	test[0] = startt->neib[0]->wrappos;
 	test[1] = startt->neib[1]->wrappos;
 	test[2] = startt->neib[2]->wrappos;
 
-	if(Normal(test).y <= 0)
+	//if(Normal(test).y <= 0)
+
+	if( Dot( Normal(test), Normalize(test[0]+test[1]+test[2]) ) <= 0.0f )
 		ErrMess("asd","ny<0");
 
 	//curpt->file = 0;
