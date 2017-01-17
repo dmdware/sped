@@ -1961,8 +1961,8 @@ bool ShouldClip(Surf *surf, Tet *in, Plane3f split,
 		return false;
 
 	//check tri-tri
-	if(!TriTri(tri1, fulltri))
-		return false;
+	//if(!TriTri(tri1, fulltri))
+	//	return false;
 
 	//if(ShareEdge(tri1, fulltri))
 	//	return false;
@@ -3158,13 +3158,13 @@ again:
 				tri1,
 				fulltri))
 				continue;
-
+/*
 			std::list<Tet*> neibclip;
 
 			GetClipNeib(in, &neibclip,
 				fulltri, split, backsplit,
 				surf);
-
+*/
 			std::list<SurfPt*> substfrom;
 			std::list<SurfPt*> substto;
 
@@ -3205,6 +3205,7 @@ again:
 					++tit;
 			}
 
+#if 0
 			RemDupTet(&neibclip);
 			//neibclip.unique(UniqueTet);
 
@@ -3360,7 +3361,7 @@ next:
 			///	SplitQuad(surf, backw);
 
 			///	backw = NULL;
-
+#endif
 			//return newtet;
 			goto again;
 #endif
@@ -3441,6 +3442,37 @@ now.
 */
 bool JoinPts(Surf *surf, Surf *fullsurf)
 {//return 1;
+	{
+		int c = 0;
+		std::list<Tet*>::iterator tit1=surf->tets2.begin();
+		for(;
+			tit1!=surf->tets2.end();
+			++tit1)
+		{
+			
+			for(int vin1=0; vin1<3; ++vin1)
+			{
+#if 0
+		char mm[1234];
+		sprintf(mm, "at (%f,%f,%f)", 
+			(*tit1)->neib[vin1]->pos.x,
+			(*tit1)->neib[vin1]->pos.y,
+			(*tit1)->neib[vin1]->pos.z);
+		ErrMess(mm,mm);
+#endif
+
+				if( Magnitude( (*tit1)->neib[vin1]->pos - Vec3f(-150,-150,400) ) <= CLOSEPOSF )
+					c++;
+			}
+		}
+#if 0
+		char mm[1234];
+		sprintf(mm, "at (-150,-150,400) c=%d", c);
+		ErrMess(mm,mm);
+#endif
+	}
+
+
 	int i1=0;
 again:
 	std::list<Tet*>::iterator tit1=surf->tets2.begin();
@@ -3602,6 +3634,7 @@ again:
 	Test(surf);
 
 	//check join
+	if(false)
 	{
 
 		tit1=surf->tets2.begin();
@@ -9505,6 +9538,10 @@ desc:
 	return true;
 }
 
+/*
+check for emerging upside-down facing triangle in wrap sphere
+as pt's emerge
+*/
 void TestE(Surf *surf,
 		   Vec3f place)
 {
@@ -9635,7 +9672,7 @@ void TestE(Surf *surf,
 				sidevec[2].z,
 				amt[2]);
 			fflush(g_applog);
-			ErrMess("pnn","pnn!");
+			ErrMess("pnn","pnn!2");
 
 			CheckFan(surf, tet->neib[0]);
 			CheckFan(surf, tet->neib[1]);
@@ -10200,6 +10237,8 @@ bool TryJump(Surf *surf, SurfPt *frompt, SurfPt **topt)
 			NextEmerge(surf, frompt, het->neib[parvi], *topt, cw, &emerge);
 			Emerge2(surf, *topt, frompt, het->neib[parvi], emerge);
 
+			//CheckFan(surf, *topt);
+
 			if(!CheckCompleteRing(surf, (*topt)->ring))
 			{
 				ErrMess("!c","!ctj");
@@ -10229,6 +10268,7 @@ bool TryJump(Surf *surf, SurfPt *frompt, SurfPt **topt)
 check nexus of sp to be a flattanable fan of triangles,
 with no "3d" configurations with edges shared by three or more
 triangles.
+only run this when TryJump no longer works, and requires a LowJump (to a new ring count).
 */
 void CheckFan(Surf *surf,
 			  SurfPt *sp)
@@ -10354,7 +10394,7 @@ tryset:
 
 				if(!hp->checked)
 				{
-					ErrMess("gap","gap");
+					ErrMess("gap","gap, possibly non-flat non-fan");
 				}
 			}
 		}
@@ -10440,7 +10480,8 @@ bool LowJump(Surf *surf, SurfPt *frompt, SurfPt **rep)
 			NextEmerge(surf, par1, par2, *rep, cw, &emerge);
 			Emerge2(surf, *rep, par1, par2, emerge);
 			
-			
+			//CheckFan(surf, *rep);
+
 			if(!CheckCompleteRing(surf, (*rep)->ring))
 			{
 				ErrMess("!c","!clj");
@@ -10545,6 +10586,8 @@ bool MissJump(Surf *surf, SurfPt **rep)
 				Vec3f emerge;
 				NextEmerge(surf, par1, par2, *rep, cw, &emerge);
 				Emerge2(surf, *rep, par1, par2, emerge);
+				
+			//CheckFan(surf, *rep);
 
 				
 			if(!CheckCompleteRing(surf, (*rep)->ring))
