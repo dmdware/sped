@@ -81,6 +81,9 @@ bool SplitEdges2(Surf *surf, Surf *fullsurf, Vec2f *vmin, Vec2f *vmax, float min
 void TestC(Surf* surf, const char* file, int line);
 void TestD(Surf *surf, SurfPt *parp, SurfPt *neibp, SurfPt *newp);
 
+void TestE(Surf *surf,
+		   Vec3f place);
+
 void GetToEmerge(Surf *surf,
 				 Tet *etet,
 				 Vec3f *emline,
@@ -105,6 +108,11 @@ bool MapGlobe3(Surf *surf);
 void Balance3(Surf *surf, int bestupdown);
 void RemDupTet(std::list<Tet*>* tets);
 
+bool CheckCompleteRing(Surf *surf,
+					   int ring);
+void CheckFan(Surf *surf,
+			  SurfPt *sp);
+
 class SurfPt
 {
 public:
@@ -121,10 +129,12 @@ public:
 	Vec2f orc;	//orientability map texture coord
 	bool placed;
 	Vec3f wrappos;
+	Vec3f prevwrap;
 	Vec3f pressure;
 	bool emerged;
 	int ring;
 	int file;
+	bool checked;
 
 	bool hasneib(SurfPt *neib)
 	{

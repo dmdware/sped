@@ -9270,6 +9270,202 @@ void StartEmerge()
 {
 }
 
+bool CheckCompleteRing(Surf *surf,
+					   int ring)
+{
+	//shouldn't have any <-1 or >+1 pt's in contact with ring pt's
+	for(std::list<SurfPt*>::iterator pit=surf->pts2.begin();
+		pit!=surf->pts2.end();
+		++pit)
+	{
+		SurfPt *p = *pit;
+
+		if(p->ring != ring)
+			continue;
+
+		for(std::list<Tet*>::iterator hit=p->holder.begin();
+			hit!=p->holder.end();
+			++hit)
+		{
+			Tet *het = *hit;
+
+			for(int v=0; v<3; v++)
+			{
+				SurfPt *p2 = het->neib[v];
+
+				if(p2->ring < 0)
+					continue;
+
+				if(p2 == p)
+					continue;
+
+				if(p2->ring < ring-1)
+				{
+					ErrMess("asdsd","c<-1");
+					goto desc;
+				}
+				if(p2->ring > ring+1)
+				{
+					ErrMess("asdasd","c>+1");
+					goto desc;
+				}
+
+				continue;
+
+desc:
+				char mm[1234];
+				sprintf(mm, 
+					"ring=%d,%d,%d file=%d,%d,%d",
+					het->neib[0]->ring,
+					het->neib[1]->ring,
+					het->neib[2]->ring,
+					het->neib[0]->file,
+					het->neib[1]->file,
+					het->neib[2]->file);
+					ErrMess(mm,mm);
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+void TestE(Surf *surf,
+		   Vec3f place)
+{
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet *tet = *tit;
+
+		if(tet->neib[0]->ring < 0)
+			continue;
+		if(tet->neib[1]->ring < 0)
+			continue;
+		if(tet->neib[2]->ring < 0)
+			continue;
+
+		Vec3f teste[3];
+		teste[0] = tet->neib[0]->wrappos;
+		teste[1] = tet->neib[1]->wrappos;
+		teste[2] = tet->neib[2]->wrappos;
+
+		//if(!cw)
+		{
+		//	teste[0] = parpt->wrappos;
+		//	teste[1] = frompt->wrappos;
+		}
+
+		Vec3f trinorm = Normal( teste );
+		Vec3f cennorm = Normalize( (teste[0] + teste[1] + teste[2])/3.0f );
+
+		//backwards norm?
+		bool discw = (Dot(cennorm, trinorm) <= 0.0f);
+
+		if(discw)
+		{
+			Vec3f sidevec[3];
+			sidevec[0] = Cross( Normalize(place), Normalize(tet->neib[0]->prevwrap) );
+			sidevec[1] = Cross( Normalize(place), Normalize(tet->neib[1]->prevwrap) );
+			sidevec[2] = Cross( Normalize(place), Normalize(tet->neib[2]->prevwrap) );
+			//Vec3f sidevec = Cross( Normalize(sp->wrappos), Normalize(emline[1]) );
+			sidevec[0] = Normalize( sidevec[0] );
+			sidevec[1] = Normalize( sidevec[1] );
+			sidevec[2] = Normalize( sidevec[2] );
+			//Vec3f dirmove = Cross( Normalize(sp->w=rappos), sidevec );
+			
+			float amt[3];
+			amt[0] = (1.0f + Dot( Normalize(tet->neib[0]->prevwrap), Normalize(place) ))/2.0f;
+			amt[1] = (1.0f + Dot( Normalize(tet->neib[1]->prevwrap), Normalize(place) ))/2.0f;
+			amt[2] = (1.0f + Dot( Normalize(tet->neib[2]->prevwrap), Normalize(place) ))/2.0f;
+
+	#if 0
+			amt = exp(amt);
+			amt -= 1;
+	#define E	(2.7182818284590452353602874713526624977572470937L)
+			amt /= (E-1);
+	#endif
+
+		//sp->wrappos = Rotate(sp->wrappos, M_PI * amt / div, sidevec.x, sidevec.y, sidevec.z);
+
+			fprintf(g_applog,
+				"\r\n discw \r\n"\
+				" ring=%d,%d,%d file=%d,%d,%d \r\n"\
+				" cennorm=%f,%f,%f \r\n"\
+				" trinorm=%f,%f,%f \r\n"\
+				" dot(cennorm, trinorm)=%f \r\n "\
+				"test[0]=%f,%f,%f from=%f,%f,%f \r\n"\
+				"test[1]=%f,%f,%f from=%f,%f,%f \r\n"\
+				"test[2]=%f,%f,%f from=%f,%f,%f \r\n"\
+				"place=%f,%f,%f \r\n"\
+				"sidevec0=%f,%f,%f amt=%f \r\n"\
+				"sidevec1=%f,%f,%f amt=%f \r\n"\
+				"sidevec2=%f,%f,%f amt=%f \r\n",
+
+				tet->neib[0]->ring,
+				tet->neib[1]->ring,
+				tet->neib[2]->ring,
+				tet->neib[0]->file,
+				tet->neib[1]->file,
+				tet->neib[2]->file,
+
+				cennorm.x,
+				cennorm.y,
+				cennorm.z,
+
+				trinorm.x,
+				trinorm.y,
+				trinorm.z,
+
+				Dot(cennorm, trinorm),
+
+				teste[0].x,
+				teste[0].y,
+				teste[0].z,
+				tet->neib[0]->prevwrap.x,
+				tet->neib[0]->prevwrap.y,
+				tet->neib[0]->prevwrap.z,
+				
+				teste[1].x,
+				teste[1].y,
+				teste[1].z,
+				tet->neib[1]->prevwrap.x,
+				tet->neib[1]->prevwrap.y,
+				tet->neib[1]->prevwrap.z,
+				
+				teste[2].x,
+				teste[2].y,
+				teste[2].z,
+				tet->neib[2]->prevwrap.x,
+				tet->neib[2]->prevwrap.y,
+				tet->neib[2]->prevwrap.z,
+
+				place.x,
+				place.y,
+				place.z,
+				
+				sidevec[0].x,
+				sidevec[0].y,
+				sidevec[0].z,
+				amt[0],
+				
+				sidevec[1].x,
+				sidevec[1].y,
+				sidevec[1].z,
+				amt[1],
+				
+				sidevec[2].x,
+				sidevec[2].y,
+				sidevec[2].z,
+				amt[2]);
+			fflush(g_applog);
+			ErrMess("pnn","pnn!");
+		}
+	}
+}
+
 //case 3: next point along ring, have previous neighbour and parent
 void NextEmerge(Surf *surf, SurfPt *frompt, SurfPt *parpt, SurfPt *topt, bool cw, Vec3f *emerge)
 {
@@ -9695,6 +9891,8 @@ next:
 //(degenerate case where the ring closes off in one spot)
 void Emerge2(Surf *surf,
 			SurfPt *esp,
+			SurfPt *ig1,
+			SurfPt *ig2,
 			Vec3f place,
 			float div=19)
 {
@@ -9704,8 +9902,14 @@ void Emerge2(Surf *surf,
 	{
 		SurfPt *sp = *sit;
 
+		sp->prevwrap = sp->wrappos;
+
 		if(sp == esp)
 			continue;
+		//if(sp == ig1)
+		//	continue;
+		//if(sp == ig2)
+		//	continue;
 		//if(sp->ring < 0)
 		//	continue;
 
@@ -9727,7 +9931,13 @@ void Emerge2(Surf *surf,
 	}
 
 	if(esp)
+	{
+		//esp->prevwrap = esp->wrappos;
+		esp->prevwrap = place;
 		esp->wrappos = place;
+	}
+
+	TestE(surf, place);
 }
 
 //jump along ring, add link
@@ -9810,7 +10020,23 @@ bool TryJump(Surf *surf, SurfPt *frompt, SurfPt **topt)
 			//but their arrangment in the tet
 			//if cw=false then frompt,parpt actually go parpt,frompt
 			NextEmerge(surf, frompt, het->neib[parvi], *topt, cw, &emerge);
-			Emerge2(surf, *topt, emerge);
+			Emerge2(surf, *topt, frompt, het->neib[parvi], emerge);
+
+			if(!CheckCompleteRing(surf, (*topt)->ring))
+			{
+				ErrMess("!c","!ctj");
+				
+				char mm[1234];
+				sprintf(mm, 
+					"up ring=%d,%d,%d file=%d,%d,%d",
+					het->neib[0]->ring,
+					het->neib[1]->ring,
+					het->neib[2]->ring,
+					het->neib[0]->file,
+					het->neib[1]->file,
+					het->neib[2]->file);
+					ErrMess(mm,mm);
+			}
 
 			TestD(surf, frompt, het->neib[parvi], *topt);
 
@@ -9819,6 +10045,43 @@ bool TryJump(Surf *surf, SurfPt *frompt, SurfPt **topt)
 	}
 
 	return false;
+}
+
+/*
+check nexus of sp to be a flattanable fan of triangles,
+with no "3d" configurations with edges shared by three or more
+triangles.
+*/
+void CheckFan(Surf *surf,
+			  SurfPt *sp)
+{
+	for(std::list<Tet*>::iterator hit=sp->holder.begin();
+		hit!=sp->holder.end();
+		++hit)
+	{
+		Tet *het = *hit;
+
+		for(int v=0; v<3; v++)
+		{
+			het->neib[v]->checked = false;
+		}
+	}
+
+	SurfPt *curpt = sp;
+
+again:
+
+	for(std::list<Tet*>::iterator hit=sp->holder.begin();
+		hit!=sp->holder.end();
+		++hit)
+	{
+		Tet *het = *hit;
+
+		for(int v=0; v<3; v++)
+		{
+			het->neib[v]->checked = false;
+		}
+	}
 }
 
 //jump to next ring down
@@ -9892,8 +10155,15 @@ bool LowJump(Surf *surf, SurfPt *frompt, SurfPt **rep)
 			(*rep)->file = 0;
 			Vec3f emerge;
 			NextEmerge(surf, par1, par2, *rep, cw, &emerge);
-			Emerge2(surf, *rep, emerge);
+			Emerge2(surf, *rep, par1, par2, emerge);
 			
+			
+			if(!CheckCompleteRing(surf, (*rep)->ring))
+			{
+				ErrMess("!c","!clj");
+			}
+
+
 			TestD(surf, par1, par2, *rep);
 
 			TryJump(surf, *rep, rep);
@@ -9991,7 +10261,14 @@ bool MissJump(Surf *surf, SurfPt **rep)
 				(*rep)->file = 0;
 				Vec3f emerge;
 				NextEmerge(surf, par1, par2, *rep, cw, &emerge);
-				Emerge2(surf, *rep, emerge);
+				Emerge2(surf, *rep, par1, par2, emerge);
+
+				
+			if(!CheckCompleteRing(surf, (*rep)->ring))
+			{
+				ErrMess("!c","!cmj");
+			}
+
 				
 				TestD(surf, par1, par2, *rep);
 
@@ -10043,6 +10320,8 @@ bool MapGlobe3(Surf *surf)
 
 	curpt = nextpt;
 
+	bool didmiss = false;
+
 	while(curpt)
 	{
 foundjump:
@@ -10059,6 +10338,9 @@ foundjump:
 			continue;
 		}
 
+		//if(!didmiss)
+		//	CheckCompleteRing(surf, curpt->ring);
+
 		nextpt = NULL;
 		if(LowJump(surf, curpt, &nextpt))
 		{
@@ -10072,6 +10354,7 @@ foundjump:
 trymiss:
 	if(MissJump(surf, &curpt))
 	{
+		didmiss = true;
 		if(curpt)
 			goto foundjump;
 		else
@@ -10219,7 +10502,7 @@ again:
 
 	float div = 1.0f / (mag/4.0f);
 
-	Emerge2(surf, NULL, Normalize(strong) * 1000, div);
+	Emerge2(surf, NULL, NULL, NULL, Normalize(strong) * 1000, div);
 
 	t++;
 	if(t < mag*20 || t < c+1)
