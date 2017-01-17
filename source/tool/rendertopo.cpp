@@ -3601,6 +3601,169 @@ again:
 	}
 	Test(surf);
 
+	//check join
+	{
+
+		tit1=surf->tets2.begin();
+		i1=0;
+
+		for(int i11=0; i11<i1 && tit1!=surf->tets2.end(); i11++)
+			tit1++;
+
+		Test(surf);
+		for(;
+			tit1!=surf->tets2.end();
+			++tit1, ++i1)
+		{
+			if(TestDiscard(surf, tit1))
+				goto again;
+
+			int i2=i1+1;
+			std::list<Tet*>::iterator tit2;
+			tit2=tit1;
+			++tit2;
+			for(;
+				tit2!=surf->tets2.end();
+				++tit2, ++i2)
+			{
+				if(*tit2 == *tit1)
+					continue;
+
+				if(TestDiscard(surf, tit2))
+					goto again;
+
+				////fprintf(g_applog, "\r\ni%d,%d\r\n", i1,i2);
+				//fflush(g_applog);
+
+				for(int vin1=0; vin1<3; ++vin1)
+				{
+					if(!(*tit1)->neib[vin1])
+						ErrMess("1!","1!");
+					if((*tit1)->neib[vin1]->gone)
+						ErrMess("g123123","tt11");
+
+					for(int vin2=0; vin2<3; vin2++)
+					{
+						if(!(*tit2)->neib[vin2])
+							ErrMess("12!","12!");
+						if((*tit2)->neib[vin2]->gone)
+							ErrMess("g123123","tt2");
+
+						if(Magnitude( (*tit1)->neib[vin1]->pos - (*tit2)->neib[vin2]->pos ) <= CLOSEPOSF &&
+							(*tit1)->neib[vin1] != (*tit2)->neib[vin2] &&
+							*tit1 != *tit2 )
+						{
+							ErrMess("mj","MJ");
+
+	#if 0
+							fprintf(g_applog, "\r\nt\nvin%d,%d:(%f,%f,%f),(%f,%f,%f)\r\n(%f,%f,%f),(%f,%f,%f)\r\n(%f,%f,%f),(%f,%f,%f)\r\n",
+								vin1,vin2,
+								(*tit1)->neib[vin1]->pos.x,
+								(*tit1)->neib[vin1]->pos.y,
+								(*tit1)->neib[vin1]->pos.z,
+								(*tit2)->neib[vin2]->pos.x,
+								(*tit2)->neib[vin2]->pos.y,
+								(*tit2)->neib[vin2]->pos.z,
+								
+								(*tit1)->neib[(vin1+1)%3]->pos.x,
+								(*tit1)->neib[(vin1+1)%3]->pos.y,
+								(*tit1)->neib[(vin1+1)%3]->pos.z,
+								(*tit2)->neib[(vin2+1)%3]->pos.x,
+								(*tit2)->neib[(vin2+1)%3]->pos.y,
+								(*tit2)->neib[(vin2+1)%3]->pos.z,
+								
+								(*tit1)->neib[(vin1+2)%3]->pos.x,
+								(*tit1)->neib[(vin1+2)%3]->pos.y,
+								(*tit1)->neib[(vin1+2)%3]->pos.z,
+								(*tit2)->neib[(vin2+2)%3]->pos.x,
+								(*tit2)->neib[(vin2+2)%3]->pos.y,
+								(*tit2)->neib[(vin2+2)%3]->pos.z);
+							fflush(g_applog);
+	#endif
+
+							if((*tit1)->neib[vin1]->gone)
+								ErrMess("g13","11111g");
+							//delete (*tit2)->neib[vin2];
+	#if 0
+							if((*tit2)->neib[vin2]->holder.size() <= 1)
+							{
+								(*tit2)->neib[vin2]->gone=true;
+								delete (*tit2)->neib[vin2];
+								(*tit2)->neib[vin2]=NULL;
+							}
+	#endif
+							SurfPt* oldpt = (*tit2)->neib[vin2];
+
+							SurfPt *topt = (*tit1)->neib[vin1];
+							SurfPt *frompt = (*tit2)->neib[vin2];
+
+							AddHolds((*tit1)->neib[vin1],
+								(*tit2)->neib[vin2]);
+
+	#if 01
+							for(std::list<Tet*>::iterator remhit=frompt->holder.begin();
+									remhit!=frompt->holder.end();
+									++remhit)
+								{
+									//fromdel2
+							//1gets2hn
+									for(int vin=0; vin<4; ++vin)
+									{
+										if((*remhit)->neib[vin] == frompt)
+											(*remhit)->neib[vin] = topt;
+									}
+								}
+	#endif
+	#if 01
+							RepPt2(surf, frompt, topt);
+	#endif
+							oldpt->gone=true;
+							delete oldpt;
+
+							topt->holder.push_back(*tit2);
+							//topt->holder.unique(UniqueTet);
+							RemDupTet(&topt->holder);
+	//1gets2
+
+							//MigratePt((*tit2)->neib[vin2],
+							//	(*tit1)->neib[vin1]);
+							if((*tit2)->neib[vin2]->gone)
+								ErrMess("g13","g13");
+							//(*tit2)->neib[vin2]->gone=true;
+	//1gets2
+							//delete (*tit2)->neib[vin2];
+							if(*tit1==*tit2)
+								ErrMess("t12","t12=");
+	#if 0
+							if((*tit1)->neib[vin1]==(*tit2)->neib[vin2])
+								ErrMess("t12","t12=tn");
+							if((*tit1)->neib[vin1]->gone)
+								ErrMess("g13","111g");
+	#endif
+
+							std::list<SurfPt*>::iterator pit=surf->pts2.begin();
+							while(
+								pit!=surf->pts2.end())
+							{
+								//if(*pit == (*tit2)->neib[vin2])
+								if(*pit == frompt)
+									pit = surf->pts2.erase(pit);
+								else
+									++pit;
+							}
+
+							//(*tit2)->neib[vin2] = (*tit1)->neib[vin1];
+							(*tit2)->neib[vin2] = topt;
+							if((*tit2)->neib[vin2]->gone)
+								ErrMess("g123123","tt2tt");
+							goto again;
+						}
+					}
+				}
+			}
+		}
+	}
+
 	return true;
 }
 
@@ -4114,6 +4277,7 @@ bool RemFloaters(Surf *surf, Surf *fullsurf)
 	//then it is a floater. test to confirm. TODO.
 
 	int irem = 0;
+	int irem2 = 0;
 
 again:
 #if 01
@@ -4127,6 +4291,16 @@ again:
 				continue;
 			if((*tit1)->neib[vin]->holder.size() < 3)
 			{
+				char mm[1234];
+				sprintf(mm, "\r\n hs<3 =%d \r\n"\
+					"vin=%d \r\n"\
+					"pos=%f,%f,%f \r\n",
+					(int)(*tit1)->neib[vin]->holder.size(),
+					vin,
+					(*tit1)->neib[vin]->pos.x,
+					(*tit1)->neib[vin]->pos.y,
+					(*tit1)->neib[vin]->pos.z);
+				ErrMess(mm,mm);
 				int c=0;
 				for(std::list<Tet*>::iterator tit2=surf->tets2.begin();
 					tit2!=surf->tets2.end();
@@ -4156,7 +4330,7 @@ again:
 			if(!(*tit1)->neib[vin])
 			{
 				RemTet2(surf, tit1);
-				++irem;
+				++irem2;
 				goto again;
 			}
 		}
@@ -4165,8 +4339,8 @@ again:
 	//if three tets share an edge (a set of two pt's)
 	//one of them must be covered by the others
 
-	fprintf(g_applog, "RemFloaters: %d removed\r\n",
-		irem);
+	fprintf(g_applog, "RemFloaters: %d, %d removed\r\n",
+		irem, irem2);
 
 	return true;
 }
@@ -9462,6 +9636,10 @@ void TestE(Surf *surf,
 				amt[2]);
 			fflush(g_applog);
 			ErrMess("pnn","pnn!");
+
+			CheckFan(surf, tet->neib[0]);
+			CheckFan(surf, tet->neib[1]);
+			CheckFan(surf, tet->neib[2]);
 		}
 	}
 }
@@ -10068,8 +10246,10 @@ void CheckFan(Surf *surf,
 	}
 
 	SurfPt *curpt = sp;
+	sp->checked = true;
 
-again:
+	//get first pt, set
+	//jump to second, set (necessary so there's only one front going side with free unchecked pt's
 
 	for(std::list<Tet*>::iterator hit=sp->holder.begin();
 		hit!=sp->holder.end();
@@ -10079,9 +10259,112 @@ again:
 
 		for(int v=0; v<3; v++)
 		{
-			het->neib[v]->checked = false;
+			if(het->neib[v] != curpt)
+			{
+				curpt = het->neib[v];
+				curpt->checked = true;
+				goto sec;
+			}
 		}
 	}
+
+sec:
+	//second
+
+	for(std::list<Tet*>::iterator hit=sp->holder.begin();
+		hit!=sp->holder.end();
+		++hit)
+	{
+		Tet *het = *hit;
+
+		for(int v=0; v<3; v++)
+		{
+			if(het->neib[v] != curpt &&
+				het->neib[v] != sp)
+			{
+				curpt = het->neib[v];
+				curpt->checked = true;
+				goto again;
+			}
+		}
+	}
+
+again:
+
+	SurfPt *free1 = NULL;
+	SurfPt *free2 = NULL;	//not fan if have 2
+
+	for(std::list<Tet*>::iterator hit=sp->holder.begin();
+		hit!=sp->holder.end();
+		++hit)
+	{
+		Tet *het = *hit;
+		bool havecur = false;
+
+		for(int v=0; v<3; v++)
+		{
+			SurfPt *hp = het->neib[v];
+
+			if(hp == curpt)
+			{
+				havecur = true;
+				goto tryadd;
+			}
+		}
+
+tryadd:
+		if(!havecur)
+			continue;
+
+		for(int v=0; v<3; v++)
+		{
+			SurfPt *hp = het->neib[v];
+
+			if(hp->checked)
+				continue;
+
+			if(!free1)
+				free1 = hp;
+			else if(!free2)
+				free2 = hp;
+					
+			if(free1 && free2)
+			{
+				ErrMess("fb","fb");
+				return;
+			}
+		}
+	}
+
+tryset:
+
+	if(!free1)
+	{
+		//check for gap
+
+		for(std::list<Tet*>::iterator hit=sp->holder.begin();
+				hit!=sp->holder.end();
+				++hit)
+		{
+			Tet *het = *hit;
+
+			for(int v=0; v<3; v++)
+			{
+				SurfPt *hp = het->neib[v];
+
+				if(!hp->checked)
+				{
+					ErrMess("gap","gap");
+				}
+			}
+		}
+
+		return;
+	}
+
+	free1->checked = true;
+	curpt = free1;
+	goto again;
 }
 
 //jump to next ring down
