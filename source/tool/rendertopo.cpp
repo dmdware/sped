@@ -1676,6 +1676,162 @@ void FreeTet(Surf *surf, Tet *tet, bool freepts)	//entry must be freed from surf
 	tet->gone=true;
 	delete tet;
 }
+
+/*
+Test for backwards facing normal (facing with back side to outside, not making any collisions
+Might be a stray, disattached triangle, but looking for cases where perhaps the linkage
+was done incorrectly when clipping a triangle in two or splitting a quad into tri's.
+*/
+bool WeirdTest(Surf *surf, Tet *testt)
+{
+	if(!testt->neib[0])
+		return false;
+	if(!testt->neib[1])
+		return false;
+	if(!testt->neib[2])
+		return false;
+
+	Vec3f tri[3];
+
+	tri[0] = testt->neib[0]->pos;
+	tri[1] = testt->neib[1]->pos;
+	tri[2] = testt->neib[2]->pos;
+
+	Vec3f n = Normal(tri);
+
+	Vec3f line[3][2][2];	//vert line,reverse order,line point,
+	////////////////
+	line[0][0][0] = (tri[0]+tri[1]+tri[2])/3.0f - n*0.2f;
+	line[0][0][1] = line[0][0][0] - n*30000;
+
+	line[0][1][1] = (tri[0]+tri[1]+tri[2])/3.0f  - n*0.2f;
+	line[0][1][0] = line[0][1][1] - n*30000;
+	/////////////////
+#if 0
+	line[1][0][0] = (tri[1])/1.0f + n*0.2f;
+	line[1][0][1] = line[1][0][0] + n*30000;
+
+	line[1][1][1] = (tri[1])/1.0f + n*0.2f;
+	line[1][1][0] = line[1][1][1] + n*30000;
+	/////////////////
+	line[2][0][0] = (tri[2])/1.0f + n*0.2f;
+	line[2][0][1] = line[2][0][0] + n*30000;
+
+	line[2][1][1] = (tri[2])/1.0f + n*0.2f;
+	line[2][1][0] = line[2][1][1] + n*30000;
+	////////////
+#endif
+
+	LoadedTex *tex, *texn, *texs;
+	Vec2f texc;
+	Vec3f wp, rp, rn;
+	Tet *rtet;
+	double fU,fV;
+
+	if( (!TraceRay4(surf,
+		line[0][0],
+		&tex,
+		&texs,
+		&texn,
+		&texc,
+		&wp,
+		&rp,
+		&rn,
+		&rtet,
+		&fU, &fV) &&
+		!TraceRay4(surf,
+		line[0][1],
+		&tex,
+		&texs,
+		&texn,
+		&texc,
+		&wp,
+		&rp,
+		&rn,
+		&rtet,
+		&fU, &fV))
+#if 0
+
+		||
+		(!TraceRay2(surf,
+		line[1][0],
+		&tex,
+		&texs,
+		&texn,
+		&texc,
+		&wp,
+		&rp,
+		&rn,
+		&rtet,
+		&fU, &fV) &&
+		!TraceRay2(surf,
+		line[1][1],
+		&tex,
+		&texs,
+		&texn,
+		&texc,
+		&wp,
+		&rp,
+		&rn,
+		&rtet,
+		&fU, &fV)) ||
+		(!TraceRay2(surf,
+		line[2][0],
+		&tex,
+		&texs,
+		&texn,
+		&texc,
+		&wp,
+		&rp,
+		&rn,
+		&rtet,
+		&fU, &fV) &&
+		!TraceRay2(surf,
+		line[2][1],
+		&tex,
+		&texs,
+		&texn,
+		&texc,
+		&wp,
+		&rp,
+		&rn,
+		&rtet,
+		&fU, &fV))
+#endif
+		)
+	{
+		char mm[1234];
+		sprintf(mm, "weird n=%f,%f,%f \r\n"\
+			"l0: %f,%f,%f \r\n"\
+			"l1: %f,%f,%f \r\n",
+			n.x,
+			n.y,
+			n.z,
+			
+			line[0][0][0].x,
+			line[0][0][0].y,
+			line[0][0][0].z,
+			line[0][0][1].x,
+			line[0][0][1].y,
+			line[0][0][1].z);
+		ErrMess(mm,mm);
+		return true;	//weird
+		//tet->approved = true;
+		//	fprintf(g_applog, "app'd\r\n");
+		//	fflush(g_applog);
+	}
+	else
+	{
+		return false;	//not weird
+		//tet->approved = false;
+		//fprintf(g_applog, "napp'd\r\n");
+		//	fflush(g_applog);
+	}
+
+
+	return false;
+}
+
 /*
 If there's 4 verts in this tet, break it into two 3-vert tets
 The original tet should then be removed from the list because it is freed
@@ -1687,6 +1843,9 @@ void SplitQuad(Surf *surf, Tet *fourtet,
 {
 	if(!fourtet)
 		ErrMess("asd","!t1444");
+
+	if(WeirdTest(surf, fourtet))
+		ErrMess("w","w sq ft");
 
 	for(int vi=0; vi<4; ++vi)
 	{
@@ -2153,6 +2312,10 @@ void ClipFront(Surf *surf, Tet *in, Plane3f split,
 			   std::list<SurfPt*> *substto,
 			   Tet **retet)
 {
+	
+	if(WeirdTest(surf, in))
+		ErrMess("w","w cf in");
+
 	//Vec3f fulltri[3];
 	//fulltri[0] = (*fulltit)->neib[0]->pos;
 	//fulltri[1] = (*fulltit)->neib[1]->pos;
@@ -2361,6 +2524,7 @@ void ClipFront(Surf *surf, Tet *in, Plane3f split,
 #endif
 
 		if ( (sides[i+1] == SIDE_ON || sides[i+1] == sides[i] ) //&&
+		//if ( (sides[i+1] == SIDE_ON && sides[i+1] == sides[i] ) //&&
 		  //( i!=0 || (i==0 && sides[0]!=SIDE_BACK || sides[1]!=SIDE_BACK) ) 
 		  )
 		{
@@ -2408,7 +2572,8 @@ setpt:
 		if(ISNAN(mid[2]))
 			ErrMess("sfgdsfklg","nannanmidj2");
 
-		SurfPt *news1 = CopyPt(surf, p2, newtet);
+		//SurfPt *news1 = CopyPt(surf, p2, newtet);
+		SurfPt *news1 = CopyPt(surf, p1, newtet);
 
 		if(!news1)
 			ErrMess("1","1");
@@ -2732,7 +2897,7 @@ Make sure to remove free-floating, detatched triangles before running this test.
 But before JoinPts, so each triangle can be removed indepedently. EDIT: nvm, FreeTet probably checks 
 to make sure pt's have no more owners before deleting them.
 */
-bool RemHid2(Surf *surf)
+bool RemHid2(Surf *surf, bool checkring)
 {
 	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
 		tit!=surf->tets2.end();
@@ -2745,6 +2910,7 @@ bool RemHid2(Surf *surf)
 	}
 
 	int irem = 0;
+	int irem2 = 0;
 
 again:
 
@@ -2868,7 +3034,7 @@ again:
 		else
 		{
 			tet->approved = false;
-		//	fprintf(g_applog, "napp'd\r\n");
+			//fprintf(g_applog, "napp'd\r\n");
 		//	fflush(g_applog);
 		}
 	}
@@ -2886,13 +3052,13 @@ again:
 		if(!tet->approved)
 			continue;
 
-		if(tet->ring < 0)
+		if(checkring && tet->ring < 0)
 			continue;
 
 		if(tet->gone)
 			ErrMess("gg","gg");
 		
-			//fprintf(g_applog, "p00'd\r\n");
+		//	fprintf(g_applog, "p00'd\r\n");
 			//fflush(g_applog);
 		
 		Vec3f tri[3];
@@ -2913,7 +3079,7 @@ again:
 			if(tet2->approved)
 				continue;
 
-			//fprintf(g_applog, "p000'd\r\n");
+		//	fprintf(g_applog, "p000'd\r\n");
 			//fflush(g_applog);
 
 			Vec3f tri2[3];
@@ -2927,19 +3093,19 @@ again:
 			line[0] = (tri[0]+tri[1]+tri[2])/3.0f - n * 1.25f;
 			line[1] = (tri2[0]+tri2[1]+tri2[2])/3.0f - n2 * 10.25f;
 
-			//fprintf(g_applog, "p1'd\r\n");
+		//	fprintf(g_applog, "p1'd\r\n");
 			//fflush(g_applog);
 			//is this line going FORWARD through tet1? Must go behind.
 			if(Dot( Normalize(line[1]-line[0]) ,n) >= 0)
 				continue;
 
-			//fprintf(g_applog, "p2'd\r\n");
+		//	fprintf(g_applog, "p2'd\r\n");
 			//fflush(g_applog);
 			//is this line approaching from the FRONT of tet2? Must go from front.
 			if(Dot( Normalize(line[1]-line[0]) ,n2) >= 0)
 				continue;
 
-			//fprintf(g_applog, "p3'd\r\n");
+		//	fprintf(g_applog, "p3'd\r\n");
 			//fflush(g_applog);
 			LoadedTex *tex, *texn, *texs;
 			Vec2f texc;
@@ -2959,12 +3125,12 @@ again:
 				&rtet,
 				&fU, &fV))
 			{
-			//fprintf(g_applog, "p4'd\r\n");
+		//	fprintf(g_applog, "p4'd\r\n");
 			//fflush(g_applog);
 				//tet->approved = true;
 				if(rtet == tet2)
 				{
-			//fprintf(g_applog, "p5'd\r\n");
+		//	fprintf(g_applog, "p5'd\r\n");
 			//fflush(g_applog);
 					FreeTet(surf, tet2, true);
 					surf->tets2.erase(tit2);
@@ -2973,15 +3139,15 @@ again:
 				}
 				else if(rtet != tet2)
 				{
-			//fprintf(g_applog, "p6'd\r\n");
-			//fflush(g_applog);
+		//	fprintf(g_applog, "p6'd\r\n");
+		//	fflush(g_applog);
 					//something in between, can't determine
 				}
 			}
 			else
 			{
-			//fprintf(g_applog, "p7'd\r\n");
-			//fflush(g_applog);
+		//	fprintf(g_applog, "p7'd\r\n");
+		//	fflush(g_applog);
 				//no collision? something is wrong.
 			}
 		}
@@ -3043,6 +3209,8 @@ again:
 		tri1[1] = (*tit)->neib[1]->pos;
 		tri1[2] = (*tit)->neib[2]->pos;
 		Vec3f norm1 = Normal(tri1);
+
+
 		
 		for(std::list<Tet*>::iterator fulltit=fullsurf->tets2.begin();
 			fulltit!=fullsurf->tets2.end();
@@ -3170,11 +3338,88 @@ again:
 
 			Tet *front=NULL, *back=NULL;
 
+			
+	if(WeirdTest(surf, in))
+		ErrMess("w","w ct i");
+
 			ClipFront(surf, in, split,
 				&substfrom, &substto, &front);
 
+			
+	if(WeirdTest(surf, front))
+	{
+		char mm[1234];
+		sprintf(mm,"\r\n w ct f \r\n"\
+			"in[0]=%f,%f,%f \r\n"\
+			"in[1]=%f,%f,%f \r\n"\
+			"in[2]=%f,%f,%f \r\n"\
+			"f[0]=%f,%f,%f \r\n"\
+			"f[1]=%f,%f,%f \r\n"\
+			"f[2]=%f,%f,%f \r\n",
+			in->neib[0]->pos.x,
+			in->neib[0]->pos.y,
+			in->neib[0]->pos.z,
+			
+			in->neib[1]->pos.x,
+			in->neib[1]->pos.y,
+			in->neib[1]->pos.z,
+			
+			in->neib[2]->pos.x,
+			in->neib[2]->pos.y,
+			in->neib[2]->pos.z,
+			
+			front->neib[0]->pos.x,
+			front->neib[0]->pos.y,
+			front->neib[0]->pos.z,
+			
+			front->neib[1]->pos.x,
+			front->neib[1]->pos.y,
+			front->neib[1]->pos.z,
+			
+			front->neib[2]->pos.x,
+			front->neib[2]->pos.y,
+			front->neib[2]->pos.z);
+		ErrMess("w",mm);
+	}
+
 			ClipFront(surf, in, backsplit,
 				&substfrom, &substto, &back);
+			
+	if(WeirdTest(surf, back))
+	{
+		char mm[1234];
+		sprintf(mm,"\r\n w ct b \r\n"\
+			"in[0]=%f,%f,%f \r\n"\
+			"in[1]=%f,%f,%f \r\n"\
+			"in[2]=%f,%f,%f \r\n"\
+			"f[0]=%f,%f,%f \r\n"\
+			"f[1]=%f,%f,%f \r\n"\
+			"f[2]=%f,%f,%f \r\n",
+			in->neib[0]->pos.x,
+			in->neib[0]->pos.y,
+			in->neib[0]->pos.z,
+			
+			in->neib[1]->pos.x,
+			in->neib[1]->pos.y,
+			in->neib[1]->pos.z,
+			
+			in->neib[2]->pos.x,
+			in->neib[2]->pos.y,
+			in->neib[2]->pos.z,
+			
+			front->neib[0]->pos.x,
+			front->neib[0]->pos.y,
+			front->neib[0]->pos.z,
+			
+			front->neib[1]->pos.x,
+			front->neib[1]->pos.y,
+			front->neib[1]->pos.z,
+			
+			front->neib[2]->pos.x,
+			front->neib[2]->pos.y,
+			front->neib[2]->pos.z);
+		ErrMess("w",mm);
+	}
 
 			SplitQuad(surf, front,
 				&substfrom, &substto);
@@ -4295,6 +4540,15 @@ void TestC(Surf* surf, const char* file, int line)
 			}
 		}
 	}
+}
+
+//find edges between two surf pt's that are shared by more than 2 triangles
+//(unusual non-triangle-fan connectivity around a nexus/pt)
+bool RemOverEdges(Surf *surf, Surf *fullsurf)
+{
+
+
+	return true;
 }
 
 /*
@@ -7550,8 +7804,8 @@ bool TraceRay4(Surf* surf,
 	{
 		Tet *tet = *tit;
 
-		if(tet->ring < 0)
-			continue;
+		//if(tet->ring < 0)
+		//	continue;
 
 		Vec3f tr[3];
 		tr[0] = tet->neib[0]->pos;
@@ -9477,6 +9731,11 @@ void StartEmerge()
 {
 }
 
+//walk around the ring's neighbour pt's and make sure the rules are always followed:
+//1. always have 1 parent (ring#=ring-1)
+//2. always have 1 hind neighbour (ring#=ring, file#=file-1)
+//any tet's with strange mixtures of rings shouldn't exist, otherwise there's a non-triangle-fan non-flat
+//configuration of connections/triangles with edges shared by more then 2 triangles
 bool CheckCompleteRing(Surf *surf,
 					   int ring)
 {
@@ -9541,6 +9800,9 @@ desc:
 /*
 check for emerging upside-down facing triangle in wrap sphere
 as pt's emerge
+also check for irregular combinations of ring numbers in tets:
+according to the theory/rules, there shouldn't be more ring numbers
+in a tet than a parent (#-1) and a neighbour (#) number(s)
 */
 void TestE(Surf *surf,
 		   Vec3f place)
@@ -9557,6 +9819,15 @@ void TestE(Surf *surf,
 			continue;
 		if(tet->neib[2]->ring < 0)
 			continue;
+
+		bool weird = false;
+
+		if( abs( tet->neib[0]->ring - tet->neib[1]->ring ) > 1 )
+			weird = true;
+		if( abs( tet->neib[1]->ring - tet->neib[2]->ring ) > 1 )
+			weird = true;
+		if( abs( tet->neib[0]->ring - tet->neib[2]->ring ) > 1 )
+			weird = true;
 
 		Vec3f teste[3];
 		teste[0] = tet->neib[0]->wrappos;
@@ -9575,7 +9846,7 @@ void TestE(Surf *surf,
 		//backwards norm?
 		bool discw = (Dot(cennorm, trinorm) <= 0.0f);
 
-		if(discw)
+		if(discw || weird)
 		{
 			Vec3f sidevec[3];
 			sidevec[0] = Cross( Normalize(place), Normalize(tet->neib[0]->prevwrap) );
@@ -9602,7 +9873,7 @@ void TestE(Surf *surf,
 		//sp->wrappos = Rotate(sp->wrappos, M_PI * amt / div, sidevec.x, sidevec.y, sidevec.z);
 
 			fprintf(g_applog,
-				"\r\n discw \r\n"\
+				"\r\n discw=%d weird=%d \r\n"\
 				" ring=%d,%d,%d file=%d,%d,%d \r\n"\
 				" cennorm=%f,%f,%f \r\n"\
 				" trinorm=%f,%f,%f \r\n"\
@@ -9610,10 +9881,15 @@ void TestE(Surf *surf,
 				"test[0]=%f,%f,%f from=%f,%f,%f \r\n"\
 				"test[1]=%f,%f,%f from=%f,%f,%f \r\n"\
 				"test[2]=%f,%f,%f from=%f,%f,%f \r\n"\
+				"rp[0]=%f,%f,%f \r\n"\
+				"rp[1]=%f,%f,%f \r\n"\
+				"rp[2]=%f,%f,%f \r\n"\
 				"place=%f,%f,%f \r\n"\
 				"sidevec0=%f,%f,%f amt=%f \r\n"\
 				"sidevec1=%f,%f,%f amt=%f \r\n"\
 				"sidevec2=%f,%f,%f amt=%f \r\n",
+
+				(int)discw, (int)weird,
 
 				tet->neib[0]->ring,
 				tet->neib[1]->ring,
@@ -9653,6 +9929,18 @@ void TestE(Surf *surf,
 				tet->neib[2]->prevwrap.y,
 				tet->neib[2]->prevwrap.z,
 
+				tet->neib[0]->pos.x,
+				tet->neib[0]->pos.y,
+				tet->neib[0]->pos.z,
+
+				tet->neib[1]->pos.x,
+				tet->neib[1]->pos.y,
+				tet->neib[1]->pos.z,
+
+				tet->neib[2]->pos.x,
+				tet->neib[2]->pos.y,
+				tet->neib[2]->pos.z,
+
 				place.x,
 				place.y,
 				place.z,
@@ -9673,10 +9961,6 @@ void TestE(Surf *surf,
 				amt[2]);
 			fflush(g_applog);
 			ErrMess("pnn","pnn!2");
-
-			CheckFan(surf, tet->neib[0]);
-			CheckFan(surf, tet->neib[1]);
-			CheckFan(surf, tet->neib[2]);
 		}
 	}
 }
@@ -10411,6 +10695,8 @@ tryset:
 bool LowJump(Surf *surf, SurfPt *frompt, SurfPt **rep)
 {
 	*rep = NULL;
+
+	CheckFan(surf, frompt);
 
 	for(std::list<Tet*>::iterator hit=frompt->holder.begin();
 		hit!=frompt->holder.end();
@@ -12054,12 +12340,19 @@ with another triangle, there will be free floating vertices!
 	fprintf(g_applog, "\r\n444\r\n");
 	fflush(g_applog);
 	TestC(&g_surf, __FILE__, __LINE__);
+	fprintf(g_applog, "\r\n444111\r\n");
+	fflush(g_applog);
+	TestC(&g_surf, __FILE__, __LINE__);
 		if(!RemFloaters(&g_surf, &g_fullsurf))
 			break;
 	fprintf(g_applog, "\r\n444222\r\n");
 	fflush(g_applog);
 	TestC(&g_surf, __FILE__, __LINE__);
-		if(!RemHid2(&g_surf))
+		if(!RemHid2(&g_surf, false))
+			break;
+	fprintf(g_applog, "\r\n444333\r\n");
+	fflush(g_applog);
+		if(!RemOverEdges(&g_surf, &g_fullsurf))
 			break;
 	fprintf(g_applog, "\r\n555\r\n");
 	fflush(g_applog);
