@@ -76,13 +76,28 @@ bool TraceRay4(Surf* surf,
 void Balance4(Surf *surf);
 
 
+bool TraceRay4b(Surf* surf,
+			   Vec3f line[2], 
+			  LoadedTex **retex,
+			  LoadedTex **retexs,
+			  LoadedTex **retexn,
+			  Vec2f *retexc,
+			  Vec3f *rewp, Vec3f *rerp, 
+			  Vec3f* ren,
+			  Tet **retet,
+			  double *refU, double *refV);
+
+
 bool SplitEdges2(Surf *surf, Surf *fullsurf, Vec2f *vmin, Vec2f *vmax, float minlen);
 
 void TestC(Surf* surf, const char* file, int line);
 void TestD(Surf *surf, SurfPt *parp, SurfPt *neibp, SurfPt *newp);
 
-void TestE(Surf *surf,
-		   Vec3f place);
+bool TestE(Surf *surf,
+		   Vec3f place,
+		   SurfPt *ig1,
+		   SurfPt *ig2,
+		   bool silent=false);
 
 void GetToEmerge(Surf *surf,
 				 Tet *etet,

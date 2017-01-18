@@ -1707,18 +1707,18 @@ bool WeirdTest(Surf *surf, Tet *testt)
 	line[0][1][1] = (tri[0]+tri[1]+tri[2])/3.0f  - n*0.2f;
 	line[0][1][0] = line[0][1][1] - n*30000;
 	/////////////////
-#if 0
-	line[1][0][0] = (tri[1])/1.0f + n*0.2f;
-	line[1][0][1] = line[1][0][0] + n*30000;
+#if 1
+	line[1][0][0] = (tri[1]*2.0f/3.0f+tri[2]*1.0f/3.0f)/1.0f - n*0.2f;
+	line[1][0][1] = line[1][0][0] - n*30000;
 
-	line[1][1][1] = (tri[1])/1.0f + n*0.2f;
-	line[1][1][0] = line[1][1][1] + n*30000;
+	line[1][1][1] = (tri[1]*2.0f/3.0f+tri[2]*1.0f/3.0f)/1.0f - n*0.2f;
+	line[1][1][0] = line[1][1][1] - n*30000;
 	/////////////////
-	line[2][0][0] = (tri[2])/1.0f + n*0.2f;
-	line[2][0][1] = line[2][0][0] + n*30000;
+	line[2][0][0] = (tri[2]*2.0f/3.0f+tri[0]*1.0f/3.0f)/1.0f - n*0.2f;
+	line[2][0][1] = line[2][0][0] - n*30000;
 
-	line[2][1][1] = (tri[2])/1.0f + n*0.2f;
-	line[2][1][0] = line[2][1][1] + n*30000;
+	line[2][1][1] = (tri[2]*2.0f/3.0f+tri[0]*1.0f/3.0f)/1.0f - n*0.2f;
+	line[2][1][0] = line[2][1][1] - n*30000;
 	////////////
 #endif
 
@@ -1749,11 +1749,9 @@ bool WeirdTest(Surf *surf, Tet *testt)
 		&rp,
 		&rn,
 		&rtet,
-		&fU, &fV))
-#if 0
-
-		||
-		(!TraceRay2(surf,
+		&fU, &fV)
+		&&
+		!TraceRay4(surf,
 		line[1][0],
 		&tex,
 		&texs,
@@ -1763,8 +1761,8 @@ bool WeirdTest(Surf *surf, Tet *testt)
 		&rp,
 		&rn,
 		&rtet,
-		&fU, &fV) &&
-		!TraceRay2(surf,
+		&fU, &fV)&&
+		!TraceRay4(surf,
 		line[1][1],
 		&tex,
 		&texs,
@@ -1774,8 +1772,8 @@ bool WeirdTest(Surf *surf, Tet *testt)
 		&rp,
 		&rn,
 		&rtet,
-		&fU, &fV)) ||
-		(!TraceRay2(surf,
+		&fU, &fV)&&
+		!TraceRay4(surf,
 		line[2][0],
 		&tex,
 		&texs,
@@ -1785,8 +1783,8 @@ bool WeirdTest(Surf *surf, Tet *testt)
 		&rp,
 		&rn,
 		&rtet,
-		&fU, &fV) &&
-		!TraceRay2(surf,
+		&fU, &fV)&&
+		!TraceRay4(surf,
 		line[2][1],
 		&tex,
 		&texs,
@@ -1797,7 +1795,6 @@ bool WeirdTest(Surf *surf, Tet *testt)
 		&rn,
 		&rtet,
 		&fU, &fV))
-#endif
 		)
 	{
 		char mm[1234];
@@ -1815,6 +1812,32 @@ bool WeirdTest(Surf *surf, Tet *testt)
 			line[0][0][1].y,
 			line[0][0][1].z);
 		ErrMess(mm,mm);
+
+
+		TraceRay4b(surf,
+				line[0][0],
+				&tex,
+				&texs,
+				&texn,
+				&texc,
+				&wp,
+				&rp,
+				&rn,
+				&rtet,
+				&fU, &fV);
+
+		TraceRay4b(surf,
+		line[0][1],
+		&tex,
+		&texs,
+		&texn,
+		&texc,
+		&wp,
+		&rp,
+		&rn,
+		&rtet,
+		&fU, &fV);
+
 		return true;	//weird
 		//tet->approved = true;
 		//	fprintf(g_applog, "app'd\r\n");
@@ -8012,6 +8035,318 @@ interc:
 	return re;
 }
 
+//this uses neib->pos's instead of neib->wrappos's!
+//diagnostic func to determine why there is no intersection
+bool TraceRay4b(Surf* surf,
+			   Vec3f line[2], 
+			  LoadedTex **retex,
+			  LoadedTex **retexs,
+			  LoadedTex **retexn,
+			  Vec2f *retexc,
+			  Vec3f *rewp, Vec3f *rerp, 
+			  Vec3f* ren,
+			  Tet **retet,
+			  double *refU, double *refV)
+{
+	bool re = false;
+	int nearesti = -1;
+	float nearestd = Magnitude(line[1]-line[0]);
+	char neartype = 0;
+	//Vec3f nearestv;
+	//Vec3f nearnorm;
+
+	//fprintf(g_applog, "ray%f,%f,%f->%f,%f,%f\r\n", 
+	//	line[0].x, line[0].y, line[0].z,
+	//	line[1].x, line[1].y, line[1].z);
+
+//	fprintf(g_applog, "\r\nsta\r\n");
+	
+
+//	if(line[0].y < 0 && line[0].z > 0)
+//	fprintf(g_applog, "\r\nstaaaaa\r\n");
+
+	//int ci = 0;
+
+	//Texture *retex, *retexs, *retexn;
+
+	//unsigned char pr2,pg2,pb2,pa2,
+	//	spr2,spg2,spb2,spa2,
+	//	npr2,npg2,npb2,npa2;
+
+	
+				///if(
+				//	line[0] == Vec3f(0,-30000,30000))
+				//		ErrMess("!66!244","!2443!66");
+
+//	for(std::list<ModelHolder>::iterator mit=g_modelholder.begin();
+	//	mit!=g_modelholder.end(); 
+//		++mit, ++ci)
+
+	Tet *itet = NULL;
+	Vec3f ir = line[1];
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet *tet = *tit;
+
+		//if(tet->ring < 0)
+		//	continue;
+
+		Vec3f tr[3];
+		tr[0] = tet->neib[0]->pos;
+		tr[1] = tet->neib[1]->pos;
+		tr[2] = tet->neib[2]->pos;
+		
+		Vec3f tr2[3];
+		tr2[1] = tet->neib[0]->pos;
+		tr2[0] = tet->neib[1]->pos;
+		tr2[2] = tet->neib[2]->pos;
+
+		ir = line[1];
+
+		if( (line[0].x <= tr[0].x || line[0].x <= tr[1].x || line[0].x <= tr[2].x) &&
+			(line[0].x >= tr[0].x || line[0].x >= tr[1].x || line[0].x >= tr[2].x) &&
+			(line[0].z <= tr[0].z || line[0].z <= tr[1].z || line[0].z <= tr[2].z) &&
+			(line[0].z >= tr[0].z || line[0].z >= tr[1].z || line[0].z >= tr[2].z) )
+		{
+			fprintf(g_applog, 
+				"\r\n try tri \r\n"\
+				"l[0]=%f,%f,%f \r\n"\
+				"l[1]=%f,%f,%f \r\n"\
+				"tr[0]=%f,%f,%f \r\n"\
+				"tr[1]=%f,%f,%f \r\n"\
+				"tr[2]=%f,%f,%f \r\n",
+				line[0].x,
+				line[0].y,
+				line[0].z,
+				line[1].x,
+				line[1].y,
+				line[1].z,
+				tr[0].x,
+				tr[0].y,
+				tr[0].z,
+				tr[1].x,
+				tr[1].y,
+				tr[1].z,
+				tr[2].x,
+				tr[2].y,
+				tr[2].z
+				);
+			fflush(g_applog);
+		}
+
+		if(IntersectedPolygon(tr, line, 3, &ir))
+		{
+			fprintf(g_applog, "int@!\r\n");
+			fflush(g_applog);
+			goto interc;
+		}
+		
+			fprintf(g_applog, "NOint@!\r\n");
+			fflush(g_applog);
+
+
+		if(IntersectedPolygon(tr2, line, 3, &ir))
+		{
+			fprintf(g_applog, "intinv@!\r\n");
+			fflush(g_applog);
+			continue;
+		//	goto interc;
+		}
+		
+			fprintf(g_applog, "NOintinv@!\r\n");
+			fflush(g_applog);
+		//if(IntersectedPolygon(tr2, line, 3, &ir))
+		{
+		//	goto interc;
+		}
+
+		continue;
+
+interc:
+		re = true;
+		line[1] = ir;
+		itet = tet;
+	}
+
+	if(itet)
+	{
+		Vec3f tr[3];
+		tr[0] = itet->neib[0]->pos;
+		tr[1] = itet->neib[1]->pos;
+		tr[2] = itet->neib[2]->pos;
+		Vec3f rtr[3];
+		rtr[0] = itet->neib[0]->wrappos;
+		rtr[1] = itet->neib[1]->wrappos;
+		rtr[2] = itet->neib[2]->wrappos;
+
+		Vec2f txc[3];
+				CheckTet(itet, __FILE__, __LINE__);
+
+		for(int v=0; v<3; v++)
+		{
+			GenTexC(txc[v],
+				tr[0],
+				itet->texc,
+				itet->texcpos);
+			//txc[v].x = 
+				/*
+				itet->neib[v]->pos.x * itet->texceq[0].m_normal.x +
+				itet->neib[v]->pos.y * itet->texceq[0].m_normal.y +
+				itet->neib[v]->pos.z * itet->texceq[0].m_normal.z +
+				itet->texceq[0].m_d;*/
+			
+			//txc[v].y = 
+			/*
+				itet->neib[v]->pos.x * itet->texceq[1].m_normal.x +
+				itet->neib[v]->pos.y * itet->texceq[1].m_normal.y +
+				itet->neib[v]->pos.z * itet->texceq[1].m_normal.z +
+				itet->texceq[1].m_d;
+*/
+			/*
+
+			if(ISNAN(itet->neib[v]->pos.x))
+				ErrMess("sfgdfg","is nan itet->neib[v]->pos.x");
+			if(ISNAN(itet->neib[v]->pos.y))
+				ErrMess("sfgdfg","is nan itet->neib[v]->pos.y");
+			if(ISNAN(itet->neib[v]->pos.z))
+				ErrMess("sfgdfg","is nan itet->neib[v]->pos.z");
+
+			if(ISNAN(itet->texceq[0].m_normal.x))
+				ErrMess("dsfgdfg", "itet->texceq[0].m_normal.x");
+			if(ISNAN(itet->texceq[0].m_normal.y))
+				ErrMess("dsfgdfg", "itet->texceq[0].m_normal.y");
+			if(ISNAN(itet->texceq[0].m_normal.z))
+				ErrMess("dsfgdfg", "itet->texceq[0].m_normal.z");
+			if(ISNAN(itet->texceq[0].m_d))
+				ErrMess("dsfgdfg", "itet->texceq[0].m_d");
+
+			if(ISNAN(itet->texceq[1].m_normal.x))
+				ErrMess("dsfgdfg", "itet->texceq[1].m_normal.x");
+			if(ISNAN(itet->texceq[1].m_normal.y))
+				ErrMess("dsfgdfg", "itet->texceq[1].m_normal.y");
+			if(ISNAN(itet->texceq[1].m_normal.z))
+				ErrMess("dsfgdfg", "itet->texceq[1].m_normal.z");
+			if(ISNAN(itet->texceq[1].m_d))
+				ErrMess("dsfgdfg", "itet->texceq[1].m_d");
+*/
+			if(ISNAN(txc[v].x))//1//
+			{
+				ErrMess("sgfs","isnan txc v x");
+/*
+				char mm[1234];
+				sprintf(mm,
+					"%f,\r\n%f,%f,%f\r\n%f,%f,%f,%f\r\n%f,%f,%f,%f",
+					txc[v].x,
+					itet->neib[v]->pos.x,itet->neib[v]->pos.y,itet->neib[v]->pos.z,
+					itet->texceq[0].m_normal.x,
+					itet->texceq[0].m_normal.y,
+					itet->texceq[0].m_normal.z,
+					itet->texceq[0].m_d,
+					itet->texceq[1].m_normal.x,
+					itet->texceq[1].m_normal.y,
+					itet->texceq[1].m_normal.z,
+					itet->texceq[1].m_d);
+				ErrMess(mm,mm);
+*/
+				CheckTet(itet, __FILE__, __LINE__);
+			}
+			if(ISNAN(txc[v].y))
+				ErrMess("sgfs","isnan txc v y");
+		}
+
+		Vec3f v0 = tr[1] - tr[0],
+			v1 = tr[2] - tr[0],
+			v2 = ir - tr[0];
+
+		// do bounds test for each position
+		double f00 = Dot( v0, v0 );
+		double f01 = Dot( v0, v1 );
+		double f11 = Dot( v1, v1 );
+
+		double f02 = Dot( v0, v2 );
+		double f12 = Dot( v1, v2 );
+
+		// Compute barycentric coordinates
+		double invDenom = 1 / ( f00 * f11 - f01 * f01 );
+		if(ISNAN(invDenom))
+			invDenom = 1;
+		double fU = ( f11 * f02 - f01 * f12 ) * invDenom;
+		double fV = ( f00 * f12 - f01 * f02 ) * invDenom;
+
+		// Check if point is in triangle
+		//if( ( fU >= 0.0 ) && ( fV >= 0.0 ) && ( fU + fV <= 1.0 ) )
+		//	goto dotex;
+		//continue;
+
+//dotex:
+
+		Vec2f txcf = txc[0] * (1 - fU - fV) + 
+			txc[1] * (fU) + 
+			txc[2] * (fV);
+
+		*refU = fU;
+		*refV = fV;
+
+		if(ISNAN(fU))
+			ErrMess("sgfdfg","fUnandfdfg");
+		if(ISNAN(fV))
+			ErrMess("sgfdfg","fVnandfdfg");
+
+		if(ISNAN(txc[0].x))
+			ErrMess("dfdfgsd","nantxcf.x[0]1");
+		if(ISNAN(txc[0].y))
+			ErrMess("dfdfgsd","nantxcf.y[0]1");
+		
+		if(ISNAN(txc[1].x))
+			ErrMess("dfdfgsd","nantxcf.x[1]1");
+		if(ISNAN(txc[1].y))
+			ErrMess("dfdfgsd","nantxcf.y[1]1");
+		
+		if(ISNAN(txc[2].x))
+			ErrMess("dfdfgsd","nantxcf.x[2]1");
+		if(ISNAN(txc[2].y))
+			ErrMess("dfdfgsd","nantxcf.y[2]1");
+
+		LoadedTex *diff = itet->tex->pixels;
+
+		*retex = diff;
+		*rerp = ir;
+		*rewp = rtr[0] * (1 - fU - fV) + 
+			rtr[1] * (fU) + 
+			rtr[2] * (fV);
+		*retet = itet;
+
+		if(ISNAN(txcf.x))
+			ErrMess("dfdfgsd","nantxcf.x1");
+		if(ISNAN(txcf.y))
+			ErrMess("dfdfgsd","nantxcf.y1");
+
+#if 01
+		if(txcf.x >= 1)
+			txcf.x -= 1;
+		if(txcf.y >= 1)
+			txcf.y -= 1;
+
+		if(txcf.x < 0)
+			txcf.x += 1;
+		if(txcf.y < 0)
+			txcf.y += 1;
+#endif
+		if(ISNAN(txcf.x))
+			ErrMess("dfdfgsd","nantxcf.x");
+		if(ISNAN(txcf.y))
+			ErrMess("dfdfgsd","nantxcf.y");
+
+		*retexc = txcf;
+		*ren = Normal(tr);
+	}
+
+	return re;
+}
+
 
 //bounce rays with "globe" to get intersections and map those by long,lat to orientability map
 void OutTex2(Surf *surf, LoadedTex* out)
@@ -9804,8 +10139,11 @@ also check for irregular combinations of ring numbers in tets:
 according to the theory/rules, there shouldn't be more ring numbers
 in a tet than a parent (#-1) and a neighbour (#) number(s)
 */
-void TestE(Surf *surf,
-		   Vec3f place)
+bool TestE(Surf *surf,
+		   Vec3f place,
+		   SurfPt *ig1,
+		   SurfPt *ig2,
+		   bool silent)
 {
 	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
 		tit!=surf->tets2.end();
@@ -9872,101 +10210,123 @@ void TestE(Surf *surf,
 
 		//sp->wrappos = Rotate(sp->wrappos, M_PI * amt / div, sidevec.x, sidevec.y, sidevec.z);
 
-			fprintf(g_applog,
-				"\r\n discw=%d weird=%d \r\n"\
-				" ring=%d,%d,%d file=%d,%d,%d \r\n"\
-				" cennorm=%f,%f,%f \r\n"\
-				" trinorm=%f,%f,%f \r\n"\
-				" dot(cennorm, trinorm)=%f \r\n "\
-				"test[0]=%f,%f,%f from=%f,%f,%f \r\n"\
-				"test[1]=%f,%f,%f from=%f,%f,%f \r\n"\
-				"test[2]=%f,%f,%f from=%f,%f,%f \r\n"\
-				"rp[0]=%f,%f,%f \r\n"\
-				"rp[1]=%f,%f,%f \r\n"\
-				"rp[2]=%f,%f,%f \r\n"\
-				"place=%f,%f,%f \r\n"\
-				"sidevec0=%f,%f,%f amt=%f \r\n"\
-				"sidevec1=%f,%f,%f amt=%f \r\n"\
-				"sidevec2=%f,%f,%f amt=%f \r\n",
+			if(!silent)
+			{
+				fprintf(g_applog,
+					"\r\n discw=%d weird=%d \r\n"\
+					" ig1==tetneib[0]=%d \r\n"
+					" ig1==tetneib[1]=%d \r\n"
+					" ig1==tetneib[2]=%d \r\n"
+					" ig2==tetneib[0]=%d \r\n"
+					" ig2==tetneib[1]=%d \r\n"
+					" ig2==tetneib[2]=%d \r\n"
+					" (<- in tet ->) \r\n"
+					" ring=%d,%d,%d file=%d,%d,%d \r\n"\
+					" cennorm=%f,%f,%f \r\n"\
+					" trinorm=%f,%f,%f \r\n"\
+					" dot(cennorm, trinorm)=%f \r\n "\
+					"test[0]=%f,%f,%f from=%f,%f,%f \r\n"\
+					"test[1]=%f,%f,%f from=%f,%f,%f \r\n"\
+					"test[2]=%f,%f,%f from=%f,%f,%f \r\n"\
+					"rp[0]=%f,%f,%f \r\n"\
+					"rp[1]=%f,%f,%f \r\n"\
+					"rp[2]=%f,%f,%f \r\n"\
+					"place=%f,%f,%f \r\n"\
+					"sidevec0=%f,%f,%f amt=%f \r\n"\
+					"sidevec1=%f,%f,%f amt=%f \r\n"\
+					"sidevec2=%f,%f,%f amt=%f \r\n",
 
-				(int)discw, (int)weird,
+					(int)discw, (int)weird,
 
-				tet->neib[0]->ring,
-				tet->neib[1]->ring,
-				tet->neib[2]->ring,
-				tet->neib[0]->file,
-				tet->neib[1]->file,
-				tet->neib[2]->file,
+					(int)(ig1==tet->neib[0]),
+					(int)(ig1==tet->neib[1]),
+					(int)(ig1==tet->neib[2]),
+					(int)(ig2==tet->neib[0]),
+					(int)(ig2==tet->neib[1]),
+					(int)(ig2==tet->neib[2]),
 
-				cennorm.x,
-				cennorm.y,
-				cennorm.z,
+					tet->neib[0]->ring,
+					tet->neib[1]->ring,
+					tet->neib[2]->ring,
+					tet->neib[0]->file,
+					tet->neib[1]->file,
+					tet->neib[2]->file,
 
-				trinorm.x,
-				trinorm.y,
-				trinorm.z,
+					cennorm.x,
+					cennorm.y,
+					cennorm.z,
 
-				Dot(cennorm, trinorm),
+					trinorm.x,
+					trinorm.y,
+					trinorm.z,
 
-				teste[0].x,
-				teste[0].y,
-				teste[0].z,
-				tet->neib[0]->prevwrap.x,
-				tet->neib[0]->prevwrap.y,
-				tet->neib[0]->prevwrap.z,
-				
-				teste[1].x,
-				teste[1].y,
-				teste[1].z,
-				tet->neib[1]->prevwrap.x,
-				tet->neib[1]->prevwrap.y,
-				tet->neib[1]->prevwrap.z,
-				
-				teste[2].x,
-				teste[2].y,
-				teste[2].z,
-				tet->neib[2]->prevwrap.x,
-				tet->neib[2]->prevwrap.y,
-				tet->neib[2]->prevwrap.z,
+					Dot(cennorm, trinorm),
 
-				tet->neib[0]->pos.x,
-				tet->neib[0]->pos.y,
-				tet->neib[0]->pos.z,
+					teste[0].x,
+					teste[0].y,
+					teste[0].z,
+					tet->neib[0]->prevwrap.x,
+					tet->neib[0]->prevwrap.y,
+					tet->neib[0]->prevwrap.z,
+					
+					teste[1].x,
+					teste[1].y,
+					teste[1].z,
+					tet->neib[1]->prevwrap.x,
+					tet->neib[1]->prevwrap.y,
+					tet->neib[1]->prevwrap.z,
+					
+					teste[2].x,
+					teste[2].y,
+					teste[2].z,
+					tet->neib[2]->prevwrap.x,
+					tet->neib[2]->prevwrap.y,
+					tet->neib[2]->prevwrap.z,
 
-				tet->neib[1]->pos.x,
-				tet->neib[1]->pos.y,
-				tet->neib[1]->pos.z,
+					tet->neib[0]->pos.x,
+					tet->neib[0]->pos.y,
+					tet->neib[0]->pos.z,
 
-				tet->neib[2]->pos.x,
-				tet->neib[2]->pos.y,
-				tet->neib[2]->pos.z,
+					tet->neib[1]->pos.x,
+					tet->neib[1]->pos.y,
+					tet->neib[1]->pos.z,
 
-				place.x,
-				place.y,
-				place.z,
-				
-				sidevec[0].x,
-				sidevec[0].y,
-				sidevec[0].z,
-				amt[0],
-				
-				sidevec[1].x,
-				sidevec[1].y,
-				sidevec[1].z,
-				amt[1],
-				
-				sidevec[2].x,
-				sidevec[2].y,
-				sidevec[2].z,
-				amt[2]);
-			fflush(g_applog);
-			ErrMess("pnn","pnn!2");
+					tet->neib[2]->pos.x,
+					tet->neib[2]->pos.y,
+					tet->neib[2]->pos.z,
+
+					place.x,
+					place.y,
+					place.z,
+					
+					sidevec[0].x,
+					sidevec[0].y,
+					sidevec[0].z,
+					amt[0],
+					
+					sidevec[1].x,
+					sidevec[1].y,
+					sidevec[1].z,
+					amt[1],
+					
+					sidevec[2].x,
+					sidevec[2].y,
+					sidevec[2].z,
+					amt[2]);
+				fflush(g_applog);
+				ErrMess("pnn","pnn!2");
+			}
+
+			return false;
 		}
 	}
+
+	return true;
 }
 
 //case 3: next point along ring, have previous neighbour and parent
-void NextEmerge(Surf *surf, SurfPt *frompt, SurfPt *parpt, SurfPt *topt, bool cw, Vec3f *emerge)
+void NextEmerge(Surf *surf, SurfPt *frompt, SurfPt *parpt, SurfPt *topt, bool cw, Vec3f *emerge,
+				Vec3f *emerge2)
 {
 	//cw doesn't refer to the order of these pt arguments
 	//but their arrangment in the tet
@@ -9978,8 +10338,11 @@ void NextEmerge(Surf *surf, SurfPt *frompt, SurfPt *parpt, SurfPt *topt, bool cw
 			if(parpt->gone)
 				ErrMess("hgp","hgp");
 
+	//make par->neib offset more important, so sideways less space is used in fan
 	Vec3f along = parpt->wrappos - frompt->wrappos;
 	Vec3f midp = (parpt->wrappos + frompt->wrappos)/2.0f;
+	Vec3f midp2 = (parpt->wrappos*1.0f/11.0f + frompt->wrappos*10.0f/11.0f);
+	midp2 = midp;
 	Vec3f out = Normalize( midp );
 	//along = Normalize( along );
 	Vec3f cross = Cross( Normalize(along), out );
@@ -10018,6 +10381,7 @@ void NextEmerge(Surf *surf, SurfPt *frompt, SurfPt *parpt, SurfPt *topt, bool cw
 		dir = Vec3f(0,0,0) - dir;
 
 	midp = Normalize( midp );
+	midp2 = Normalize( midp2 );
 	
 	if(ISNAN(midp.x))
 		ErrMess("asdasd","isnanex2");
@@ -10027,7 +10391,8 @@ void NextEmerge(Surf *surf, SurfPt *frompt, SurfPt *parpt, SurfPt *topt, bool cw
 		ErrMess("asdasd","isnanez2");
 
 	float len = Magnitude(along);
-	len = 1;
+	//len = 1/12.0f;
+	len = 10;
 	float baselen = len;
 
 	if(ISNAN(len))
@@ -10042,7 +10407,10 @@ void NextEmerge(Surf *surf, SurfPt *frompt, SurfPt *parpt, SurfPt *topt, bool cw
 	}
 
 	//len = 1;
-	*emerge = midp * 1000 + dir * len * 1;
+	//*emerge = midp * 1000 + dir * len * 1;
+	//*emerge2 = midp * 1000 - dir * len * 1;
+	*emerge = midp2 * 1000 + dir * len * 1;
+	*emerge2 = midp2 * 1000 - dir * len * 1;
 
 	Vec3f ldir[2];
 	ldir[0] = frompt->wrappos - *emerge;
@@ -10074,11 +10442,16 @@ void NextEmerge(Surf *surf, SurfPt *frompt, SurfPt *parpt, SurfPt *topt, bool cw
 	ndir[0] = Normalize( ldir[0] );
 	ndir[1] = Normalize( ldir[1] );
 
-	Vec3f line[2][2];
+	Vec3f line[4][2];
 	line[0][0] = frompt->wrappos + ndir[0] * 0.1f;
 	line[0][1] = ( *emerge ) - ndir[0] * 0.1f;
 	line[1][0] = parpt->wrappos + ndir[1] * 0.1f;
 	line[1][1] = ( *emerge ) - ndir[1] * 0.1f;
+	
+	line[2][0] = frompt->wrappos + ndir[0] * 0.1f;
+	line[2][1] = ( *emerge2 ) - ndir[0] * 0.1f;
+	line[3][0] = parpt->wrappos + ndir[1] * 0.1f;
+	line[3][1] = ( *emerge2 ) - ndir[1] * 0.1f;
 	//Vec3f triline[2][2];
 	//triline[0][0] = frompt->wrappos;
 	//triline[0][1] = 
@@ -10166,9 +10539,9 @@ again:
 		{
 			int e1 = v;
 			int e2 = (v+1)%3;
-			Vec3f midp = (tet->neib[e1]->wrappos + tet->neib[e2]->wrappos)/2.0f;
-			midp = Normalize(midp);
-			pup[v] = midp;
+			Vec3f midp3 = (tet->neib[e1]->wrappos + tet->neib[e2]->wrappos)/2.0f;
+			midp3 = Normalize(midp3);
+			pup[v] = midp3;
 			palong[v] = Normalize( tet->neib[e2]->wrappos - tet->neib[e1]->wrappos );
 			pnorm[v] = Cross( palong[v], pup[v] );//cw
 			pnorm[v] = Normalize( pnorm[v] );
@@ -10287,13 +10660,21 @@ again:
 				//////////////correct emerge pt
 
 				len += baselen;
-				*emerge = midp * 1000 + dir * len * 1;
+				//*emerge = midp * 1000 + dir * len * 1;
+				//*emerge2 = midp * 1000 - dir * len * 1;
+				*emerge = midp2 * 1000 + dir * len * 1;
+				*emerge2 = midp2 * 1000 - dir * len * 1;
 
 				//Vec3f line[2][2];
 				line[0][0] = frompt->wrappos + ndir[0] * 0.1f;
 				line[0][1] = ( *emerge ) - ndir[0] * 0.1f;
 				line[1][0] = parpt->wrappos + ndir[1] * 0.1f;
 				line[1][1] = ( *emerge ) - ndir[1] * 0.1f;
+				
+				line[2][0] = frompt->wrappos + ndir[0] * 0.1f;
+				line[2][1] = ( *emerge2 ) - ndir[0] * 0.1f;
+				line[3][0] = parpt->wrappos + ndir[1] * 0.1f;
+				line[3][1] = ( *emerge2 ) - ndir[1] * 0.1f;
 
 				exit(0);
 				goto again;
@@ -10303,7 +10684,8 @@ again:
 
 		static int app = 0;
 		app++;
-			
+		
+#if 0
 				char mm[1233];
 				sprintf(mm, "\r\n call%d app%d inov3 vp=%d vl=%d cw=%d notsame=%d \r\n collider ring=%d,%d,%d file=%d,%d,%d \r\n ring=%d,%d,%d file=%d,%d,%d len=%f dir=(%f,%f,%f)\r\np1:(%f,%f,%f),%f\r\np2:(%f,%f,%f),%f\r\nl1:(%f,%f,%f)\r\nl2:(%f,%f,%f)\r\ni0:(%f,%f,%f)\r\ni1:(%f,%f,%f)",
 					call, app,
@@ -10348,6 +10730,7 @@ again:
 				//ErrMess(mm,mm);
 				fprintf(g_applog, "%s", mm);
 				fflush(g_applog);
+#endif
 
 next:
 		;
@@ -10385,6 +10768,114 @@ next:
 		ErrMess("asdasd","isnanez");
 }
 
+bool TestEmerge2(Surf *surf,
+			SurfPt *esp,
+			SurfPt *ig1,
+			SurfPt *ig2,
+			Vec3f place,
+			float div=19)
+{
+//////////////////////////////
+	Tet *tet;
+	Vec3f teste[3];
+	teste[0] = tet->neib[0]->wrappos;
+	teste[1] = tet->neib[1]->wrappos;
+	teste[2] = tet->neib[2]->wrappos;
+
+	//if(!cw)
+	{
+		//	teste[0] = parpt->wrappos;
+		//	teste[1] = frompt->wrappos;
+	}
+
+	Vec3f trinorm = Normal( teste );
+	Vec3f cennorm = Normalize( (teste[0] + teste[1] + teste[2])/3.0f );
+
+	//backwards norm?
+	bool discw = (Dot(cennorm, trinorm) <= 0.0f);
+
+	if(discw)
+	{
+		ErrMess("te","te2");
+		return false;
+	}
+
+	return true;
+}
+
+
+//test before Emerge2
+//check if emerging place will intersect any triangles
+void PreEmTest(Surf *surf,
+			SurfPt *esp,
+			SurfPt *ig1,
+			SurfPt *ig2,
+			Vec3f place,
+			Vec3f place2)
+{
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet *tet = *tit;
+
+		if(tet->neib[0]->ring < 0)
+			continue;
+		if(tet->neib[1]->ring < 0)
+			continue;
+		if(tet->neib[2]->ring < 0)
+			continue;
+
+		Vec3f tri[3];
+		tri[0] = tet->neib[0]->wrappos;
+		tri[1] = tet->neib[1]->wrappos;
+		tri[2] = tet->neib[2]->wrappos;
+
+		Vec3f line[2];
+		line[0] = Normalize(place) * 30000;
+		line[1] = Vec3f(0,0,0);
+
+		Vec3f vint;
+
+		if(IntersectedPolygon(tri, line,
+			3, &vint))
+		{
+			fprintf(g_applog,
+				"\r\n pem \r\n"\
+				"ring=%d,%d,%d file=%d,%d,%d \r\n"\
+				"tri[0]=%f,%f,%f \r\n"\
+				"tri[1]=%f,%f,%f \r\n"\
+				"tri[2]=%f,%f,%f \r\n"\
+				"place=%f,%f,%f \r\n",
+				tet->neib[0]->ring,
+				tet->neib[1]->ring,
+				tet->neib[2]->ring,
+				tet->neib[0]->file,
+				tet->neib[1]->file,
+				tet->neib[2]->file,
+
+				tri[0].x,
+				tri[0].y,
+				tri[0].z,
+
+				tri[1].x,
+				tri[1].y,
+				tri[1].z,
+
+				tri[2].x,
+				tri[2].y,
+				tri[2].z,
+
+				place.x,
+				place.y,
+				place.z);
+			fflush(g_applog);
+			ErrMess("pem","pem");
+		}
+	}
+}
+
 //make room for placement of new points in a sub-ring
 //or perhaps a line forming a ring with part of itself 
 //(degenerate case where the ring closes off in one spot)
@@ -10393,13 +10884,24 @@ void Emerge2(Surf *surf,
 			SurfPt *ig1,
 			SurfPt *ig2,
 			Vec3f place,
+			Vec3f place2,
 			float div=19)
 {
+	PreEmTest(surf,
+		esp,
+		ig1,
+		ig2,
+		place,
+		place2);
+
 	for(std::list<SurfPt*>::iterator sit=surf->pts2.begin();
 		sit!=surf->pts2.end();
 		++sit)
 	{
 		SurfPt *sp = *sit;
+
+		if(sp->ring < 0)
+			continue;
 
 		sp->prevwrap = sp->wrappos;
 
@@ -10413,6 +10915,10 @@ void Emerge2(Surf *surf,
 		//	continue;
 
 		Vec3f sidevec = Cross( Normalize(place), Normalize(sp->wrappos) );
+
+		if(Magnitude(sidevec) < 0.3f)
+			continue;
+
 		//Vec3f sidevec = Cross( Normalize(sp->wrappos), Normalize(emline[1]) );
 		sidevec = Normalize( sidevec );
 		//Vec3f dirmove = Cross( Normalize(sp->w=rappos), sidevec );
@@ -10436,12 +10942,16 @@ void Emerge2(Surf *surf,
 		esp->wrappos = place;
 	}
 
-	TestE(surf, place);
+	TestE(surf, place, ig1, ig2);
 }
 
 //jump along ring, add link
 bool TryJump(Surf *surf, SurfPt *frompt, SurfPt **topt)
 {
+
+	fprintf(g_applog, "\r\n tryjump \r\n");
+	fflush(g_applog);
+
 	*topt = NULL;
 	//assumed, since this is within "frompt" linkhood
 	//bool haveneib = false;
@@ -10500,26 +11010,50 @@ bool TryJump(Surf *surf, SurfPt *frompt, SurfPt **topt)
 				ErrMess("hg","hg");
 
 			//p = parent
+#if 0
 			*topt = het->neib[tovi];
 			(*topt)->ring = frompt->ring;
 			(*topt)->file = frompt->file + 1;
+#endif
+			*topt = het->neib[tovi];
 			Vec3f emerge;
+			Vec3f emerge2;
 
-			fprintf(g_applog, "\r\n fromvi=%d parvi=%d ring=%d,%d,%d file=%d,%d,%d \r\n",
-				fromvi, parvi,
-				frompt->ring,
-				het->neib[parvi]->ring,
-				(*topt)->ring,
-				frompt->file,
-				het->neib[parvi]->file,
-				(*topt)->file);
+			fprintf(g_applog, "\r\n fromvi=%d parvi=%d tovi=%d (<-in tet->) \r\n"\
+				"ring=%d,%d,%d file=%d,%d,%d \r\n",
+				fromvi, parvi, tovi,
+				het->neib[0]->ring,
+				het->neib[1]->ring,
+				het->neib[2]->ring,
+				//frompt->ring,
+				//het->neib[parvi]->ring,
+				//(*topt)->ring,
+				//frompt->file,
+				//het->neib[parvi]->file,
+				//(*topt)->file
+				
+				het->neib[0]->file,
+				het->neib[1]->file,
+				het->neib[2]->file
+				);
 			fflush(g_applog);
 
 			//cw doesn't refer to the order of these pt arguments
 			//but their arrangment in the tet
 			//if cw=false then frompt,parpt actually go parpt,frompt
-			NextEmerge(surf, frompt, het->neib[parvi], *topt, cw, &emerge);
-			Emerge2(surf, *topt, frompt, het->neib[parvi], emerge);
+			NextEmerge(surf, frompt, het->neib[parvi], *topt, cw, &emerge, &emerge2);
+				//pre-emerge clearing
+			//for(float ci=0; ci<11; ci+=1)
+			//	Emerge2(surf, NULL, NULL, NULL, (frompt->wrappos*11)/11.0f, emerge2, 15);
+			for(float ci=0; ci<11; ci+=1)
+				Emerge2(surf, NULL, NULL, NULL, (emerge*(ci)+frompt->wrappos*(11-ci))/11.0f, emerge2, 49);
+			Emerge2(surf, *topt, frompt, het->neib[parvi], emerge, emerge2);
+
+#if 01
+			//*topt = het->neib[tovi];
+			(*topt)->ring = frompt->ring;
+			(*topt)->file = frompt->file + 1;
+#endif
 
 			//CheckFan(surf, *topt);
 
@@ -10678,7 +11212,7 @@ tryset:
 
 				if(!hp->checked)
 				{
-					ErrMess("gap","gap, possibly non-flat non-fan");
+					ErrMess("gap","gap, possibly non-flat non-fan, \r\n possibly unfinished ring");
 				}
 			}
 		}
@@ -10694,6 +11228,10 @@ tryset:
 //jump to next ring down
 bool LowJump(Surf *surf, SurfPt *frompt, SurfPt **rep)
 {
+	
+	fprintf(g_applog, "\r\n lowjump \r\n");
+	fflush(g_applog);
+
 	*rep = NULL;
 
 	CheckFan(surf, frompt);
@@ -10759,14 +11297,31 @@ bool LowJump(Surf *surf, SurfPt *frompt, SurfPt **rep)
 			//so the winding will be opposite
 
 			//p = parent
+#if 0
 			*rep = het->neib[tovi];
 			(*rep)->ring = frompt->ring + 1;
 			(*rep)->file = 0;
+#endif
+			*rep = het->neib[tovi];
 			Vec3f emerge;
-			NextEmerge(surf, par1, par2, *rep, cw, &emerge);
-			Emerge2(surf, *rep, par1, par2, emerge);
+			Vec3f emerge2;
+			NextEmerge(surf, par1, par2, *rep, cw, &emerge, &emerge2);
+				//pre-emerge clearing
+			//for(float ci=0; ci<11; ci+=1)
+			//	Emerge2(surf, NULL, NULL, NULL, (frompt->wrappos*11)/11.0f, emerge2, 15);
+			for(float ci=0; ci<11; ci+=1)
+				Emerge2(surf, NULL, NULL, NULL, (emerge*ci+frompt->wrappos*(11-ci))/11.0f, emerge2, 49);
+			Emerge2(surf, *rep, par1, par2, emerge, emerge2);
 			
+			
+#if 01
+			//*rep = het->neib[tovi];
+			(*rep)->ring = frompt->ring + 1;
+			(*rep)->file = 0;
+#endif
+
 			//CheckFan(surf, *rep);
+			//CheckFan(surf, par1);
 
 			if(!CheckCompleteRing(surf, (*rep)->ring))
 			{
@@ -10786,6 +11341,10 @@ bool LowJump(Surf *surf, SurfPt *frompt, SurfPt **rep)
 //check if there's a missing region for a new ring
 bool MissJump(Surf *surf, SurfPt **rep)
 {
+	
+	fprintf(g_applog, "\r\n missjump \r\n");
+	fflush(g_applog);
+
 	int parring = -1;
 	//SurfPt *parp = NULL;
 	//*parpt = NULL;
@@ -10866,13 +11425,27 @@ bool MissJump(Surf *surf, SurfPt **rep)
 					);
 
 				//p = parent
+#if 0
 				*rep = het->neib[tovi];
 				(*rep)->ring = max(par1->ring, par2->ring) + 1;
 				(*rep)->file = 0;
+#endif
+				*rep = het->neib[tovi];
 				Vec3f emerge;
-				NextEmerge(surf, par1, par2, *rep, cw, &emerge);
-				Emerge2(surf, *rep, par1, par2, emerge);
+				Vec3f emerge2;
+				NextEmerge(surf, par1, par2, *rep, cw, &emerge, &emerge2);
+				//pre-emerge clearing
+				//for(float ci=0; ci<11; ci+=1)
+				//	Emerge2(surf, NULL, NULL, NULL, (p->wrappos*11)/11.0f, emerge2, 15);
+				for(float ci=0; ci<11; ci+=1)
+					Emerge2(surf, NULL, NULL, NULL, (emerge*ci+p->wrappos*(11-ci))/11.0f, emerge2, 49);
+				Emerge2(surf, *rep, par1, par2, emerge, emerge2);
 				
+#if 01
+				//*rep = het->neib[tovi];
+				(*rep)->ring = max(par1->ring, par2->ring) + 1;
+				(*rep)->file = 0;
+#endif
 			//CheckFan(surf, *rep);
 
 				
@@ -11114,7 +11687,7 @@ again:
 
 	float div = 1.0f / (mag/4.0f);
 
-	Emerge2(surf, NULL, NULL, NULL, Normalize(strong) * 1000, div);
+	Emerge2(surf, NULL, NULL, NULL, Normalize(strong) * 1000, Normalize(strong) * 1000, div);
 
 	t++;
 	if(t < mag*20 || t < c+1)
