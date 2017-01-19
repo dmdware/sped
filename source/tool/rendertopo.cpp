@@ -10141,6 +10141,7 @@ in a tet than a parent (#-1) and a neighbour (#) number(s)
 */
 bool TestE(Surf *surf,
 		   Vec3f place,
+		   //SurfPt *esp,
 		   SurfPt *ig1,
 		   SurfPt *ig2,
 		   bool silent)
@@ -10220,7 +10221,9 @@ bool TestE(Surf *surf,
 					" ig2==tetneib[0]=%d \r\n"
 					" ig2==tetneib[1]=%d \r\n"
 					" ig2==tetneib[2]=%d \r\n"
-					" (<- in tet ->) \r\n"
+					//" (not in tet->) \r\n"
+					//" teste ring=%d,%d,%d file=%d,%d,%d \r\n"
+					" (<- in tet ->) \r\n"\
 					" ring=%d,%d,%d file=%d,%d,%d \r\n"\
 					" cennorm=%f,%f,%f \r\n"\
 					" trinorm=%f,%f,%f \r\n"\
@@ -10244,6 +10247,10 @@ bool TestE(Surf *surf,
 					(int)(ig2==tet->neib[0]),
 					(int)(ig2==tet->neib[1]),
 					(int)(ig2==tet->neib[2]),
+
+					//esp->ring,
+					//ig1->ring,
+					//ig2->ring,
 
 					tet->neib[0]->ring,
 					tet->neib[1]->ring,
@@ -10876,6 +10883,83 @@ void PreEmTest(Surf *surf,
 	}
 }
 
+//make clearing room as we get closer to the emerging pt
+//but save tests of incorrect normals 'til the end
+void Emerge3(Surf *surf,
+			 Vec3f place,
+			 float div=19)
+{
+	//fprintf(g_applog, "\r\n em3 \r\n");
+	//fflush(g_applog);
+
+	int pin = 0;
+
+	for(std::list<SurfPt*>::iterator sit=surf->pts2.begin();
+		sit!=surf->pts2.end();
+		++sit, ++pin)
+	{
+		SurfPt *sp = *sit;
+
+		if(sp->ring < 0)
+			continue;
+		
+		//fprintf(g_applog, "\r\b em3 pin%d ring%d \r\n", pin, sp->ring);
+		//fflush(g_applog);
+
+		sp->prevwrap = sp->wrappos;
+
+		//if(sp == esp)
+		//	continue;
+		//if(sp == ig1)
+		//	continue;
+		//if(sp == ig2)
+		//	continue;
+		//if(sp->ring < 0)
+		//	continue;
+
+		Vec3f sidevec = Cross( Normalize(place), Normalize(sp->wrappos) );
+
+		sidevec = Normalize(sidevec);
+
+		//if(Magnitude(sidevec) < 0.3f)
+		//	continue;
+		if(ISNAN(sidevec.x) || ISNAN(sidevec.y) || ISNAN(sidevec.z))
+			continue;
+
+		//Vec3f sidevec = Cross( Normalize(sp->wrappos), Normalize(emline[1]) );
+		sidevec = Normalize( sidevec );
+		//Vec3f dirmove = Cross( Normalize(sp->w=rappos), sidevec );
+		
+		float amt = (1.0f + Dot( Normalize(sp->wrappos), Normalize(place) ))/2.0f;
+
+#if 0
+		amt = exp(amt);
+		amt -= 1;
+#define E	(2.7182818284590452353602874713526624977572470937L)
+		amt /= (E-1);
+#endif
+
+		sp->wrappos = Rotate(sp->wrappos, M_PI * amt / div, sidevec.x, sidevec.y, sidevec.z);
+
+#if 01
+		fprintf(g_applog, "\r\n em3 r%d f%d sp->wrappos %f,%f,%f \r\n from %f,%f,%f \r\n",
+			sp->ring,
+			sp->file,
+			sp->wrappos.x,
+			sp->wrappos.y,
+			sp->wrappos.z,
+			sp->prevwrap.x,
+			sp->prevwrap.y,
+			sp->prevwrap.z);
+		fflush(g_applog);
+#endif
+		
+		TestE(surf, place, NULL, NULL);
+	}
+
+	TestE(surf, place, NULL, NULL);
+}
+
 //make room for placement of new points in a sub-ring
 //or perhaps a line forming a ring with part of itself 
 //(degenerate case where the ring closes off in one spot)
@@ -10916,7 +11000,11 @@ void Emerge2(Surf *surf,
 
 		Vec3f sidevec = Cross( Normalize(place), Normalize(sp->wrappos) );
 
-		if(Magnitude(sidevec) < 0.3f)
+		sidevec = Normalize(sidevec);
+
+		//if(Magnitude(sidevec) < 0.3f)
+		//	continue;
+		if(ISNAN(sidevec.x) || ISNAN(sidevec.y) || ISNAN(sidevec.z))
 			continue;
 
 		//Vec3f sidevec = Cross( Normalize(sp->wrappos), Normalize(emline[1]) );
@@ -10933,6 +11021,15 @@ void Emerge2(Surf *surf,
 #endif
 
 		sp->wrappos = Rotate(sp->wrappos, M_PI * amt / div, sidevec.x, sidevec.y, sidevec.z);
+
+		fprintf(g_applog, "\r\n em2 sp->wrappos %f,%f,%f from %f,%f,%f \r\n",
+			sp->wrappos.x,
+			sp->wrappos.y,
+			sp->wrappos.z,
+			sp->prevwrap.x,
+			sp->prevwrap.y,
+			sp->prevwrap.z);
+		fflush(g_applog);
 	}
 
 	if(esp)
@@ -10940,6 +11037,15 @@ void Emerge2(Surf *surf,
 		//esp->prevwrap = esp->wrappos;
 		esp->prevwrap = place;
 		esp->wrappos = place;
+		
+		fprintf(g_applog, "\r\n em2 esp->wrappos %f,%f,%f from %f,%f,%f \r\n",
+			esp->wrappos.x,
+			esp->wrappos.y,
+			esp->wrappos.z,
+			esp->prevwrap.x,
+			esp->prevwrap.y,
+			esp->prevwrap.z);
+		fflush(g_applog);
 	}
 
 	TestE(surf, place, ig1, ig2);
@@ -11016,6 +11122,7 @@ bool TryJump(Surf *surf, SurfPt *frompt, SurfPt **topt)
 			(*topt)->file = frompt->file + 1;
 #endif
 			*topt = het->neib[tovi];
+			SurfPt *parpt = het->neib[parvi];
 			Vec3f emerge;
 			Vec3f emerge2;
 
@@ -11043,10 +11150,10 @@ bool TryJump(Surf *surf, SurfPt *frompt, SurfPt **topt)
 			//if cw=false then frompt,parpt actually go parpt,frompt
 			NextEmerge(surf, frompt, het->neib[parvi], *topt, cw, &emerge, &emerge2);
 				//pre-emerge clearing
-			//for(float ci=0; ci<11; ci+=1)
-			//	Emerge2(surf, NULL, NULL, NULL, (frompt->wrappos*11)/11.0f, emerge2, 15);
 			for(float ci=0; ci<11; ci+=1)
-				Emerge2(surf, NULL, NULL, NULL, (emerge*(ci)+frompt->wrappos*(11-ci))/11.0f, emerge2, 49);
+				Emerge3(surf, (frompt->wrappos*ci+parpt->wrappos*(11-ci))/11.0f, 15);
+			for(float ci=0; ci<11; ci+=1)
+				Emerge3(surf, (emerge*(ci)+frompt->wrappos*(11-ci))/11.0f, 15);
 			Emerge2(surf, *topt, frompt, het->neib[parvi], emerge, emerge2);
 
 #if 01
@@ -11308,9 +11415,9 @@ bool LowJump(Surf *surf, SurfPt *frompt, SurfPt **rep)
 			NextEmerge(surf, par1, par2, *rep, cw, &emerge, &emerge2);
 				//pre-emerge clearing
 			//for(float ci=0; ci<11; ci+=1)
-			//	Emerge2(surf, NULL, NULL, NULL, (frompt->wrappos*11)/11.0f, emerge2, 15);
+			//	Emerge3(surf, (par2->wrappos*ci+par1->wrappos*(11-ci))/11.0f, 15);
 			for(float ci=0; ci<11; ci+=1)
-				Emerge2(surf, NULL, NULL, NULL, (emerge*ci+frompt->wrappos*(11-ci))/11.0f, emerge2, 49);
+				Emerge3(surf, (emerge*ci+frompt->wrappos*(11-ci))/11.0f, 15);
 			Emerge2(surf, *rep, par1, par2, emerge, emerge2);
 			
 			
@@ -11320,7 +11427,7 @@ bool LowJump(Surf *surf, SurfPt *frompt, SurfPt **rep)
 			(*rep)->file = 0;
 #endif
 
-			//CheckFan(surf, *rep);
+			CheckFan(surf, *rep);
 			//CheckFan(surf, par1);
 
 			if(!CheckCompleteRing(surf, (*rep)->ring))
@@ -11435,10 +11542,10 @@ bool MissJump(Surf *surf, SurfPt **rep)
 				Vec3f emerge2;
 				NextEmerge(surf, par1, par2, *rep, cw, &emerge, &emerge2);
 				//pre-emerge clearing
-				//for(float ci=0; ci<11; ci+=1)
-				//	Emerge2(surf, NULL, NULL, NULL, (p->wrappos*11)/11.0f, emerge2, 15);
 				for(float ci=0; ci<11; ci+=1)
-					Emerge2(surf, NULL, NULL, NULL, (emerge*ci+p->wrappos*(11-ci))/11.0f, emerge2, 49);
+					Emerge3(surf, (par1->wrappos*ci+par2->wrappos*(11-ci))/11.0f, 15);
+				for(float ci=0; ci<11; ci+=1)
+					Emerge3(surf, (emerge*ci+par2->wrappos*(11-ci))/11.0f, 15);
 				Emerge2(surf, *rep, par1, par2, emerge, emerge2);
 				
 #if 01
