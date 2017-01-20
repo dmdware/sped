@@ -10074,6 +10074,7 @@ void StartEmerge()
 bool CheckCompleteRing(Surf *surf,
 					   int ring)
 {
+	return true;////////////////////
 	//shouldn't have any <-1 or >+1 pt's in contact with ring pt's
 	for(std::list<SurfPt*>::iterator pit=surf->pts2.begin();
 		pit!=surf->pts2.end();
@@ -10102,12 +10103,12 @@ bool CheckCompleteRing(Surf *surf,
 
 				if(p2->ring < ring-1)
 				{
-					ErrMess("asdsd","c<-1");
+					//ErrMess("asdsd","c<-1");
 					goto desc;
 				}
 				if(p2->ring > ring+1)
 				{
-					ErrMess("asdasd","c>+1");
+					//ErrMess("asdasd","c>+1");
 					goto desc;
 				}
 
@@ -10123,13 +10124,34 @@ desc:
 					het->neib[0]->file,
 					het->neib[1]->file,
 					het->neib[2]->file);
-					ErrMess(mm,mm);
+				//ErrMess(mm,mm);
 				return false;
 			}
 		}
 	}
 
 	return true;
+}
+
+
+/*
+determine if emergence in sphere really breaks triangle
+relations using spherical normal triangle.
+*/
+Vec3f AvgTriVx(Tet *tet)
+{
+	Vec3f avg;
+
+	return avg;
+}
+
+Vec3f SphereTriNorm(Tet *tet)
+{
+	Vec3f n;
+
+	
+
+	return n;
 }
 
 /*
@@ -10146,6 +10168,7 @@ bool TestE(Surf *surf,
 		   SurfPt *ig2,
 		   bool silent)
 {
+	return false;///////////////
 	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
 		tit!=surf->tets2.end();
 		++tit)
@@ -10497,6 +10520,7 @@ again:
 
 ///////////////////////////
 
+#if 0
 		Vec3f test[3];
 		test[0] = tet->neib[0]->wrappos;
 		test[1] = tet->neib[1]->wrappos;
@@ -10597,7 +10621,7 @@ again:
 				//	Dot( Normalize(i0 - in[vl]->wrappos), Normalize( in[(vl+1)%3]->wrappos - in[vl]->wrappos ) );
 				//float outdot = 
 				//	Dot( Normalize(i1 - in[vl]->wrappos), Normalize( in[(vl+1)%3]->wrappos - in[vl]->wrappos ) );
-#if 1
+#if 0
 				char mm[1233];
 				sprintf(mm, "\r\n call%d inov2 vp=%d vl=%d cw=%d notsame=%d \r\n "\
 					"collider discw=%d ring=%d,%d,%d file=%d,%d,%d \r\n "\
@@ -10688,6 +10712,7 @@ again:
 			}
 
 		}
+#endif
 
 		static int app = 0;
 		app++;
@@ -10820,6 +10845,7 @@ void PreEmTest(Surf *surf,
 			Vec3f place,
 			Vec3f place2)
 {
+	return;////////
 
 	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
 		tit!=surf->tets2.end();
@@ -11150,10 +11176,10 @@ bool TryJump(Surf *surf, SurfPt *frompt, SurfPt **topt)
 			//if cw=false then frompt,parpt actually go parpt,frompt
 			NextEmerge(surf, frompt, het->neib[parvi], *topt, cw, &emerge, &emerge2);
 				//pre-emerge clearing
-			for(float ci=0; ci<11; ci+=1)
-				Emerge3(surf, (frompt->wrappos*ci+parpt->wrappos*(11-ci))/11.0f, 15);
-			for(float ci=0; ci<11; ci+=1)
-				Emerge3(surf, (emerge*(ci)+frompt->wrappos*(11-ci))/11.0f, 15);
+			//for(float ci=0; ci<11; ci+=1)
+			//	Emerge3(surf, (frompt->wrappos*ci+parpt->wrappos*(11-ci))/11.0f, 15);
+			//for(float ci=0; ci<11; ci+=1)
+			//	Emerge3(surf, (emerge*(ci)+frompt->wrappos*(11-ci))/11.0f, 15);
 			Emerge2(surf, *topt, frompt, het->neib[parvi], emerge, emerge2);
 
 #if 01
@@ -11166,7 +11192,7 @@ bool TryJump(Surf *surf, SurfPt *frompt, SurfPt **topt)
 
 			if(!CheckCompleteRing(surf, (*topt)->ring))
 			{
-				ErrMess("!c","!ctj");
+				//ErrMess("!c","!ctj");
 				
 				char mm[1234];
 				sprintf(mm, 
@@ -11177,7 +11203,7 @@ bool TryJump(Surf *surf, SurfPt *frompt, SurfPt **topt)
 					het->neib[0]->file,
 					het->neib[1]->file,
 					het->neib[2]->file);
-					ErrMess(mm,mm);
+				//ErrMess(mm,mm);
 			}
 
 			TestD(surf, frompt, het->neib[parvi], *topt);
@@ -11319,7 +11345,7 @@ tryset:
 
 				if(!hp->checked)
 				{
-					ErrMess("gap","gap, possibly non-flat non-fan, \r\n possibly unfinished ring");
+					//ErrMess("gap","gap, possibly non-flat non-fan, \r\n possibly unfinished ring");
 				}
 			}
 		}
@@ -11416,8 +11442,8 @@ bool LowJump(Surf *surf, SurfPt *frompt, SurfPt **rep)
 				//pre-emerge clearing
 			//for(float ci=0; ci<11; ci+=1)
 			//	Emerge3(surf, (par2->wrappos*ci+par1->wrappos*(11-ci))/11.0f, 15);
-			for(float ci=0; ci<11; ci+=1)
-				Emerge3(surf, (emerge*ci+frompt->wrappos*(11-ci))/11.0f, 15);
+			//for(float ci=0; ci<11; ci+=1)
+			//	Emerge3(surf, (emerge*ci+frompt->wrappos*(11-ci))/11.0f, 15);
 			Emerge2(surf, *rep, par1, par2, emerge, emerge2);
 			
 			
@@ -11432,7 +11458,7 @@ bool LowJump(Surf *surf, SurfPt *frompt, SurfPt **rep)
 
 			if(!CheckCompleteRing(surf, (*rep)->ring))
 			{
-				ErrMess("!c","!clj");
+				//ErrMess("!c","!clj");
 			}
 
 
@@ -11542,10 +11568,10 @@ bool MissJump(Surf *surf, SurfPt **rep)
 				Vec3f emerge2;
 				NextEmerge(surf, par1, par2, *rep, cw, &emerge, &emerge2);
 				//pre-emerge clearing
-				for(float ci=0; ci<11; ci+=1)
-					Emerge3(surf, (par1->wrappos*ci+par2->wrappos*(11-ci))/11.0f, 15);
-				for(float ci=0; ci<11; ci+=1)
-					Emerge3(surf, (emerge*ci+par2->wrappos*(11-ci))/11.0f, 15);
+				//for(float ci=0; ci<11; ci+=1)
+				//	Emerge3(surf, (par1->wrappos*ci+par2->wrappos*(11-ci))/11.0f, 15);
+				//for(float ci=0; ci<11; ci+=1)
+				//	Emerge3(surf, (emerge*ci+par2->wrappos*(11-ci))/11.0f, 15);
 				Emerge2(surf, *rep, par1, par2, emerge, emerge2);
 				
 #if 01
@@ -11558,7 +11584,7 @@ bool MissJump(Surf *surf, SurfPt **rep)
 				
 			if(!CheckCompleteRing(surf, (*rep)->ring))
 			{
-				ErrMess("!c","!cmj");
+				//ErrMess("!c","!cmj");
 			}
 
 				
