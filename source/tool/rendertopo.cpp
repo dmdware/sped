@@ -10133,25 +10133,58 @@ desc:
 	return true;
 }
 
-
 /*
-determine if emergence in sphere really breaks triangle
-relations using spherical normal triangle.
+get axis-angle rotation to turn p1 to p2,
+which is also the shortest path along the sphere
+between p1 and p2.
 */
-Vec3f AvgTriVx(Tet *tet)
+void ShortPath(Vec3f p1, Vec3f p2, float *angle, Vec3f *axis)
 {
-	Vec3f avg;
+	*angle = AngleBetweenVectors(p1, p2);
+	*axis = Cross(p1, p2);
 
-	return avg;
+	if( Magnitude( p1 - Rotate(p2, *angle, axis.x, axis.y, axis.z) ) <
+		Magnitude( p2 - Rotate(p1, *angle, axis.x, axis.y, axis.z) ))
+	{
+		*axis = Vec3f(0,0,0) - *axis;	//invert
+	}
 }
 
-Vec3f SphereTriNorm(Tet *tet)
+void ShortPathSigned(Vec3f p1, Vec3f p2, float *angle, Vec3f *axis)
 {
-	Vec3f n;
+	*angle = AngleBetweenVectors(p1, p2);
+	*axis = Cross(p1, p2);
 
-	
+#if 0
+	if( Magnitude( p1 - Rotate(p2, *angle, axis.x, axis.y, axis.z) ) <
+		Magnitude( p2 - Rotate(p1, *angle, axis.x, axis.y, axis.z) ))
+	{
+		*axis = Vec3f(0,0,0) - *axis;	//invert
+	}
+#endif
+	//don't try to get absolute value here
+	//this is for determining winding (clockwise/counter) using order of points of spherical triangle
+}
 
-	return n;
+/*
+assuming there is an intersection between these two paths along the sphere,
+get their intersecion.
+*/
+void PathIntersect(Vec3f start1, Vec3f start2, 
+					Vec3f end1, Vec3f end2,
+					float angle1, float angle2,
+					float *subangle1, float *subangle2,
+					Vec3f *subvec)
+{
+	/////////////////////
+}
+
+/*
+mid-point along shortest path between p1 and p2 on sphere
+*/
+Vec3f SphMidPt(Vec3f p1, Vec3f p2)
+{
+
 }
 
 /*
