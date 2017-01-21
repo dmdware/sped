@@ -1684,6 +1684,7 @@ was done incorrectly when clipping a triangle in two or splitting a quad into tr
 */
 bool WeirdTest(Surf *surf, Tet *testt)
 {
+	return false;
 	if(!testt->neib[0])
 		return false;
 	if(!testt->neib[1])
@@ -11815,6 +11816,8 @@ bool MapGlobe4(Surf *surf)
 		tet->neib[2]->wrappos = tet->neib[2]->pos;
 	}
 
+	//return true;
+
 again:
 
 	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
@@ -12041,7 +12044,7 @@ pull:
 				continue;
 	
 			tet->neib[v]->wrappos = 
-				tet->neib[v]->wrappos + updir * 0.1f + outdir;
+				tet->neib[v]->wrappos + updir * 0.01f + outdir;
 		}
 
 		chpull = true;
@@ -12050,7 +12053,10 @@ pull:
 	//if(chpull)
 	//	goto iteratepull;
 	if(chpull)
+	{
+		//Balance4(surf);
 		goto again;
+	}
 
 	return true;
 }

@@ -259,6 +259,6 @@ public:
 };
 
 
-#define CLOSEPOSF	0.1f
+#define CLOSEPOSF	0.001f
 
 #endif
