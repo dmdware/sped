@@ -10138,27 +10138,29 @@ get axis-angle rotation to turn p1 to p2,
 which is also the shortest path along the sphere
 between p1 and p2.
 */
-void ShortPath(Vec3f p1, Vec3f p2, float *angle, Vec3f *axis)
+void ShortestPath(Vec3f p1, Vec3f p2, float *angle, Vec3f *axis)
 {
 	*angle = AngleBetweenVectors(p1, p2);
 	*axis = Cross(p1, p2);
 
-	if( Magnitude( p1 - Rotate(p2, *angle, axis.x, axis.y, axis.z) ) <
-		Magnitude( p2 - Rotate(p1, *angle, axis.x, axis.y, axis.z) ))
+	if( Magnitude( p1 - Rotate(p2, *angle, axis->x, axis->y, axis->z) ) <
+		Magnitude( p2 - Rotate(p1, *angle, axis->x, axis->y, axis->z) ))
 	{
 		*axis = Vec3f(0,0,0) - *axis;	//invert
 	}
 }
 
-void ShortPathSigned(Vec3f p1, Vec3f p2, float *angle, Vec3f *axis)
+void ShortestPathSigned(Vec3f p1, Vec3f p2, float *angle, Vec3f *axis, bool *inv)
 {
 	*angle = AngleBetweenVectors(p1, p2);
 	*axis = Cross(p1, p2);
+	*inv = false;
 
-#if 0
-	if( Magnitude( p1 - Rotate(p2, *angle, axis.x, axis.y, axis.z) ) <
-		Magnitude( p2 - Rotate(p1, *angle, axis.x, axis.y, axis.z) ))
+#if 01
+	if( Magnitude( p1 - Rotate(p2, *angle, axis->x, axis->y, axis->z) ) <
+		Magnitude( p2 - Rotate(p1, *angle, axis->x, axis->y, axis->z) ))
 	{
+		*inv = true;
 		*axis = Vec3f(0,0,0) - *axis;	//invert
 	}
 #endif
@@ -10173,10 +10175,84 @@ get their intersecion.
 void PathIntersect(Vec3f start1, Vec3f start2, 
 					Vec3f end1, Vec3f end2,
 					float angle1, float angle2,
+					Vec3f axis1, Vec3f axis2,
 					float *subangle1, float *subangle2,
 					Vec3f *subvec)
 {
 	/////////////////////
+	float min1angle = 0;
+	float min2angle = 0;
+	float max1angle = angle1;
+	float max2angle = angle2;
+	Vec3f min1pt = start1;
+	Vec3f min2pt = start2;
+	Vec3f max1pt = end1;
+	Vec3f max2pt = end2;
+
+	while( abs(max1angle - min1angle) >= M_PI*2.0f/10000.0f || 
+		abs(max2angle - min2angle) >= M_PI*2.0f/10000.0f)
+	{
+		float mid1angle = (min1angle + max1angle)/2.0f;
+		float mid2angle = (min2angle + max2angle)/2.0f;
+
+		Vec3f mid1pt = Rotate(start1, mid1angle, axis1.x, axis1.y, axis1.z);
+		Vec3f mid2pt = Rotate(start2, mid2angle, axis2.x, axis2.y, axis2.z);
+
+		Vec3f tri1low[3];
+		Vec3f tri1high[3];
+		
+		Vec3f tri2low[3];
+		Vec3f tri2high[3];
+
+		tri1low[0] = Rotate(start1, min1angle, axis1.x, axis1.y, axis1.z);
+		tri1low[1] = Rotate(start1, mid1angle, axis1.x, axis1.y, axis1.z);
+		tri1low[2] = Normalize( (tri1low[0]+tri1low[1])/2.0f );
+		
+		tri1high[0] = Rotate(start1, mid1angle, axis1.x, axis1.y, axis1.z);
+		tri1high[1] = Rotate(start1, max1angle, axis1.x, axis1.y, axis1.z);
+		tri1high[2] = Normalize( (tri1high[0]+tri1high[1])/2.0f );
+
+		/////////////
+		
+		tri2low[0] = Rotate(start2, min2angle, axis2.x, axis2.y, axis2.z);
+		tri2low[1] = Rotate(start2, mid2angle, axis2.x, axis2.y, axis2.z);
+		tri2low[2] = Normalize( (tri2low[0]+tri2low[1])/2.0f );
+		
+		tri2high[0] = Rotate(start2, mid2angle, axis2.x, axis2.y, axis2.z);
+		tri2high[1] = Rotate(start2, max2angle, axis2.x, axis2.y, axis2.z);
+		tri2high[2] = Normalize( (tri2high[0]+tri2high[1])/2.0f );
+		
+		/////////////
+
+		if(TriTri(tri1low, tri2low))
+		{
+			max1angle = mid1angle;
+			max2angle = mid2angle;
+		}
+		else if(TriTri(tri1low, tri2high))
+		{
+			max1angle = mid1angle;
+			min2angle = mid2angle;
+		}
+		else if(TriTri(tri1high, tri2low))
+		{
+			min1angle = mid1angle;
+			max2angle = mid2angle;
+		}
+		else if(TriTri(tri1high, tri2high))
+		{
+			min1angle = mid1angle;
+			min2angle = mid2angle;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	*subangle1 = (min1angle+max1angle)/2.0f;
+	*subangle2 = (min2angle+max2angle)/2.0f;
+	*subvec = Rotate(start1, *subangle1, axis1.x, axis1.y, axis1.z);
 }
 
 /*
@@ -10553,12 +10629,13 @@ again:
 
 ///////////////////////////
 
-#if 0
+#if 01	//exit//
 		Vec3f test[3];
 		test[0] = tet->neib[0]->wrappos;
 		test[1] = tet->neib[1]->wrappos;
 		test[2] = tet->neib[2]->wrappos;
 
+#if 0
 		Vec3f trinorm = Normal( test );
 		Vec3f cennorm = Normalize( (tet->neib[0]->wrappos + tet->neib[1]->wrappos + tet->neib[2]->wrappos)/3.0f );
 
@@ -10595,7 +10672,7 @@ again:
 				Dot(cennorm, trinorm));
 			fflush(g_applog);
 		}
-
+#endif
 		//if(discw)	//error
 		//	ErrMess("asd","nn!");
 
@@ -10609,8 +10686,8 @@ again:
 			palong[v] = Normalize( tet->neib[e2]->wrappos - tet->neib[e1]->wrappos );
 			pnorm[v] = Cross( palong[v], pup[v] );//cw
 			pnorm[v] = Normalize( pnorm[v] );
-			if(discw)
-				pnorm[v] = Vec3f(0,0,0) - pnorm[v];
+			///if(discw)
+			/////	pnorm[v] = Vec3f(0,0,0) - pnorm[v];
 			Vec3f inoff = pnorm[v] * 0.4f;
 			MakePlane(&plane[v].m_normal, &plane[v].m_d, tet->neib[e1]->wrappos + inoff, pnorm[v]);
 			//bool discw = false;
@@ -10729,6 +10806,9 @@ again:
 				*emerge = midp2 * 1000 + dir * len * 1;
 				*emerge2 = midp2 * 1000 - dir * len * 1;
 
+				//Vec3f off = Vec3f(rand()%21-10, rand()%21-10, rand()%21-10);
+				//*emerge = Normalize( *emerge + off ) * 1000;
+
 				//Vec3f line[2][2];
 				line[0][0] = frompt->wrappos + ndir[0] * 0.1f;
 				line[0][1] = ( *emerge ) - ndir[0] * 0.1f;
@@ -10740,7 +10820,7 @@ again:
 				line[3][0] = parpt->wrappos + ndir[1] * 0.1f;
 				line[3][1] = ( *emerge2 ) - ndir[1] * 0.1f;
 
-				exit(0);
+				//exit(0);
 				goto again;
 			}
 
@@ -10991,7 +11071,7 @@ void Emerge3(Surf *surf,
 		
 		float amt = (1.0f + Dot( Normalize(sp->wrappos), Normalize(place) ))/2.0f;
 
-#if 0
+#if 01
 		amt = exp(amt);
 		amt -= 1;
 #define E	(2.7182818284590452353602874713526624977572470937L)
@@ -11072,7 +11152,7 @@ void Emerge2(Surf *surf,
 		
 		float amt = (1.0f + Dot( Normalize(sp->wrappos), Normalize(place) ))/2.0f;
 
-#if 0
+#if 01
 		amt = exp(amt);
 		amt -= 1;
 #define E	(2.7182818284590452353602874713526624977572470937L)
@@ -11081,6 +11161,7 @@ void Emerge2(Surf *surf,
 
 		sp->wrappos = Rotate(sp->wrappos, M_PI * amt / div, sidevec.x, sidevec.y, sidevec.z);
 
+#if 0
 		fprintf(g_applog, "\r\n em2 sp->wrappos %f,%f,%f from %f,%f,%f \r\n",
 			sp->wrappos.x,
 			sp->wrappos.y,
@@ -11089,6 +11170,7 @@ void Emerge2(Surf *surf,
 			sp->prevwrap.y,
 			sp->prevwrap.z);
 		fflush(g_applog);
+#endif
 	}
 
 	if(esp)
@@ -11097,6 +11179,7 @@ void Emerge2(Surf *surf,
 		esp->prevwrap = place;
 		esp->wrappos = place;
 		
+#if 0
 		fprintf(g_applog, "\r\n em2 esp->wrappos %f,%f,%f from %f,%f,%f \r\n",
 			esp->wrappos.x,
 			esp->wrappos.y,
@@ -11105,6 +11188,7 @@ void Emerge2(Surf *surf,
 			esp->prevwrap.y,
 			esp->prevwrap.z);
 		fflush(g_applog);
+#endif
 	}
 
 	TestE(surf, place, ig1, ig2);
@@ -11212,7 +11296,7 @@ bool TryJump(Surf *surf, SurfPt *frompt, SurfPt **topt)
 			//for(float ci=0; ci<11; ci+=1)
 			//	Emerge3(surf, (frompt->wrappos*ci+parpt->wrappos*(11-ci))/11.0f, 15);
 			//for(float ci=0; ci<11; ci+=1)
-			//	Emerge3(surf, (emerge*(ci)+frompt->wrappos*(11-ci))/11.0f, 15);
+			//	Emerge3(surf, (emerge*(ci)+frompt->wrappos*(11-ci))/11.0f, 150);
 			Emerge2(surf, *topt, frompt, het->neib[parvi], emerge, emerge2);
 
 #if 01
@@ -11476,7 +11560,7 @@ bool LowJump(Surf *surf, SurfPt *frompt, SurfPt **rep)
 			//for(float ci=0; ci<11; ci+=1)
 			//	Emerge3(surf, (par2->wrappos*ci+par1->wrappos*(11-ci))/11.0f, 15);
 			//for(float ci=0; ci<11; ci+=1)
-			//	Emerge3(surf, (emerge*ci+frompt->wrappos*(11-ci))/11.0f, 15);
+			//	Emerge3(surf, (emerge*ci+frompt->wrappos*(11-ci))/11.0f, 150);
 			Emerge2(surf, *rep, par1, par2, emerge, emerge2);
 			
 			
@@ -11604,7 +11688,7 @@ bool MissJump(Surf *surf, SurfPt **rep)
 				//for(float ci=0; ci<11; ci+=1)
 				//	Emerge3(surf, (par1->wrappos*ci+par2->wrappos*(11-ci))/11.0f, 15);
 				//for(float ci=0; ci<11; ci+=1)
-				//	Emerge3(surf, (emerge*ci+par2->wrappos*(11-ci))/11.0f, 15);
+				//	Emerge3(surf, (emerge*ci+par2->wrappos*(11-ci))/11.0f, 150);
 				Emerge2(surf, *rep, par1, par2, emerge, emerge2);
 				
 #if 01
@@ -11711,6 +11795,262 @@ trymiss:
 		else
 			goto trymiss;
 	}
+
+	return true;
+}
+
+//by method of up and pull attraction of tets
+bool MapGlobe4(Surf *surf)
+{
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet *tet = *tit;
+		tet->hidden = true;
+		tet->strength = 0;
+
+		tet->neib[0]->wrappos = tet->neib[0]->pos;
+		tet->neib[1]->wrappos = tet->neib[1]->pos;
+		tet->neib[2]->wrappos = tet->neib[2]->pos;
+	}
+
+again:
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet *tet = *tit;
+		tet->hidden = true;
+		tet->strength = 0;
+
+		Vec3f tri[3];
+
+		tri[0] = tet->neib[0]->wrappos;
+		tri[1] = tet->neib[1]->wrappos;
+		tri[2] = tet->neib[2]->wrappos;
+
+		Vec3f n = Normal(tri);
+
+		Vec3f line[3][2][2];	//vert line,reverse order,line point,
+		////////////////
+		line[0][0][0] = (tri[0]+tri[1]+tri[2])/3.0f + n*0.2f;
+		line[0][0][1] = line[0][0][0] - n*30000;
+
+		line[0][1][1] = (tri[0]+tri[1]+tri[2])/3.0f  + n*0.2f;
+		line[0][1][0] = line[0][1][1] + n*30000;
+		/////////////////
+	#if 1
+		line[1][0][0] = (tri[1]*2.0f/3.0f+tri[2]*1.0f/3.0f)/1.0f + n*0.2f;
+		line[1][0][1] = line[1][0][0] + n*30000;
+
+		line[1][1][1] = (tri[1]*2.0f/3.0f+tri[2]*1.0f/3.0f)/1.0f + n*0.2f;
+		line[1][1][0] = line[1][1][1] + n*30000;
+		/////////////////
+		line[2][0][0] = (tri[2]*2.0f/3.0f+tri[0]*1.0f/3.0f)/1.0f + n*0.2f;
+		line[2][0][1] = line[2][0][0] + n*30000;
+
+		line[2][1][1] = (tri[2]*2.0f/3.0f+tri[0]*1.0f/3.0f)/1.0f + n*0.2f;
+		line[2][1][0] = line[2][1][1] + n*30000;
+		////////////
+	#endif
+
+		LoadedTex *tex, *texn, *texs;
+		Vec2f texc;
+		Vec3f wp, rp, rn;
+		Tet *rtet;
+		double fU,fV;
+
+		if( (!TraceRay3(surf,
+			line[0][0],
+			&tex,
+			&texs,
+			&texn,
+			&texc,
+			&wp,
+			&rp,
+			&rn,
+			&rtet,
+			&fU, &fV) &&
+			!TraceRay3(surf,
+			line[0][1],
+			&tex,
+			&texs,
+			&texn,
+			&texc,
+			&wp,
+			&rp,
+			&rn,
+			&rtet,
+			&fU, &fV)
+			&&
+			!TraceRay3(surf,
+			line[1][0],
+			&tex,
+			&texs,
+			&texn,
+			&texc,
+			&wp,
+			&rp,
+			&rn,
+			&rtet,
+			&fU, &fV)&&
+			!TraceRay3(surf,
+			line[1][1],
+			&tex,
+			&texs,
+			&texn,
+			&texc,
+			&wp,
+			&rp,
+			&rn,
+			&rtet,
+			&fU, &fV)&&
+			!TraceRay3(surf,
+			line[2][0],
+			&tex,
+			&texs,
+			&texn,
+			&texc,
+			&wp,
+			&rp,
+			&rn,
+			&rtet,
+			&fU, &fV)&&
+			!TraceRay3(surf,
+			line[2][1],
+			&tex,
+			&texs,
+			&texn,
+			&texc,
+			&wp,
+			&rp,
+			&rn,
+			&rtet,
+			&fU, &fV))
+			)
+		{
+			tet->hidden = false;
+			tet->strength = 1;
+		}
+	}
+
+iteratepull:
+
+	bool chpull = false;
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet *tet = *tit;
+
+		if(!tet->hidden)
+			continue;
+
+		Tet *nearout = NULL;
+
+		for(int v=0; v<3; v++)
+		{
+			SurfPt *sp = tet->neib[v];
+
+			for(std::list<Tet*>::iterator hit=sp->holder.begin();
+				hit!=sp->holder.end();
+				++hit)
+			{
+				Tet *het = *hit;
+
+				if(!het->hidden)
+				{
+					nearout = het;
+					goto getinfo;
+				}
+			}
+		}
+
+getinfo:
+
+		if(!nearout)
+			continue;
+
+		bool sharep[3] = {false,false,false};
+
+		for(int v=0; v<3; v++)
+		{
+			SurfPt *sp = tet->neib[v];
+
+			for(std::list<Tet*>::iterator hit=sp->holder.begin();
+				hit!=sp->holder.end();
+				++hit)
+			{
+				Tet *het = *hit;
+
+				if(het == nearout)
+					sharep[v] = true;
+			}
+		}
+
+pull:
+
+		Vec3f outdir;
+		Vec3f updir;
+
+		Vec3f closerin;
+		Vec3f closerout;
+
+		float ninc = 0;
+		float noutc = 0;
+
+		for(int v=0; v<3; v++)
+		{
+			if(sharep[v])
+			{
+				closerout = (closerout * noutc + tet->neib[v]->wrappos * 1) / (noutc + 1);
+				noutc += 1;
+			}
+			else
+			{
+				closerin = (closerin * ninc + tet->neib[v]->wrappos * 1) / (ninc + 1);
+				ninc += 1;
+			}
+		}
+
+		outdir = closerout - closerin;
+	
+		Vec3f noutdir = Normalize(outdir);
+#if 0
+		Vec3f surfdir = tet->neib[1]->wrappos - tet->neib[0]->wrappos;
+
+		if(Magnitude(surfdir - outdir) <= 0.1f)
+			surfdir = tet->neib[2]->wrappos - tet->neib[1]->wrappos;
+
+		Vec3f nsurfdir = Normalize(surfdir);
+#endif
+
+		Vec3f tri[3];
+		tri[0] - tet->neib[0]->wrappos;
+		tri[1] - tet->neib[1]->wrappos;
+		tri[2] - tet->neib[2]->wrappos;
+
+		updir = Normal( tri );
+
+		for(int v=0; v<3; v++)
+		{
+			if(sharep[v])
+				continue;
+	
+			tet->neib[v]->wrappos = 
+				tet->neib[v]->wrappos + updir * 0.1f + outdir;
+		}
+
+		chpull = true;
+	}
+
+	//if(chpull)
+	//	goto iteratepull;
+	if(chpull)
+		goto again;
 
 	return true;
 }
@@ -12220,14 +12560,16 @@ bool MapGlobe(Surf *surf)
 			if(ISNAN(pt->pos.z))
 				ErrMess("yhjgjf","wpnnz");
 			Vec3f wrappos = pt->pos;
-			float yaw = atan2(wrappos.x, wrappos.z);
+			//float yaw = atan2(wrappos.x, wrappos.z);
+			float yaw = 0.5f + atan2(wrappos.z, wrappos.x) / (2.0f*M_PI);
 			if(ISNAN(yaw))
 				ErrMess("asdsdg","nanyaw");
 			//tan(0)=op/adj=0/1
 			//fprintf(g_applog, "prepos1 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
-			wrappos = Rotate(wrappos, yaw, 0, 1, 0);
+			//wrappos = Rotate(wrappos, yaw, 0, 1, 0);
 			//fprintf(g_applog, "prepos2 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
-			float lat = atan2(wrappos.y, wrappos.x);
+			//float lat = atan2(wrappos.y, wrappos.x);
+			float lat = 0.5f - asin(wrappos.y)/M_PI;
 			if(ISNAN(lat))
 				ErrMess("asdsdg","nanlat");
 			pt->orc.x = yaw / (2.0f * M_PI);
@@ -12987,9 +13329,20 @@ again3:
 			SurfPt *pt = tet->neib[v];
 			pt->placed = true;
 			Vec3f wrappos = pt->wrappos;
-			float yaw = atan2(wrappos.x, wrappos.z);
-			wrappos = Rotate(wrappos, yaw, 0, 1, 0);
-			float lat = atan2(wrappos.y, wrappos.x);
+			//float yaw = atan2(wrappos.x, wrappos.z);
+			//wrappos = Rotate(wrappos, yaw, 0, 1, 0);
+			//float lat = atan2(wrappos.y, wrappos.x);
+			
+			float yaw = 0.5f + atan2(wrappos.z, wrappos.x) / (2.0f*M_PI);
+			if(ISNAN(yaw))
+				ErrMess("asdsdg","nanyaw");
+			//tan(0)=op/adj=0/1
+			//fprintf(g_applog, "prepos1 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
+			//wrappos = Rotate(wrappos, yaw, 0, 1, 0);
+			//fprintf(g_applog, "prepos2 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
+			//float lat = atan2(wrappos.y, wrappos.x);
+			float lat = 0.5f - asin(wrappos.y)/M_PI;
+
 			pt->orc.x = yaw / (2.0f * M_PI);
 			pt->orc.y = lat / (1.0f * M_PI);
 
@@ -13034,6 +13387,58 @@ again3:
 
 
 	return true;
+}
+
+void OutMesh(Surf *surf)
+{
+	return;
+
+	fprintf(g_applog, "\r\n \r\n =========== OUT MESH: ========= \r\n \r\n");
+
+	fprintf(g_applog, "\r\n tets: %d, pt's: %d \r\n ", (int)surf->tets2.size(), (int)surf->pts2.size());
+	fflush(g_applog);
+
+	int tin = 0;
+
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit, ++tin)
+	{
+		
+		fprintf(g_applog, "\r\n \r\n------------- tet %d: ----------------- \r\n \r\n", tin);
+		Tet *tet = *tit;
+
+		int erpn = 0;
+
+		for(int v=0; v<3; v++)
+		{
+			SurfPt *sp = tet->neib[v];
+
+			fprintf(g_applog, "\r\n neib[%d] = rp:%f,%f,%f \r\n",
+				v,
+				sp->pos.x,
+				sp->pos.y,
+				sp->pos.z);
+			fflush(g_applog);
+
+			if(sp->pos.x >= -150 &&
+				sp->pos.x <= 150 &&
+				sp->pos.y >= 0 &&
+				sp->pos.y <= 100 &&
+				sp->pos.z >= -550 &&
+				sp->pos.z <= 250)
+			{
+				erpn++;
+				fprintf(g_applog, "erp^^^%d\r\n", erpn);
+				fflush(g_applog);
+			}
+		}
+
+		fflush(g_applog);
+	}
+	
+	fprintf(g_applog, "\r\n \r\n =========== OUT MESH^ ========= \r\n \r\n");
+	fflush(g_applog);
 }
 
 void OrRender(int rendstage, Vec3f offset)
@@ -13107,13 +13512,14 @@ with another triangle, there will be free floating vertices!
 		//if(!SplitEdges(&g_surf, &g_fullsurf, &vmin, &vmax, BIGTEX*BIGTEX))
 		//	break;
 		//Test2(&surf);
+		OutMesh(&g_surf);
 	fprintf(g_applog, "\r\n888111\r\n");
 	fflush(g_applog);
 	//	if(!GrowMapMesh(&surf, &fullsurf, &vmin, &vmax))
 	//		break;
 	//	if(!JoinPts2(&g_surf, &g_fullsurf))
 	//		break;
-	if(!MapGlobe3(&g_surf))
+	if(!MapGlobe4(&g_surf))
 		break;
 
 	LoadedTex outtex[6];

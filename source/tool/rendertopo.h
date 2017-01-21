@@ -227,6 +227,9 @@ public:
 	float file;
 	int extdir;
 
+	float strength;	//attraction
+	Vec3f pull;
+
 	Tet()
 	{
 		ring = -1;
