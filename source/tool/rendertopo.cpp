@@ -4602,6 +4602,7 @@ again:
 				continue;
 			if((*tit1)->neib[vin]->holder.size() < 3)
 			{
+#if 0
 				char mm[1234];
 				sprintf(mm, "\r\n hs<3 =%d \r\n"\
 					"vin=%d \r\n"\
@@ -4612,6 +4613,7 @@ again:
 					(*tit1)->neib[vin]->pos.y,
 					(*tit1)->neib[vin]->pos.z);
 				ErrMess(mm,mm);
+#endif
 				int c=0;
 				for(std::list<Tet*>::iterator tit2=surf->tets2.begin();
 					tit2!=surf->tets2.end();
