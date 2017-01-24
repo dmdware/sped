@@ -11838,6 +11838,7 @@ again:
 
 		Vec3f line[3][2][2];	//vert line,reverse order,line point,
 		////////////////
+#if 0
 		line[0][0][0] = (tri[0]+tri[1]+tri[2])/3.0f + n*0.2f;
 		line[0][0][1] = line[0][0][0] - n*30000;
 
@@ -11858,6 +11859,26 @@ again:
 		line[2][1][0] = line[2][1][1] + n*30000;
 		////////////
 	#endif
+#else
+		
+		line[0][0][0] = (tri[0]) + n*30000;
+		line[0][0][1] = Vec3f(0,0,0);
+
+		line[0][1][1] = (tri[0]) + n*30000;
+		line[0][1][0] = Vec3f(0,0,0);
+		/////////////////
+		line[1][0][0] = tri[1] + n*30000;
+		line[1][0][1] = Vec3f(0,0,0);
+
+		line[1][1][1] = tri[1] + n*30000;
+		line[1][1][0] = Vec3f(0,0,0);
+		/////////////////
+		line[2][0][0] = tri[2] + n*30000;
+		line[2][0][1] = Vec3f(0,0,0);
+
+		line[2][1][1] = tri[2] + n*30000;
+		line[2][1][0] = Vec3f(0,0,0);
+#endif
 
 		LoadedTex *tex, *texn, *texs;
 		Vec2f texc;
@@ -12054,7 +12075,7 @@ pull:
 	//	goto iteratepull;
 	if(chpull)
 	{
-		//Balance4(surf);
+		Balance4(surf);
 		goto again;
 	}
 
