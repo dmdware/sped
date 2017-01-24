@@ -475,8 +475,8 @@ void LoadConfig()
 
     ifstream f(cfgfull);
     std::string line;
-    char keystr[32];
-    char actstr[32];
+    char keystr[128];
+    char actstr[128];
 
     while(!f.eof())
     {
@@ -516,6 +516,34 @@ void LoadConfig()
 		else if(stricmp(keystr, "export_team") == 0)			g_exportteam = valueb;
 		else if(stricmp(keystr, "hide_tex_err") == 0)			g_hidetexerr = valueb;
 		else if(stricmp(keystr, "tile_rise_cm") == 0)			g_tilerisecm = valuef;
+		else if(stricmp(keystr, "orientability_jump_plane_width_pixels") == 0)
+		{			
+			g_orwpx = valuei;
+			//g_bigtex = imax( g_orwpx, g_orhpx ) * imax( g_orlons, g_orlats );
+		}
+
+		else if(stricmp(keystr, "orientability_jump_plane_height_pixels") == 0)
+		{			
+			g_orhpx = valuei;
+			//g_bigtex = imax( g_orwpx, g_orhpx ) * imax( g_orlons, g_orlats );
+		}
+
+		else if(stricmp(keystr, "orientability_jump_longitudes") == 0)
+		{			
+			g_orlons = valuei;
+			//g_bigtex = imax( g_orwpx, g_orhpx ) * imax( g_orlons, g_orlats );
+		}
+
+		else if(stricmp(keystr, "orientability_jump_latitudes") == 0)
+		{			
+			g_orlats = valuei;
+			//g_bigtex = imax( g_orwpx, g_orhpx ) * imax( g_orlons, g_orlats );
+		}
+		else if(stricmp(keystr, "orientability_maps_size") == 0)
+		{			
+			g_bigtex = valuei;
+			//g_bigtex = imax( g_orwpx, g_orhpx ) * imax( g_orlons, g_orlats );
+		}
     }
 }
 

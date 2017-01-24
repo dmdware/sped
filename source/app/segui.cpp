@@ -360,11 +360,12 @@ void Click_ExportTopo()
 	InfoMess("Info",
 		"Orientability maps are an experimental new feature.\r\n"\
 		"Avoid overlapping polygons, inner chasms, small details, detatched triangles, holes, and complex, non-orientable concavity.\r\n"\
-		"Try with a small example to see how long it takes to generate as it can take up to hours or days.");
+		"Try with a small example to see how long it takes to generate as it can take up to hours or days.\r\n"\
+		"Adjust the \"orientability_\" variables in config.ini to adjust the size of the jump/islands table and/or the color and position map size.");
 
-	//if(!SaveFileDialog(initdir, filepath))
-	//	return;
-	FullPath("render/hdfssdfg", filepath);
+	if(!SaveFileDialog(initdir, filepath))
+		return;
+	//FullPath("render/hdfssdfg", filepath);
 
 	//CorrectSlashes(filepath);
 	//CompileMap(filepath, &g_edmap);

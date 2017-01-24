@@ -24,7 +24,12 @@ Surf g_fullsurf;
 
 
 //#define BIGTEX	4096
-#define BIGTEX	256
+//#define BIGTEX	256
+
+int g_bigtex = 4096;
+
+#define BIGTEX	g_bigtex
+
 
 bool g_rendtopo = false;
 
@@ -7363,7 +7368,7 @@ interc:
 		for(int v=0; v<3; v++)
 		{
 			GenTexC(txc[v],
-				tr[0],
+				tr[v],
 				itet->texc,
 				itet->texcpos);
 			//txc[v].x = 
@@ -7616,7 +7621,7 @@ interc:
 		for(int v=0; v<3; v++)
 		{
 			GenTexC(txc[v],
-				tr[0],
+				tr[v],
 				itet->texc,
 				itet->texcpos);
 			//txc[v].x = 
@@ -7879,7 +7884,7 @@ interc:
 		for(int v=0; v<3; v++)
 		{
 			GenTexC(txc[v],
-				tr[0],
+				tr[v],
 				itet->texc,
 				itet->texcpos);
 			//txc[v].x = 
@@ -8191,7 +8196,7 @@ interc:
 		for(int v=0; v<3; v++)
 		{
 			GenTexC(txc[v],
-				tr[0],
+				tr[v],
 				itet->texc,
 				itet->texcpos);
 			//txc[v].x = 
@@ -8460,16 +8465,154 @@ void OutTex2(Surf *surf, LoadedTex* out)
 	}
 	return;
 #endif
-	for(int outpx=0; outpx<BIGTEX; outpx++)
-	{
-		for(int outpy=0; outpy<BIGTEX; outpy++)
-		{
-			bool focus = false;
 
-			if(outpx == 148 && 61 == outpy)
-				focus = true;
-			if(outpx == 133 && 58 == outpy)
-				focus = true;
+	float maxrad = 1;
+
+	//maximum radius (for constructing the "billboard" plane quad)
+	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
+		tit!=surf->tets2.end();
+		++tit)
+	{
+		Tet *tet = *tit;
+
+		for(int v=0; v<3; v++)
+		{
+			SurfPt *sp = tet->neib[v];
+
+			if(Magnitude(sp->pos) >= maxrad)
+				maxrad = Magnitude(sp->pos);
+		}
+	}
+
+	//islands / jump lookup map
+	for(int orlon=0; orlon<g_orlons; orlon++)
+	{
+		for(int orlat=0; orlat<g_orlats; orlat++)
+		{
+			Vec3f up = Vec3f(0,1,0);
+			Vec3f side = Vec3f(1,0,0);
+			Vec3f view = Vec3f(0,0,-1);
+
+			up = Rotate(up, M_PI*(float)orlat/(float)g_orlats-M_PI/2.0f, 1, 0, 0);
+			side = Rotate(side, M_PI*(float)orlat/(float)g_orlats-M_PI/2.0f, 1, 0, 0);
+			view = Rotate(view, M_PI*(float)orlat/(float)g_orlats-M_PI/2.0f, 1, 0, 0);
+
+			up = Rotate(up, M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
+			side = Rotate(side, M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
+			view = Rotate(view, M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
+
+			for(int orxpx=0; orxpx<g_orwpx; orxpx++)
+			{
+				for(int orypx=0; orypx<g_orhpx; orypx++)
+				{
+#if 0
+					int tabi = orxpx + 
+						orypx * g_orwpx +
+						orlat * g_orwpx * g_orhpx + 
+						orlon * g_orwpx * g_orhpx * g_orlats;
+					
+					int tabx = tabi % (g_orwpx * g_orlons);
+					int tabx = tabi % (g_orwpx * g_orlons);
+#endif
+
+					//jump table (islands) index coords
+					int tabx = orxpx + orlon * g_orwpx;
+					int taby = orypx + orlat * g_orhpx;
+
+					//set to "nothing" first (no island known yet)
+					out[1].data[ ( tabx + taby * out[1].sizex ) * 3 + 0] = 0;
+					out[1].data[ ( tabx + taby * out[1].sizex ) * 3 + 1] = 0;
+					out[1].data[ ( tabx + taby * out[1].sizex ) * 3 + 2] = 255;
+
+					//out[1].data
+					Vec3f line[2];
+
+					line[0] = up * -1 * maxrad + side * -1 * maxrad + 
+						up * (float)orypx / (float)g_orhpx * maxrad +
+						side * (float)orxpx / (float)g_orwpx * maxrad;
+
+					line[1] = line[0] +
+						view * maxrad * 2;
+
+					line[0] = line[0] - 
+						view * maxrad * 2;
+	
+					LoadedTex *tex=NULL, *ntex=NULL, *stex=NULL;
+					Vec2f texc;
+					Vec3f wp, rp, n;
+					Tet *tet;
+					double fU, fV;
+
+					//intersection by "pos" (real positions, not wrap positions of unwrap globe)
+					if(TraceRay4(surf,
+						line,
+						&tex,
+						&stex,
+						&ntex,
+						&texc,
+						&wp,&rp,
+						&n,
+						&tet,
+						&fU, &fV))
+					{
+						unsigned char c[4];
+
+						//get wrappos map tex coord from pos intersection tet
+						//and assign that "island's" coord index at the RG(B) at the (tabx,taby) table lookup
+
+						//GenTexC(txc[v],tri3[v],
+						//	tet->texc,tet->texcpos);
+
+						SurfPt *sp[3];
+						sp[0] = tet->neib[0];
+						sp[1] = tet->neib[1];
+						sp[2] = tet->neib[2];
+
+						Vec2f orc = sp[0]->orc * (1 - fU - fV) + 
+							sp[1]->orc * (fU) + 
+							sp[2]->orc * (fV);
+
+						while(orc.x < 0)
+							orc.x += 1;
+						while(orc.x >= 1)
+							orc.x -= 1;
+						while(orc.y < 0)
+							orc.y += 1;
+						while(orc.y >= 1)
+							orc.y -= 1;
+
+						//pixel index
+						unsigned short orci = g_bigtex * orc.x + 
+							g_bigtex * g_bigtex * orc.y;
+
+						unsigned short *outorc = 
+						(unsigned short*)&(out[1].data[ (tabx + taby * out[1].sizex) * 3 + 0]);
+
+						*outorc = orci;
+
+						out[1].data[ (tabx + taby * out[1].sizex) * 3 + 2] = 0;
+					}
+				}
+			}
+		}
+	}
+#if 0
+			AllocTex(&outtex[0], g_bigtex, g_bigtex, 3);	//diffuse
+			AllocTex(&outtex[1], g_orwpx * g_orlons, g_orhpx * g_orlats, 3);	//jump/islands map
+			AllocTex(&outtex[2], g_bigtex, g_bigtex, 3);	//posx
+			AllocTex(&outtex[3], g_bigtex, g_bigtex, 3);	//posy
+			AllocTex(&outtex[4], g_bigtex, g_bigtex, 3);	//posz
+#endif
+	for(int outpx=0; outpx<g_bigtex; outpx++)
+	{
+		for(int outpy=0; outpy<g_bigtex; outpy++)
+		{
+			//bool focus = false;
+
+			//if(outpx == 148 && 61 == outpy)
+			//	focus = true;
+			//if(outpx == 133 && 58 == outpy)
+			//	focus = true;
 
 			Vec3f line[2];
 
@@ -8490,6 +8633,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 			Tet *tet;
 			double fU, fV;
 
+			//collision by globe wrap pos
 			if(TraceRay2(surf,
 				line,
 				&tex,
@@ -8501,6 +8645,11 @@ void OutTex2(Surf *surf, LoadedTex* out)
 				&tet,
 				&fU, &fV))
 			{
+				fprintf(g_applog, "\r\n out texc=%f,%f \r\n",
+					texc.x,
+					texc.y);
+				fflush(g_applog);
+
 				unsigned char c[4];
 
 				//texc.x = texc.x - (int)texc.x;
@@ -8530,9 +8679,9 @@ void OutTex2(Surf *surf, LoadedTex* out)
 		//		unsigned short vy = 30000 + wp.y;
 		//		unsigned short vz = 30000 + wp.z;
 
-				Vec3f trg = Vec3f(255,0,0) * (1 - fU - fV) + 
-					Vec3f(0,255,0) * (fU) + 
-					Vec3f(0,0,255) * (fV);
+//				Vec3f trg = Vec3f(255,0,0) * (1 - fU - fV) + 
+//					Vec3f(0,255,0) * (fU) + 
+//					Vec3f(0,0,255) * (fV);
 
 	//			c[0] = trg.x;
 	//			c[1] = trg.y;
@@ -8541,6 +8690,23 @@ void OutTex2(Surf *surf, LoadedTex* out)
 				out[0].data[ 3 * (outpx + outpy * out[0].sizex) + 0 ] = c[0];
 				out[0].data[ 3 * (outpx + outpy * out[0].sizex) + 1 ] = c[1];
 				out[0].data[ 3 * (outpx + outpy * out[0].sizex) + 2 ] = c[2];
+				
+				*((unsigned short*)&(out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 0 ])) = vx;
+				out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 2 ] = 0;
+				
+				*((unsigned short*)&(out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 0 ])) = vy;
+				out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 2 ] = 0;
+			
+				*((unsigned short*)&(out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 0 ])) = vz;
+				out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 2 ] = 0;
+				
+#if 0
+			AllocTex(&outtex[0], g_bigtex, g_bigtex, 3);	//diffuse
+			AllocTex(&outtex[1], g_orwpx * g_orlons, g_orhpx * g_orlats, 3);	//jump/islands map
+			AllocTex(&outtex[2], g_bigtex, g_bigtex, 3);	//posx
+			AllocTex(&outtex[3], g_bigtex, g_bigtex, 3);	//posy
+			AllocTex(&outtex[4], g_bigtex, g_bigtex, 3);	//posz
+#endif
 /*
 				if(focus)
 				{
@@ -8564,6 +8730,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 					fflush(g_applog);
 				}
 */
+#if 0
 				unsigned short vd = 30000 - Magnitude(rp);
 
 				//if(vx == 30000)
@@ -8689,6 +8856,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 				
 				//*((unsigned short*)&(out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 0 ])) = hash;
 				//out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 2 ] = 0;
+#endif
 			}
 			else
 			{
@@ -13551,12 +13719,13 @@ with another triangle, there will be free floating vertices!
 	if(!MapGlobe4(&g_surf))
 		break;
 
-	LoadedTex outtex[6];
-	for(int i=0; i<6; i++)
+#if 0
+	LoadedTex outtex[8];
+	for(int i=0; i<8; i++)
 		AllocTex(&outtex[i], BIGTEX, BIGTEX, 3);
 	//OutTex(&surf, outtex);
 	OutTex2(&g_surf, outtex);
-	for(int t=0; t<6; t++)
+	for(int t=0; t<8; t++)
 	{
 		char outpath[SPE_MAX_PATH+1];
 		char file[32];
@@ -13565,6 +13734,8 @@ with another triangle, there will be free floating vertices!
 
 		SavePNG2(outpath, &outtex[t]);
 	}
+
+#endif
 
 	fprintf(g_applog, "\r\n888\r\n");
 	fflush(g_applog);
@@ -13578,14 +13749,21 @@ with another triangle, there will be free floating vertices!
 	fprintf(g_applog, "\r\n000\r\n");
 	fflush(g_applog);
 
-	LoadedTex outtex[6];
-	for(int i=0; i<6; i++)
-		AllocTex(&outtex[i], BIGTEX, BIGTEX, 3);
+	LoadedTex outtex[8];
+	//for(int i=0; i<8; i++)
+	//	AllocTex(&outtex[i], BIGTEX, BIGTEX, 3);
+
+	AllocTex(&outtex[0], g_bigtex, g_bigtex, 3);	//diffuse
+	AllocTex(&outtex[1], g_orwpx * g_orlons, g_orhpx * g_orlats, 3);	//jump/islands map
+	AllocTex(&outtex[2], g_bigtex, g_bigtex, 3);	//posx
+	AllocTex(&outtex[3], g_bigtex, g_bigtex, 3);	//posy
+	AllocTex(&outtex[4], g_bigtex, g_bigtex, 3);	//posz
 
 	//OutTex(&surf, outtex);
-	//OutTex2(&g_surf, outtex);
+	OutTex2(&g_surf, outtex);
 
-	for(int t=0; t<6; t++)
+#if 0
+	for(int t=0; t<8; t++)
 	{
 		char outpath[SPE_MAX_PATH+1];
 		char file[32];
@@ -13594,6 +13772,33 @@ with another triangle, there will be free floating vertices!
 
 		//SavePNG2(outpath, &outtex[t]);
 	}
+#else
+	{
+		char outpath[SPE_MAX_PATH+1];
+		sprintf(outpath, "%s_diff.png", g_renderbasename);
+		SavePNG2(outpath, &outtex[0]);
+	}
+	{
+		char outpath[SPE_MAX_PATH+1];
+		sprintf(outpath, "%s_isle.png", g_renderbasename);
+		SavePNG2(outpath, &outtex[1]);
+	}
+	{
+		char outpath[SPE_MAX_PATH+1];
+		sprintf(outpath, "%s_posx.png", g_renderbasename);
+		SavePNG2(outpath, &outtex[2]);
+	}
+	{
+		char outpath[SPE_MAX_PATH+1];
+		sprintf(outpath, "%s_posy.png", g_renderbasename);
+		SavePNG2(outpath, &outtex[3]);
+	}
+	{
+		char outpath[SPE_MAX_PATH+1];
+		sprintf(outpath, "%s_posz.png", g_renderbasename);
+		SavePNG2(outpath, &outtex[4]);
+	}
+#endif
 	InfoMess("Done", "Done rendering orientability map");
 
 	GUI* gui = &g_gui;
@@ -13748,6 +13953,7 @@ void OrRender1(int rendstage, Vec3f offset)
 	int wx = vmax.x - vmin.x;
 	int wy = vmax.y - vmin.y;
 
+#if 001
 	wx = BIGTEX;
 	wy = BIGTEX;
 
@@ -13949,6 +14155,7 @@ void OrRender1(int rendstage, Vec3f offset)
 		}
 	}
 	////////////////////
+#endif
 
 	char fullpath[SPE_MAX_PATH+1];
 

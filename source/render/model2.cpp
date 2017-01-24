@@ -1665,8 +1665,8 @@ lasti=(i>lasti)?i:lasti;
 							tr[1].x, tr[1].y, tr[1].z,
 							tr[2].x, tr[2].y, tr[2].z);
 */
-				if(IntersectedPolygon(tr, line, 3, &ir) ||
-					IntersectedPolygon(tr2, line, 3, &ir)
+				if(IntersectedPolygon(tr, line, 3, &ir) //||
+					//IntersectedPolygon(tr2, line, 3, &ir)
 					)
 				{
 					//if(line[0] == Vec3f(0,-30000,30000))
