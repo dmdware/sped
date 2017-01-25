@@ -88,5 +88,6 @@ void RotateView();
 void EndRender();
 void AllScreenMinMax(Vec2i *vmin, Vec2i *vmax, int width, int height);
 void SaveRender(int rendstage);
+void NameRender(char *fullpath, int rendstage);
 
 #endif

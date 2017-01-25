@@ -1397,9 +1397,33 @@ void SaveRender(int rendstage)
 					finalsprite.data[index + c] = sprite.data[index + c];
 			}
 	}
-
+	
 	char fullpath[SPE_MAX_PATH+1];
+	NameRender(fullpath, rendstage);
+	strcat(fullpath, ".png");
+///
+	SavePNG2(fullpath, &finalsprite);
+	//sprite.channels = 3;
+	//sprintf(fullpath, "%s_si%d_fr%03d-rgb.png", g_renderbasename, g_rendside, g_renderframe);
+	//SavePNG(fullpath, &sprite);
+	
+	finalclipmax.x = finalclipmax.x - finalclipmin.x;
+	finalclipmax.y = finalclipmax.y - finalclipmin.y;
+	finalclipmin.x = 0;
+	finalclipmin.y = 0;
 
+	//sprintf(fullpath, "%s%s%s%s.txt", g_renderbasename, side, frame, incline.c_str());
+	NameRender(fullpath, rendstage);
+	strcat(fullpath, ".txt");
+	std::ofstream ofs(fullpath, std::ios_base::out);
+	ofs<<finalcenter.x<<" "<<finalcenter.y<<std::endl;
+	ofs<<finalimagew<<" "<<finalimageh<<std::endl;
+	ofs<<finalclipsz.x<<" "<<finalclipsz.y<<std::endl;
+	ofs<<finalclipmin.x<<" "<<finalclipmin.y<<" "<<finalclipmax.x<<" "<<finalclipmax.y;
+}
+
+void NameRender(char *fullpath, int rendstage)
+{
 	char frame[32];
 	char side[32];
 	strcpy(frame, "");
@@ -1436,28 +1460,16 @@ void SaveRender(int rendstage)
 
 	std::string stage = "";
 	
-	if(rendstage == RENDSTAGE_TEAM)
-		stage = "_team";
-	else if(rendstage == RENDSTAGE_DEPTH)
-		stage = "_depth";
+	if(!g_rendtopo)
+	{
+		if(rendstage == RENDSTAGE_TEAM)
+			stage = "_team";
+		else if(rendstage == RENDSTAGE_DEPTH)
+			stage = "_depth";
+	}
 
-	sprintf(fullpath, "%s%s%s%s%s.png", g_renderbasename, side, frame, incline.c_str(), stage.c_str());
-	SavePNG2(fullpath, &finalsprite);
-	//sprite.channels = 3;
-	//sprintf(fullpath, "%s_si%d_fr%03d-rgb.png", g_renderbasename, g_rendside, g_renderframe);
-	//SavePNG(fullpath, &sprite);
-	
-	finalclipmax.x = finalclipmax.x - finalclipmin.x;
-	finalclipmax.y = finalclipmax.y - finalclipmin.y;
-	finalclipmin.x = 0;
-	finalclipmin.y = 0;
-
-	sprintf(fullpath, "%s%s%s%s.txt", g_renderbasename, side, frame, incline.c_str());
-	std::ofstream ofs(fullpath, std::ios_base::out);
-	ofs<<finalcenter.x<<" "<<finalcenter.y<<std::endl;
-	ofs<<finalimagew<<" "<<finalimageh<<std::endl;
-	ofs<<finalclipsz.x<<" "<<finalclipsz.y<<std::endl;
-	ofs<<finalclipmin.x<<" "<<finalclipmin.y<<" "<<finalclipmax.x<<" "<<finalclipmax.y;
+	//sprintf(fullpath, "%s%s%s%s%s.png", g_renderbasename, side, frame, incline.c_str(), stage.c_str());
+	sprintf(fullpath, "%s%s%s%s%s", g_renderbasename, side, frame, incline.c_str(), stage.c_str());
 }
 
 void SpriteRender(int rendstage, Vec3f offset)
@@ -1928,6 +1940,9 @@ void UpdateRender()
 
 void EndRender()
 {
+	if(g_rendtopo)
+		InfoMess("Done", "Done rendering orientability map");
+
 	g_mode = EDITOR;
 	g_gui.hideall();
 	//g_gui.show();

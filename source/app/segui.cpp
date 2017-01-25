@@ -2035,6 +2035,16 @@ void Resize_AddTileButton(Widget* thisw)
 	CenterLabel(thisw);
 }
 
+void Resize_ViewTopoButton(Widget* thisw)
+{
+	int i = 17;
+	thisw->m_pos[0] = 0+32*i;
+	thisw->m_pos[1] = 32;
+	thisw->m_pos[2] = 32+32*i;
+	thisw->m_pos[3] = 32 + 32;
+	CenterLabel(thisw);
+}
+
 void Resize_LeadsNECheckBox(Widget* thisw)
 {
 	int i = 16;
@@ -2163,6 +2173,26 @@ void Click_AddTile()
 	g_tiletexs[TEX_SPEC] = specindex;
 	g_tiletexs[TEX_NORM] = normindex;
 	g_tiletexs[TEX_TEAM] = ownindex;
+}
+
+
+void Click_ViewTopo()
+{
+	char filepath[SPE_MAX_PATH+1];
+	char initdir[SPE_MAX_PATH+1];
+	FullPath("renders\\", initdir);
+	CorrectSlashes(initdir);
+	//strcpy(filepath, initdir);
+	FullPath("renders\\render", filepath);
+	CorrectSlashes(filepath);
+
+	if(!OpenFileDialog(initdir, filepath))
+		return;
+
+	//std::string relativepath = MakeRelative(filepath);
+	//CreateTex(diffuseindex, relativepath.c_str(), false, false);
+
+
 }
 
 void Change_Frames(unsigned int key, unsigned int scancode, bool down, int parm)
@@ -2504,6 +2534,8 @@ void FillGUI()
 
 
 	toppanel->add(new Button(toppanel, "addtile", "gui/addtile.png", "", "Add tile texture",					MAINFONT8, BUST_LINEBASED, Resize_AddTileButton, Click_AddTile, NULL, NULL, NULL, NULL, -1, NULL));
+
+	toppanel->add(new Button(toppanel, "viewtopo", "gui/viewtopo.png", "", "View orientability map",			MAINFONT8, BUST_LINEBASED, Resize_ViewTopoButton, Click_ViewTopo, NULL, NULL, NULL, NULL, -1, NULL));
 
 	//toppanel->add(new CheckBox(toppanel, "NE", "Leads NE",													MAINFONT8, Resize_LeadsNECheckBox, 0, 1.0f, 1.0f, 1.0f, 1.0f, &Change_Leads));
 	//toppanel->add(new CheckBox(toppanel, "SE", "Leads SE",													MAINFONT8, Resize_LeadsSECheckBox, 0, 1.0f, 1.0f, 1.0f, 1.0f, &Change_Leads));

@@ -84,6 +84,11 @@ void PrepareTopo(const char* fullpath, int rendtype)
 		fprintf(fp, "rotations %d %d\r\n", g_dorots ? 1 : 0, g_nrendsides);
 	if(g_doinclines)
 		fprintf(fp, "inclines %d\r\n", g_doinclines ? 1 : 0);
+	fprintf(fp, "orientability_jump_plane_width_pixels %d\r\n", g_orwpx);
+	fprintf(fp, "orientability_jump_plane_height_pixels %d\r\n", g_orhpx);
+	fprintf(fp, "orientability_jump_longitudes %d\r\n", g_orlons);
+	fprintf(fp, "orientability_jump_latitudes %d\r\n", g_orlats);
+	fprintf(fp, "orientability_maps_size %d\r\n", g_bigtex);
 	if(fp)
 		fclose(fp);
 }
@@ -13640,6 +13645,26 @@ void OutMesh(Surf *surf)
 
 void OrRender(int rendstage, Vec3f offset)
 {
+	for(std::list<Tet*>::iterator etit=g_surf.tets2.begin();
+		etit!=g_surf.tets2.end();
+		++etit)
+		delete *etit;
+	
+	for(std::list<SurfPt*>::iterator epit=g_surf.pts2.begin();
+		epit!=g_surf.pts2.end();
+		++epit)
+		delete *epit;
+
+	for(std::list<Tet*>::iterator etit=g_fullsurf.tets2.begin();
+		etit!=g_fullsurf.tets2.end();
+		++etit)
+		delete *etit;
+	
+	for(std::list<SurfPt*>::iterator epit=g_fullsurf.pts2.begin();
+		epit!=g_fullsurf.pts2.end();
+		++epit)
+		delete *epit;
+
 	g_surf.pts2.clear();
 	g_surf.tets2.clear();
 	g_fullsurf.pts2.clear();
@@ -13775,31 +13800,41 @@ with another triangle, there will be free floating vertices!
 #else
 	{
 		char outpath[SPE_MAX_PATH+1];
-		sprintf(outpath, "%s_diff.png", g_renderbasename);
+		NameRender(outpath, -1);
+		strcat(outpath, "_diff.png");
+		//sprintf(outpath, "%s_diff.png", g_renderbasename);
 		SavePNG2(outpath, &outtex[0]);
 	}
 	{
 		char outpath[SPE_MAX_PATH+1];
-		sprintf(outpath, "%s_isle.png", g_renderbasename);
+		NameRender(outpath, -1);
+		strcat(outpath, "_isle.png");
+		//sprintf(outpath, "%s_isle.png", g_renderbasename);
 		SavePNG2(outpath, &outtex[1]);
 	}
 	{
 		char outpath[SPE_MAX_PATH+1];
-		sprintf(outpath, "%s_posx.png", g_renderbasename);
+		NameRender(outpath, -1);
+		strcat(outpath, "_posx.png");
+		//sprintf(outpath, "%s_posx.png", g_renderbasename);
 		SavePNG2(outpath, &outtex[2]);
 	}
 	{
 		char outpath[SPE_MAX_PATH+1];
-		sprintf(outpath, "%s_posy.png", g_renderbasename);
+		NameRender(outpath, -1);
+		strcat(outpath, "_posy.png");
+		//sprintf(outpath, "%s_posy.png", g_renderbasename);
 		SavePNG2(outpath, &outtex[3]);
 	}
 	{
 		char outpath[SPE_MAX_PATH+1];
-		sprintf(outpath, "%s_posz.png", g_renderbasename);
+		NameRender(outpath, -1);
+		strcat(outpath, "_posz.png");
+		//sprintf(outpath, "%s_posz.png", g_renderbasename);
 		SavePNG2(outpath, &outtex[4]);
 	}
 #endif
-	InfoMess("Done", "Done rendering orientability map");
+	//InfoMess("Done", "Done rendering orientability map");
 
 	GUI* gui = &g_gui;
 	SkipLogo();
