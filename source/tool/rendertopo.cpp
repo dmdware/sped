@@ -8489,6 +8489,14 @@ void OutTex2(Surf *surf, LoadedTex* out)
 		}
 	}
 
+	char infopath[SPE_MAX_PATH+1];
+	NameRender(infopath, -1);
+	strcat(infopath, "_info.txt");
+	FILE* infofp = fopen(infopath, "w");
+	fprintf(infofp, "maxrad %f\r\n", maxrad);
+	if(infofp)
+		fclose(infofp);
+
 	//islands / jump lookup map
 	for(int orlon=0; orlon<g_orlons; orlon++)
 	{

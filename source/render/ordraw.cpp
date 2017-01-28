@@ -8,9 +8,26 @@
 #include "../sim/tile.h"
 #include "../tool/compilemap.h"
 
+OrList g_orlist;
+
 void UpdateOrient()
 {
 
+}
+
+//load based on globals
+bool LoadOr1()
+{
+	float maxrad = 1;
+	char infopath[SPE_MAX_PATH+1];
+	NameRender(infopath, -1);
+	strcat(infopath, "_info.txt");
+	FILE* infofp = fopen(infopath, "r");
+	fscanf(infofp, "maxrad %f\r\n", &maxrad);
+	if(infofp)
+		fclose(infofp);
+
+	return true;
 }
 
 bool LoadOr(const char* fullpath)
