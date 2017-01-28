@@ -31,6 +31,7 @@
 #include "sesim.h"
 #include "../sim/tile.h"
 #include "undo.h"
+#include "../render/ordraw.h"
 
 APPMODE g_mode = LOADING;
 bool g_gameover = false;
@@ -448,6 +449,8 @@ void Update()
         UpdateEditor();
     else if(g_mode == RENDERING)
         UpdateRender();
+	else if(g_mode == ORVIEW)
+		UpdateOrient();
 }
 
 void LoadConfig()

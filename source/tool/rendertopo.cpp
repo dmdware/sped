@@ -84,11 +84,11 @@ void PrepareTopo(const char* fullpath, int rendtype)
 		fprintf(fp, "rotations %d %d\r\n", g_dorots ? 1 : 0, g_nrendsides);
 	if(g_doinclines)
 		fprintf(fp, "inclines %d\r\n", g_doinclines ? 1 : 0);
-	fprintf(fp, "orientability_jump_plane_width_pixels %d\r\n", g_orwpx);
-	fprintf(fp, "orientability_jump_plane_height_pixels %d\r\n", g_orhpx);
-	fprintf(fp, "orientability_jump_longitudes %d\r\n", g_orlons);
-	fprintf(fp, "orientability_jump_latitudes %d\r\n", g_orlats);
-	fprintf(fp, "orientability_maps_size %d\r\n", g_bigtex);
+	fprintf(fp, "orjpwpx %d\r\n", g_orwpx);
+	fprintf(fp, "orjphpx %d\r\n", g_orhpx);
+	fprintf(fp, "orjlons %d\r\n", g_orlons);
+	fprintf(fp, "orjlats %d\r\n", g_orlats);
+	fprintf(fp, "ormapsz %d\r\n", g_bigtex);
 	if(fp)
 		fclose(fp);
 }

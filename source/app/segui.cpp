@@ -25,6 +25,7 @@
 #include "../render/screenshot.h"
 //#include "../gui/widgets/choosefile.h"
 #include "../render/model2.h"
+#include "../render/ordraw.h"
 
 #ifdef PLATFORM_MAC
 #include "filechooser_mac.h"
@@ -2191,8 +2192,7 @@ void Click_ViewTopo()
 
 	//std::string relativepath = MakeRelative(filepath);
 	//CreateTex(diffuseindex, relativepath.c_str(), false, false);
-
-
+	ViewTopo(filepath);
 }
 
 void Change_Frames(unsigned int key, unsigned int scancode, bool down, int parm)

@@ -12,7 +12,7 @@
 extern bool g_mouseout;
 extern bool g_gameover;
 
-enum APPMODE{LOADING, LOGO, EDITOR, RENDERING, PREREND_ADJFRAME};
+enum APPMODE{LOADING, LOGO, EDITOR, RENDERING, PREREND_ADJFRAME, ORVIEW};
 extern APPMODE g_mode;
 extern int g_reStage;
 
