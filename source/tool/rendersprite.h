@@ -81,6 +81,8 @@ extern bool g_hidetexerr;
 #define MAX_TEXTURE		4096
 
 
+bool AdvRender();
+
 void AdjustFrame(bool resetview=true);
 void PrepareRender(const char* fullpath, int rendtype);
 void UpdateRender();

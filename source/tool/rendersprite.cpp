@@ -1849,6 +1849,12 @@ void UpdateRender()
 	}
 #else
 	
+	if(!AdvRender())
+		EndRender();
+}
+
+bool AdvRender()
+{
 	//Advance render states
 	//Are we doing sides and if so will the current side + 1 be valid? If so, advance
 	if(g_dosides && !g_dorots && g_rendside+1 < g_nrendsides)
@@ -1930,12 +1936,15 @@ void UpdateRender()
 					EndRender();
 				}
 #elif 1
-				EndRender();
+				//EndRender();
+				return false;
 #endif
 			}
 		}
 	}
 #endif
+
+	return true;
 }
 
 void EndRender()

@@ -46,4 +46,9 @@ void ParseSprite(const char* relative, Sprite* s);
 bool PlayAnim(float& frame, int first, int last, bool loop, float rate);
 bool PlayAnimB(float& frame, int first, int last, bool loop, float rate);	//Play animation backwards
 
+int32_t SpriteRef(bool rotations, bool sides, int nsides, bool frames, int nframes, bool inclines,
+				  int nslices,
+				  int32_t frame, int32_t incline, int32_t pitch, int32_t yaw, int32_t roll,
+				  int slicex, int slicey);
+
 #endif

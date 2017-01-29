@@ -3,6 +3,7 @@
 #include "../texture.h"
 #include "../gui/gui.h"
 #include "../debug.h"
+#include "../sim/tile.h"
 
 std::vector<SpriteToLoad> g_spriteload;
 int g_lastLSp = -1;
@@ -173,6 +174,115 @@ void LoadSprite(const char* relative, unsigned int* spindex, bool loadteam, bool
 		Log("%s\r\n", relative);
 
 	
+}
+
+
+//int32_t SpriteRef(SpList* sl, int32_t frame, int32_t incline, int32_t pitch, int32_t yaw, int32_t roll,
+//				  int slicex, int slicey)
+int32_t SpriteRef(bool rotations, bool sides, int nsides, bool frames, int nframes, bool inclines,
+				  int nslices,
+				  int32_t frame, int32_t incline, int32_t pitch, int32_t yaw, int32_t roll,
+				  int slicex, int slicey)
+{
+	//int32_t ncombos = 1;
+	int32_t sidechunk = 1;
+	int32_t inclchunk = 1;
+	int32_t frameschunk = 1;
+	int32_t sliceschunk = 1;
+
+	//pitch = roll = 0;
+	//roll=0;
+	//pitch = 1;
+
+	//if(sl->rotations)
+	if(rotations)
+	{
+		//ncombos *= sl->nsides;
+		//ncombos *= sl->nsides;
+		//ncombos *= sl->nsides;
+		//sidechunk = sl->nsides * sl->nsides * sl->nsides;
+		sidechunk = nsides * nsides * nsides;
+	}
+	//else if(sl->sides)
+	else if(sides)
+	{
+		//ncombos *= sl->nsides;
+		//sidechunk = sl->nsides;
+		sidechunk = nsides;
+	}
+	
+	inclchunk = sidechunk;
+
+	//if(sl->inclines)
+	if(inclines)
+	{
+		//ncombos *= INCLINES;
+		inclchunk = sidechunk * INCLINES;
+	}
+
+	frameschunk = inclchunk;
+
+	//if(sl->frames)
+	if(frames)
+	{
+		//ncombos *= sl->nframes;
+		//frameschunk = inclchunk * sl->nframes;
+		frameschunk = inclchunk * nframes;
+
+		//if(sl->nframes == 3)
+		//	InfoMess("33","33");
+	}
+	
+	sliceschunk = frameschunk;
+
+	//if(sl->nslices > 1)
+	if(nslices > 1)
+	{
+		//sliceschunk = frameschunk * sl->nslices * sl->nslices;
+		sliceschunk = frameschunk * nslices * nslices;
+	}
+
+	int32_t ci = 0;
+	
+	//if(sl->rotations)
+	if(rotations)
+	{
+		//ci += yaw + pitch * sl->nsides + roll * sl->nsides * sl->nsides;
+		ci += yaw + pitch * nsides + roll * nsides * nsides;
+	}
+	//else if(sl->sides)
+	else if(sides)
+	{
+		ci += yaw;
+	}
+
+	//if(sl->inclines)
+	if(inclines)
+	{
+		ci += sidechunk * incline;
+	}
+
+	//if(sl->frames)
+	if(frames)
+	{
+		ci += inclchunk * frame;
+	}
+
+	//if(sl->nslices > 1)
+	if(nslices > 1)
+	{
+		//ci += frameschunk * ( sl->nslices * slicey + slicex );
+		ci += frameschunk * ( nslices * slicey + slicex );
+	}
+
+		//if(strstr(sl->fullpath.c_str(), "lab"))
+		//{
+		//	char m[123];
+		//	sprintf(m, "ci%d y%d f%d", ci, (int)yaw, (int)frame);
+		//	InfoMess(m,m);
+		//}
+
+	return ci;
 }
 
 void ParseSprite(const char* relative, Sprite* s)
