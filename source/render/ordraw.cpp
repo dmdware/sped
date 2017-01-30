@@ -18,6 +18,79 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 		float pitchrad, 
 		float yawrad)
 {
+	
+	Shader* s = &g_shader[g_curS];
+
+	//Vec3f pos(0,0,0);
+
+	Matrix modelmat;
+	modelmat.setTranslation((const float*)&pos);
+	glUniformMatrix4fv(s->m_slot[SSLOT_MODELMAT], 1, 0, modelmat.m_matrix);
+
+	Matrix mvp;
+	mvp.set(g_camproj.m_matrix);
+	mvp.postmult(g_camview);
+	mvp.postmult(modelmat);
+	glUniformMatrix4fv(s->m_slot[SSLOT_MVP], 1, 0, mvp.m_matrix);
+
+	Matrix modelview;
+#ifdef SPECBUMPSHADOW
+	modelview.set(g_camview.m_matrix);
+#endif
+	modelview.postmult(modelmat);
+	glUniformMatrix4fv(s->m_slot[SSLOT_MODELVIEW], 1, 0, modelview.m_matrix);
+
+	//modelview.set(g_camview.m_matrix);
+	//modelview.postmult(modelmat);
+	Matrix modelviewinv;
+	Transpose(modelview, modelview);
+	Inverse2(modelview, modelviewinv);
+	//Transpose(modelviewinv, modelviewinv);
+	glUniformMatrix4fv(s->m_slot[SSLOT_NORMALMAT], 1, 0, modelviewinv.m_matrix);
+
+	Vec3f viewdir = Normalize(g_cam.m_view - g_cam.m_pos);
+	Vec3f updir = g_cam.up2();
+	Vec3f sidedir = Normalize(g_cam.m_strafe);
+
+	Vec3f v[6];
+	Vec2f tc[6];
+	///////
+
+#if 0
+	
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, g_texture[ mat->m_diffusem ].texname);
+			glUniform1i(g_shader[g_curS].m_slot[SSLOT_TEXTURE0], 0);
+
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, g_texture[ mat->m_specularm ].texname);
+			glUniform1i(g_shader[g_curS].m_slot[SSLOT_SPECULARMAP], 1);
+
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, g_texture[ mat->m_normalm ].texname);
+			glUniform1i(g_shader[g_curS].m_slot[SSLOT_NORMALMAP], 2);
+
+			glActiveTexture(GL_TEXTURE3);
+			glBindTexture(GL_TEXTURE_2D, g_texture[ mat->m_ownerm ].texname);
+			glUniform1i(g_shader[g_curS].m_slot[SSLOT_OWNERMAP], 3);
+
+		//glVertexPointer(3, GL_FLOAT, 0, &Positions[basevertex]);
+		glVertexPointer(3, GL_FLOAT, 0, &TransformedPos[basevertex]);
+		glTexCoordPointer(2, GL_FLOAT, 0, &TexCoords[basevertex]);
+		//glNormalPointer(GL_FLOAT, 0, &Normals[basevertex]);
+		glNormalPointer(GL_FLOAT, 0, &TransformedNorm[basevertex]);
+		//glIndexPointer(GL_UNSIGNED_INT, 0, &Indices[baseindex]);
+		//glVertexAttribPointer(s->m_slot[SSLOT_NORMAL], 3, GL_FLOAT, GL_FALSE, 0, va->normals);
+#ifdef DEBUG
+		CHECKGLERROR();
+#endif
+		//glDrawArrays(GL_TRIANGLES, 0, numindices);
+		//glDrawElements(GL_TRIANGLES, 0, numindices);
+		//glDrawElements(GL_TRIANGLES, numindices, GL_UNSIGNED_INT, &Indices[baseindex]);
+		glDrawRangeElements(GL_TRIANGLES, 0, numunique, numindices, GL_UNSIGNED_INT, &Indices[baseindex]);
+#endif
+
+
 }
 
 //orient view mode
