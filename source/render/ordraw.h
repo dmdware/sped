@@ -7,8 +7,13 @@
 #include "../platform.h"
 #include "../tool/rendertopo.h"
 
+class OrList;
+
 void UpdateOrient();
 void ViewTopo(const char* fullpath);
+void DrawOr(OrList *ol, int frame, Vec3f pos, 
+		float pitchrad, 
+		float yawrad);
 
 class Or
 {

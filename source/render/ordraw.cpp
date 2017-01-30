@@ -9,8 +9,16 @@
 #include "../render/sprite.h"
 #include "../tool/rendersprite.h"
 #include "../save/compilemap.h"
+#include "../gui/gui.h"
 
 OrList g_orlist;
+
+
+void DrawOr(OrList *ol, int frame, Vec3f pos, 
+		float pitchrad, 
+		float yawrad)
+{
+}
 
 //orient view mode
 void UpdateOrient()
@@ -195,6 +203,8 @@ bool LoadOr(const char* fullpath)
 		}
 	}
 
+	fclose(infofp);
+
 #if	00	
 	//PrepareTopo() rendertopo.cpp
 	char sppath[SPE_MAX_PATH+1];
@@ -256,7 +266,11 @@ bool LoadOr(const char* fullpath)
 
 void ViewTopo(const char* fullpath)
 {
-	
+	LoadOr(fullpath);
 
 	g_mode = ORVIEW;
+
+	GUI* gui = &g_gui;
+	gui->hideall();
+	gui->show("render");
 }

@@ -109,7 +109,9 @@ public:
 #define SHADER_MAPPERSP			14
 #define SHADER_LIGHTTEST		15
 #define SHADER_DEPTHRGBA		16
-#define SHADERS					17
+#define SHADER_OR				17
+#define SHADER_ORPERSP			18
+#define SHADERS					19
 
 extern Shader g_shader[SHADERS];
 extern int g_curS;

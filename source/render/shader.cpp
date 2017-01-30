@@ -193,6 +193,9 @@ void InitGLSL()
 	LoadShader(SHADER_WATER, "shaders/water.vert", "shaders/water.frag", true, true, true);
 	LoadShader(SHADER_BILLBOARDPERSP, "shaders/billboardpersp.vert", "shaders/billboard.frag", true, true, false);
 	LoadShader(SHADER_TEAM, "shaders/team.vert", "shaders/team.frag", true, true, true);
+	
+	LoadShader(SHADER_OR, "shaders/or.vert", "shaders/or.frag", true, true, false);
+	LoadShader(SHADER_ORPERSP, "shaders/orpersp.vert", "shaders/orpersp.frag", true, true, false);
 
 	CHECKGLERROR();
 }
