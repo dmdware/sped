@@ -56,7 +56,11 @@
 #define SSLOT_DETAILTEX			45
 #define SSLOT_OWNERMAP			46
 #define SSLOT_MODELVIEW			47
-#define SSLOTS					48
+#define SSLOT_JUMPTEX			48
+#define SSLOT_POSX				49
+#define SSLOT_POSY				50
+#define SSLOT_POSZ				51
+#define SSLOTS					52
 
 
 #ifdef PLATFORM_MAC

@@ -23,6 +23,24 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 
 	//Vec3f pos(0,0,0);
 
+	int ci = SpriteRef(
+		ol->rotations,
+		ol->sides,
+		ol->nsides,
+		ol->frames,
+		ol->nframes,
+		ol->inclines,
+		0,
+		g_renderframe,
+		g_currincline,
+		0,
+		0,
+		0,
+		0,0);
+
+	Or* o = ol->ors[ci];
+
+#if 0
 	Matrix modelmat;
 	modelmat.setTranslation((const float*)&pos);
 	glUniformMatrix4fv(s->m_slot[SSLOT_MODELMAT], 1, 0, modelmat.m_matrix);
@@ -47,6 +65,14 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	Inverse2(modelview, modelviewinv);
 	//Transpose(modelviewinv, modelviewinv);
 	glUniformMatrix4fv(s->m_slot[SSLOT_NORMALMAT], 1, 0, modelviewinv.m_matrix);
+#endif
+	//no model translation/rotation matrix needed
+	
+	Matrix mvp;
+	mvp.set(g_camproj.m_matrix);
+	mvp.postmult(g_camview);
+	//mvp.postmult(modelmat);
+	glUniformMatrix4fv(s->m_slot[SSLOT_MVP], 1, 0, mvp.m_matrix);
 
 	Vec3f viewdir = Normalize(g_cam.m_view - g_cam.m_pos);
 	Vec3f updir = g_cam.up2();
@@ -55,6 +81,58 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	Vec3f v[6];
 	Vec2f tc[6];
 	///////
+
+	Vec3f a, b, c, d;
+	a = pos + updir * maxrad/2.0f - sidedir * maxrad/2.0f;
+	b = pos + updir * maxrad/2.0f + sidedir * maxrad/2.0f;
+	c = pos - updir * maxrad/2.0f + sidedir * maxrad/2.0f;
+	d = pos - updir * maxrad/2.0f - sidedir * maxrad/2.0f;
+
+	Vec2f ta, tb, tc, td;
+	ta = Vec2f(0,1);
+	tb = Vec2f(1,1);
+	tc = Vec2f(1,0);
+	td = Vec2f(0,0);
+
+	v[0] = a;
+	v[1] = b;
+	v[2] = c;
+	v[3] = a;
+	v[4] = c;
+	v[5] = d;
+
+	t[0] = ta;
+	t[1] = tb;
+	t[2] = tc;
+	t[3] = ta;
+	t[4] = tc;
+	t[5] = td;
+
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, g_texture[ o->difftexi ].texname);
+	glUniform1i(g_shader[g_curS].m_slot[SSLOT_TEXTURE0], 0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, g_texture[ o->jumptexi ].texname);
+	glUniform1i(g_shader[g_curS].m_slot[SSLOT_JUMPTEX], 1);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, g_texture[ mat->postexi[0] ].texname);
+	glUniform1i(g_shader[g_curS].m_slot[SSLOT_POSX], 2);
+
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, g_texture[ mat->postexi[1] ].texname);
+	glUniform1i(g_shader[g_curS].m_slot[SSLOT_POSY], 3);
+
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, g_texture[ mat->postexi[2] ].texname);
+	glUniform1i(g_shader[g_curS].m_slot[SSLOT_POSZ], 4);
+
+	glVertexPointer(3, GL_FLOAT, 0, v);
+	glTexCoordPointer(2, GL_FLOAT, 0, t);
+
+	glDrawArrays(GL_TRIANGLES, 0, 6);
 
 #if 0
 	
