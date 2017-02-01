@@ -219,14 +219,14 @@ void DrawScene(Matrix projection, Matrix viewmat, Matrix modelmat, Matrix modelv
     CHECKGLERROR();
     EndS();
 
-	//if(g_orlist.on)
-	if(0)
+	if(g_orlist.on)
+	//if(0)
 	{
-		//if(g_projtype == PROJ_ORTHO)
-		//	UseShadow(SHADER_OR, projection, viewmat, modelmat, modelviewinv, mvLightPos, lightDir);
-		//else
-		g_projtype = PROJ_PERSP;
 		glDisable(GL_CULL_FACE);
+		if(g_projtype == PROJ_ORTHO)
+			UseShadow(SHADER_OR, projection, viewmat, modelmat, modelviewinv, mvLightPos, lightDir);
+		else
+		//g_projtype = PROJ_PERSP;
 			UseShadow(SHADER_ORPERSP, projection, viewmat, modelmat, modelviewinv, mvLightPos, lightDir);
 		DrawOr(&g_orlist, g_renderframe, Vec3f(0,0,0), 
 			M_PI*2.0f*(float)g_rendpitch/(float)g_nrendsides, 

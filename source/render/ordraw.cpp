@@ -13,6 +13,7 @@
 #include "../render/shadow.h"
 #include "../save/saveedm.h"
 #include "../app/appmain.h"
+#include "../render/sortb.h"
 
 OrList g_orlist;
 
@@ -21,7 +22,7 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 		float pitchrad, 
 		float yawrad)
 {
-	return;
+	//return;
 	Shader* s = &g_shader[g_curS];
 
 	//Vec3f pos(0,0,0);
@@ -290,6 +291,21 @@ void ResetOrRender()
 	g_bigtex = 4096;	//orientability diffuse colors and surface positions map size
 }
 
+void EndCombos()
+{
+	g_mode = EDITOR;
+	g_gui.hideall();
+	//g_gui.show();
+	g_gui.show("editor");
+	g_renderframe = 0;
+	g_lightPos = g_origlightpos;
+	//g_cam = g_origcam;
+	//CallResize(g_origwidth, g_origheight);
+	//ResetView(false);
+	SortEdB(&g_edmap, g_cam.m_view, g_cam.m_pos);
+	//g_gui.reframe();
+}
+
 bool LoadOr(const char* fullpath)
 {
 	if(!strstr(fullpath, "_list2.txt"))
@@ -311,7 +327,6 @@ bool LoadOr(const char* fullpath)
 	}
 
 	ResetOrRender();
-	return true;
 
 	strcpy(g_renderbasename, fullpath);
 	//StripExt(g_renderbasename);
@@ -456,7 +471,9 @@ bool LoadOr(const char* fullpath)
 	{
 		LoadOr1();
 	}while(AdvRender());
-	EndRender();
+	//EndRender();	//can't use because calls resize with g_origwidth/height
+	EndCombos();
+	//return true;
 	ResetOrRender();	//reset frame number etc.
 	LoadConfig();	//reload settings
 
