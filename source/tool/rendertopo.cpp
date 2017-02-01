@@ -13845,7 +13845,9 @@ with another triangle, there will be free floating vertices!
 	//InfoMess("Done", "Done rendering orientability map");
 
 	GUI* gui = &g_gui;
-	SkipLogo();
+	g_mode = EDITOR;
+	gui->hideall();
+	gui->show("editor");
 }
 
 #if 0

@@ -21,7 +21,7 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 		float pitchrad, 
 		float yawrad)
 {
-	
+	return;
 	Shader* s = &g_shader[g_curS];
 
 	//Vec3f pos(0,0,0);
@@ -40,6 +40,21 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 		0,
 		0,
 		0,0);
+
+	if(ci >= ol->nors)
+	{
+		char mm[1234];
+		sprintf(mm,
+			">ors \r\n"\
+			"f%d on%d"\
+			"currinc%d \r\n"\
+			"ci%d olnors%d",
+			g_renderframe,
+			(int)ol->on,
+			(int)g_currincline,
+			ci, (int)ol->nors);
+		ErrMess("asdasd",mm);
+	}
 
 	Or* o = &ol->ors[ci];
 
@@ -115,7 +130,8 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, g_texture[ o->difftexi ].texname);
+	//glBindTexture(GL_TEXTURE_2D, g_texture[ o->difftexi ].texname);
+	glBindTexture(GL_TEXTURE_2D, g_texture[ 0 ].texname);
 	glUniform1i(s->m_slot[SSLOT_TEXTURE0], 0);
 
 	glActiveTexture(GL_TEXTURE1);
@@ -295,6 +311,7 @@ bool LoadOr(const char* fullpath)
 	}
 
 	ResetOrRender();
+	return true;
 
 	strcpy(g_renderbasename, fullpath);
 	//StripExt(g_renderbasename);
@@ -417,9 +434,10 @@ bool LoadOr(const char* fullpath)
 
 	int ci = SpriteRef(g_dorots, g_dosides, g_nrendsides, g_doframes, g_renderframes,
 		g_doinclines, 0,
-		g_renderframes, INCLINES, g_nrendsides, g_nrendsides, g_nrendsides,
-		0, 0);
-
+		imax(0,g_renderframes-1), imax(0,INCLINES-1), 
+		imax(0,g_nrendsides-1), imax(0,g_nrendsides-1), imax(0,g_nrendsides-1),
+		0, 0)+1;
+	//max combos ci
 
 	g_orlist.free();
 
@@ -441,6 +459,12 @@ bool LoadOr(const char* fullpath)
 	EndRender();
 	ResetOrRender();	//reset frame number etc.
 	LoadConfig();	//reload settings
+
+	GUI* gui = &g_gui;
+	g_mode = EDITOR;
+	gui->hideall();
+	gui->show("editor");
+	return true;
 }
 
 void ViewTopo(const char* fullpath)
@@ -449,11 +473,17 @@ void ViewTopo(const char* fullpath)
 
 	LoadOr(fullpath);
 
-	g_mode = ORVIEW;
+	return;
+	//g_mode = ORVIEW;
 
+	//SkipLogo();
+	//GUI* gui = &g_gui;
+	//gui->hideall();
+	//gui->show("render");
 	GUI* gui = &g_gui;
+	g_mode = EDITOR;
 	gui->hideall();
-	gui->show("render");
+	gui->show("editor");
 }
 
 void FreeOrList(OrList *ol)
