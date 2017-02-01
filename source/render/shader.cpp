@@ -392,6 +392,15 @@ void LoadShader(int shader, char* strVertex, char* strFragment, bool hasverts, b
 	s->MapUniform(SSLOT_OWNERMAP, "ownermap");
 
 	CHECKGLERROR();
+	s->MapUniform(SSLOT_JUMPTEX, "jumptex");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_POSX, "posxtex");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_POSY, "posytex");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_POSZ, "posztex");
+
+	CHECKGLERROR();
 }
 
 void UseS(int shader)

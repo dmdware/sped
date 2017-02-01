@@ -10,6 +10,9 @@
 #include "../tool/rendersprite.h"
 #include "../save/compilemap.h"
 #include "../gui/gui.h"
+#include "../render/shadow.h"
+#include "../save/saveedm.h"
+#include "../app/appmain.h"
 
 OrList g_orlist;
 
@@ -38,7 +41,9 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 		0,
 		0,0);
 
-	Or* o = ol->ors[ci];
+	Or* o = &ol->ors[ci];
+
+	float maxrad = o->maxrad;
 
 #if 0
 	Matrix modelmat;
@@ -79,7 +84,7 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	Vec3f sidedir = Normalize(g_cam.m_strafe);
 
 	Vec3f v[6];
-	Vec2f tc[6];
+	Vec2f t[6];
 	///////
 
 	Vec3f a, b, c, d;
@@ -111,23 +116,23 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, g_texture[ o->difftexi ].texname);
-	glUniform1i(g_shader[g_curS].m_slot[SSLOT_TEXTURE0], 0);
+	glUniform1i(s->m_slot[SSLOT_TEXTURE0], 0);
 
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, g_texture[ o->jumptexi ].texname);
-	glUniform1i(g_shader[g_curS].m_slot[SSLOT_JUMPTEX], 1);
+	glUniform1i(s->m_slot[SSLOT_JUMPTEX], 1);
 
 	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, g_texture[ mat->postexi[0] ].texname);
-	glUniform1i(g_shader[g_curS].m_slot[SSLOT_POSX], 2);
+	glBindTexture(GL_TEXTURE_2D, g_texture[ o->postexi[0] ].texname);
+	glUniform1i(s->m_slot[SSLOT_POSX], 2);
 
 	glActiveTexture(GL_TEXTURE3);
-	glBindTexture(GL_TEXTURE_2D, g_texture[ mat->postexi[1] ].texname);
-	glUniform1i(g_shader[g_curS].m_slot[SSLOT_POSY], 3);
+	glBindTexture(GL_TEXTURE_2D, g_texture[ o->postexi[1] ].texname);
+	glUniform1i(s->m_slot[SSLOT_POSY], 3);
 
 	glActiveTexture(GL_TEXTURE4);
-	glBindTexture(GL_TEXTURE_2D, g_texture[ mat->postexi[2] ].texname);
-	glUniform1i(g_shader[g_curS].m_slot[SSLOT_POSZ], 4);
+	glBindTexture(GL_TEXTURE_2D, g_texture[ o->postexi[2] ].texname);
+	glUniform1i(s->m_slot[SSLOT_POSZ], 4);
 
 	glVertexPointer(3, GL_FLOAT, 0, v);
 	glTexCoordPointer(2, GL_FLOAT, 0, t);
@@ -199,9 +204,11 @@ bool LoadOr1()
 	or->maxrad = maxrad;
 
 	char diffpath[SPE_MAX_PATH+1];
+	char diffpath2[SPE_MAX_PATH+1];
 	NameRender(diffpath, -1);
 	strcat(diffpath, "_diff.png");
-	CreateTex(or->difftexi, diffpath, true, false);
+	MakeRel(diffpath, diffpath2);
+	CreateTex(or->difftexi, diffpath2, true, false);
 	
 #if 0
 	unsigned int difftexi;
@@ -211,48 +218,38 @@ bool LoadOr1()
 #endif
 
 	char posxpath[SPE_MAX_PATH+1];
+	char posxpath2[SPE_MAX_PATH+1];
 	NameRender(posxpath, -1);
 	strcat(posxpath, "_posx.png");
-	CreateTex(or->postexi[0], posxpath, true, false);
+	MakeRel(posxpath, posxpath2);
+	CreateTex(or->postexi[0], posxpath2, true, false);
 
 	char posypath[SPE_MAX_PATH+1];
+	char posypath2[SPE_MAX_PATH+1];
 	NameRender(posypath, -1);
 	strcat(posypath, "_posy.png");
-	CreateTex(or->postexi[1], posypath, true, false);
+	MakeRel(posypath, posypath2);
+	CreateTex(or->postexi[1], posypath2, true, false);
 
 	char poszpath[SPE_MAX_PATH+1];
+	char poszpath2[SPE_MAX_PATH+1];
 	NameRender(poszpath, -1);
 	strcat(poszpath, "_posz.png");
-	CreateTex(or->postexi[2], poszpath, true, false);
+	MakeRel(poszpath, poszpath2);
+	CreateTex(or->postexi[2], poszpath2, true, false);
 
 	char jumppath[SPE_MAX_PATH+1];
+	char jumppath2[SPE_MAX_PATH+1];
 	NameRender(jumppath, -1);
 	strcat(jumppath, "_isle.png");
-	CreateTex(or->jumptexi, jumppath, true, false);
+	MakeRel(jumppath, jumppath2);
+	CreateTex(or->jumptexi, jumppath2, true, false);
 
 	return true;
 }
 
-bool LoadOr(const char* fullpath)
+void ResetOrRender()
 {
-	if(!strstr(fullpath, "_list2.txt"))
-	{
-		char m[333];
-		sprintf(m, "Is not \"_list2.txt\" orientability maps info file: %s", fullpath);
-		ErrMess("Error", m);
-		return false;
-	}
-
-	FILE *infofp = fopen(fullpath, "r");
-
-	if(!infofp)
-	{
-		char m[333];
-		sprintf(m, "Unable to load orientability maps: %s", fullpath);
-		ErrMess("Error", m);
-		return false;
-	}
-
 	g_rendtopo = true;
 
 	//defaults
@@ -275,6 +272,34 @@ bool LoadOr(const char* fullpath)
 	g_orlons = 16;	//orientability map longitude slices
 	g_orlats = 16;	//orientability map latitude slices
 	g_bigtex = 4096;	//orientability diffuse colors and surface positions map size
+}
+
+bool LoadOr(const char* fullpath)
+{
+	if(!strstr(fullpath, "_list2.txt"))
+	{
+		char m[333];
+		sprintf(m, "Is not \"_list2.txt\" orientability maps info file: %s", fullpath);
+		ErrMess("Error", m);
+		return false;
+	}
+
+	FILE *infofp = fopen(fullpath, "r");
+
+	if(!infofp)
+	{
+		char m[333];
+		sprintf(m, "Unable to load orientability maps: %s", fullpath);
+		ErrMess("Error", m);
+		return false;
+	}
+
+	ResetOrRender();
+
+	strcpy(g_renderbasename, fullpath);
+	//StripExt(g_renderbasename);
+	char *pos = strstr(g_renderbasename, "_list2.txt");
+	*pos = 0;	//strip end
 
 	while(!feof(infofp))
 	{
@@ -407,16 +432,21 @@ bool LoadOr(const char* fullpath)
 	g_orlist.nors = ci;
 	g_orlist.ors = new Or [ci];
 	g_orlist.on = true;
+	g_mode = ORVIEW;	//necessary so message "Done rendering" doesn't show up at EndRender();
 
 	do
 	{
 		LoadOr1();
 	}while(AdvRender());
 	EndRender();
+	ResetOrRender();	//reset frame number etc.
+	LoadConfig();	//reload settings
 }
 
 void ViewTopo(const char* fullpath)
 {
+	FreeEdMap(&g_edmap);
+
 	LoadOr(fullpath);
 
 	g_mode = ORVIEW;
@@ -424,4 +454,9 @@ void ViewTopo(const char* fullpath)
 	GUI* gui = &g_gui;
 	gui->hideall();
 	gui->show("render");
+}
+
+void FreeOrList(OrList *ol)
+{
+	ol->free();
 }

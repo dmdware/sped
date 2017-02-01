@@ -14,6 +14,7 @@ const std::string TimeStr();
 const std::string FileDateTime();
 void FullPath(const char* filename, char* full);
 void FullWritePath(const char* filename, char* full);
+void MakeRel(const char* full, char* rel);
 std::string MakeRelative(const char* full);
 void ExePath(char* exepath);
 std::string StripFile(std::string filepath);

@@ -6,6 +6,7 @@
 
 #include "../platform.h"
 #include "../tool/rendertopo.h"
+#include "../texture.h"
 
 class OrList;
 
@@ -14,6 +15,7 @@ void ViewTopo(const char* fullpath);
 void DrawOr(OrList *ol, int frame, Vec3f pos, 
 		float pitchrad, 
 		float yawrad);
+void FreeOrList(OrList *ol);
 
 class Or
 {
@@ -22,6 +24,20 @@ public:
 	unsigned int postexi[3];
 	unsigned int jumptexi;
 	float maxrad;
+
+	void free()
+	{
+		FreeTexture(difftexi);
+		FreeTexture(postexi[0]);
+		FreeTexture(postexi[1]);
+		FreeTexture(postexi[2]);
+		FreeTexture(jumptexi);
+	}
+
+	~Or()
+	{
+		free();
+	}
 };
 
 //a single orientability map object, with frames, or inclines, etc.

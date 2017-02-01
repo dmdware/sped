@@ -82,6 +82,28 @@ void Log(const char* format, ...)
 #endif
 }
 
+void MakeRel(const char* full, char* rel)
+{
+	char temp[SPE_MAX_PATH+1];
+	char exepath[SPE_MAX_PATH+1];
+	char *pos;
+	strcpy(temp, full);
+	CorrectSlashes(temp);
+
+	ExePath(exepath);
+	CorrectSlashes(exepath);
+
+	pos = strstr(temp, exepath);
+
+	if(!pos)
+	{
+		strcpy(rel, temp);
+		return;
+	}
+
+	memcpy(rel, pos+strlen(exepath), strlen(pos)-strlen(exepath)+1);
+}
+
 std::string MakeRelative(const char* full)
 {
 	char full2c[SPE_MAX_PATH+1];

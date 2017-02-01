@@ -11,6 +11,7 @@
 #include "../save/edmap.h"
 #include "savemap.h"
 #include "../app/segui.h"
+#include "../render/ordraw.h"
 
 //#define LOADMAP_DEBUG
 
@@ -656,4 +657,6 @@ void FreeEdMap(EdMap* map)
 
 	FreeModels2();
 	FreeModelHolders();
+
+	FreeOrList(&g_orlist);
 }

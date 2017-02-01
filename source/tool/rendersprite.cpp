@@ -1949,7 +1949,7 @@ bool AdvRender()
 
 void EndRender()
 {
-	if(g_rendtopo)
+	if(g_rendtopo && g_mode != ORVIEW)
 		InfoMess("Done", "Done rendering orientability map");
 
 	g_mode = EDITOR;

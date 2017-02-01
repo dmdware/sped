@@ -23,5 +23,6 @@ void DrawScene(Matrix projection, Matrix viewmat, Matrix modelmat, Matrix modelv
 void DrawSceneTeam(Matrix projection, Matrix viewmat, Matrix modelmat, Matrix modelviewinv, float mvLightPos[3], float lightDir[3]);
 void DrawSceneDepth();
 void Draw();
+void LoadConfig();
 
 #endif
