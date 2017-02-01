@@ -131,8 +131,8 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 
 
 	glActiveTexture(GL_TEXTURE0);
-	//glBindTexture(GL_TEXTURE_2D, g_texture[ o->difftexi ].texname);
-	glBindTexture(GL_TEXTURE_2D, g_texture[ 0 ].texname);
+	glBindTexture(GL_TEXTURE_2D, g_texture[ o->difftexi ].texname);
+	//glBindTexture(GL_TEXTURE_2D, g_texture[ 0 ].texname);
 	glUniform1i(s->m_slot[SSLOT_TEXTURE0], 0);
 
 	glActiveTexture(GL_TEXTURE1);
