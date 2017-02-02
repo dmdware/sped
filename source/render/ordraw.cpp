@@ -123,6 +123,17 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	glUniform1f(s->m_slot[SSLOT_ORJPLHPX], (float)g_orhpx);
 	glUniform1f(s->m_slot[SSLOT_ORJLONS], (float)g_orlons);
 	glUniform1f(s->m_slot[SSLOT_ORJLATS], (float)g_orlats);
+	
+	glUniform1i(s->m_slot[SSLOT_ORMAPSZ], (int)g_bigtex);
+
+	Vec3f viewang = Vec3f(0,0,0) - viewdir;
+
+	//ratios
+	float orlon = 0.5 + atan2(viewang.z, viewang.x) / (2.0 * M_PI);
+	float orlat = 0.5 - asin(viewang.y)/M_PI;
+	
+	glUniform1f(s->m_slot[SSLOT_ORJLON], (float)orlon);
+	glUniform1f(s->m_slot[SSLOT_ORJLAT], (float)orlat);
 
 	Vec2f ta, tb, tc, td;
 	ta = Vec2f(0,1);
@@ -156,15 +167,15 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, g_texture[ o->postexi[0] ].texname);
-	glUniform1i(s->m_slot[SSLOT_POSX], 2);
+	glUniform1i(s->m_slot[SSLOT_POSXTEX], 2);
 
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, g_texture[ o->postexi[1] ].texname);
-	glUniform1i(s->m_slot[SSLOT_POSY], 3);
+	glUniform1i(s->m_slot[SSLOT_POSYTEX], 3);
 
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, g_texture[ o->postexi[2] ].texname);
-	glUniform1i(s->m_slot[SSLOT_POSZ], 4);
+	glUniform1i(s->m_slot[SSLOT_POSZTEX], 4);
 
 	glVertexPointer(3, GL_FLOAT, 0, v);
 	glTexCoordPointer(2, GL_FLOAT, 0, t);

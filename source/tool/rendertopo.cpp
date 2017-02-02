@@ -8535,7 +8535,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 					//set to "nothing" first (no island known yet)
 					out[1].data[ ( tabx + taby * out[1].sizex ) * 3 + 0] = 0;
 					out[1].data[ ( tabx + taby * out[1].sizex ) * 3 + 1] = 0;
-					out[1].data[ ( tabx + taby * out[1].sizex ) * 3 + 2] = 255;
+					out[1].data[ ( tabx + taby * out[1].sizex ) * 3 + 2] = 0;
 
 					//out[1].data
 					Vec3f line[2];
@@ -8545,10 +8545,10 @@ void OutTex2(Surf *surf, LoadedTex* out)
 						side * (float)orxpx / (float)g_orwpx * maxrad;
 
 					line[1] = line[0] +
-						view * maxrad * 2;
+						view * maxrad * 1.1;
 
 					line[0] = line[0] - 
-						view * maxrad * 2;
+						view * maxrad * 1.1;
 	
 					LoadedTex *tex=NULL, *ntex=NULL, *stex=NULL;
 					Vec2f texc;
@@ -8581,9 +8581,13 @@ void OutTex2(Surf *surf, LoadedTex* out)
 						sp[1] = tet->neib[1];
 						sp[2] = tet->neib[2];
 
-						Vec2f orc = sp[0]->orc * (1 - fU - fV) + 
-							sp[1]->orc * (fU) + 
-							sp[2]->orc * (fV);
+						//Vec2f orc = sp[0]->orc * (1 - fU - fV) + 
+						//	sp[1]->orc * (fU) + 
+						//	sp[2]->orc * (fV);
+						
+						Vec2f orc = tet->texc[0] * (1 - fU - fV) + 
+							tet->texc[1] * (fU) + 
+							tet->texc[2] * (fV);
 
 						while(orc.x < 0)
 							orc.x += 1;
@@ -8595,15 +8599,19 @@ void OutTex2(Surf *surf, LoadedTex* out)
 							orc.y -= 1;
 
 						//pixel index
-						unsigned short orci = g_bigtex * orc.x + 
-							g_bigtex * g_bigtex * orc.y;
+						unsigned int orci = (g_bigtex-1) * orc.x + 
+							g_bigtex * (g_bigtex-1) * orc.y;
 
-						unsigned short *outorc = 
-						(unsigned short*)&(out[1].data[ (tabx + taby * out[1].sizex) * 3 + 0]);
+						unsigned char *outorc = 
+						(unsigned char*)&(out[1].data[ (tabx + taby * out[1].sizex) * 3 + 0]);
 
-						*outorc = orci;
+						//*outorc = orci;
+						//assume little endian
+						*(outorc+0) = *(((unsigned char*)&orci)+0);
+						*(outorc+1) = *(((unsigned char*)&orci)+1);
+						*(outorc+2) = *(((unsigned char*)&orci)+2);
 
-						out[1].data[ (tabx + taby * out[1].sizex) * 3 + 2] = 0;
+						//out[1].data[ (tabx + taby * out[1].sizex) * 3 + 2] = 0;
 					}
 				}
 			}
