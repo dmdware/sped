@@ -109,6 +109,21 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	c = pos - updir * maxrad/2.0f + sidedir * maxrad/2.0f;
 	d = pos - updir * maxrad/2.0f - sidedir * maxrad/2.0f;
 
+	Vec4f a4 = Vec4f(a.x, a.y, a.z, 1);
+	Vec4f b4 = Vec4f(b.x, b.y, b.z, 1);
+	Vec4f c4 = Vec4f(c.x, c.y, c.z, 1);
+	Vec4f d4 = Vec4f(d.x, d.y, d.z, 1);
+
+	glUniform4fv(s->m_slot[SSLOT_CORNERA], 1, (float*)&a4);
+	glUniform4fv(s->m_slot[SSLOT_CORNERB], 1, (float*)&b4);
+	glUniform4fv(s->m_slot[SSLOT_CORNERC], 1, (float*)&c4);
+	glUniform4fv(s->m_slot[SSLOT_CORNERD], 1, (float*)&d4);
+	
+	glUniform4fv(s->m_slot[SSLOT_ORJPLWPX], 1, (float*)&g_orwpx);
+	glUniform4fv(s->m_slot[SSLOT_ORJPLHPX], 1, (float*)&g_orhpx);
+	glUniform4fv(s->m_slot[SSLOT_ORJLONS], 1, (float*)&g_orlons);
+	glUniform4fv(s->m_slot[SSLOT_ORJLATS], 1, (float*)&g_orlats);
+
 	Vec2f ta, tb, tc, td;
 	ta = Vec2f(0,1);
 	tb = Vec2f(1,1);

@@ -60,7 +60,15 @@
 #define SSLOT_POSX				49
 #define SSLOT_POSY				50
 #define SSLOT_POSZ				51
-#define SSLOTS					52
+#define SSLOT_CORNERA			52
+#define SSLOT_CORNERB			53
+#define SSLOT_CORNERC			54
+#define SSLOT_CORNERD			55
+#define SSLOT_ORJPLWPX			56
+#define SSLOT_ORJPLHPX			57
+#define SSLOT_ORJLONS			58
+#define SSLOT_ORJLATS			59
+#define SSLOTS					60
 
 
 #ifdef PLATFORM_MAC

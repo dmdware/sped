@@ -399,6 +399,24 @@ void LoadShader(int shader, char* strVertex, char* strFragment, bool hasverts, b
 	s->MapUniform(SSLOT_POSY, "posytex");
 	CHECKGLERROR();
 	s->MapUniform(SSLOT_POSZ, "posztex");
+	
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_CORNERA, "cornera");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_CORNERB, "cornerb");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_CORNERC, "cornerc");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_CORNERD, "cornerd");
+	
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_ORJPLWPX, "orjplwpx");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_ORJPLHPX, "orjplhpx");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_ORJLONS, "orjlons");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_ORJLATS, "orjlats");
 
 	CHECKGLERROR();
 }
