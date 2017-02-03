@@ -58,6 +58,7 @@ uniform mat4 mvp;
 
 void main (void)
 {
+vec4 texel0;
 
 	vec4 corneraout2 = corneraout / corneraout.w;
 	vec4 cornerbout2 = cornerbout / cornerbout.w;
@@ -89,6 +90,10 @@ void main (void)
 	uplen = uplen / totuplen;
 	sidelen = sidelen / totsidelen;
 
+	//texel0.x = uplen;
+	//texel0.y = sidelen;
+
+
 //	gl_FragColor.x = outpos2.x;
 //	gl_FragColor.y = outpos2.y;
 //	gl_FragColor.z = outpos2.z;
@@ -101,8 +106,8 @@ void main (void)
 	//gl_FragColor.y = pos.z * 0.5 + 0.5;
 
 	//jump tex pixel size
-	float pltxw = orjplwpx * orjlons;
-	float pltxh = orjplhpx * orjlats;
+	//float pltxw = orjplwpx * orjlons;
+	//float pltxh = orjplhpx * orjlats;
 
 	//plane angle
 	//can only determine viewing angle from CPU side, 
@@ -114,34 +119,43 @@ void main (void)
 			//0.5 + atan(viewdir.z, viewdir.x) / (2.0 * 3.1415),//lon
 			//0.5 - asin(viewdir.y)/3.1415//lat
 			);
+
+	//texel0.x = pla.x;
+	//texel0.y = pla.y;
+
 	//float lon ;
 	//float lat ;
 	//ratio, not rad
 	//to int
-	pla.x = floor( pla.x * orjlons );
-	pla.y = floor( pla.y * orjlats );
+	//pla.x = floor( pla.x * orjlons );
+	//pla.y = floor( pla.y * orjlats );
+
 
 	//plane pixel coord
-	vec2 plc = vec2(	//to int
-			floor(sidelen * orjplwpx),
-			floor(uplen * orjplhpx)
-			);
+	//vec2 plc = vec2(	//to int
+	//		floor(sidelen * orjplwpx),
+	//		floor(uplen * orjplhpx)
+	//		);
 
 //	vec2 jumptc = vec2(sidelen, uplen);
 
 	//jump table index coords
-	float tabx = plc.x + pla.x * orjplwpx;
-	float taby = plc.y + pla.y * orjplhpx;
+	float tabx = ( sidelen*(orjplwpx-1) + pla.x*orjplwpx*(orjlons-1) ) / 
+	 ( orjplwpx * orjlons );
+	float taby = ( uplen*(orjplhpx-1) + pla.y*orjplhpx*(orjlats-1) ) /
+	 ( orjplhpx * orjlats );
 	//to (0,1) ratio
-	tabx = tabx / pltxw;
-	taby = taby / pltxh;
+	//tabx = tabx / pltxw;
+	//taby = taby / pltxh;
+
+	//texel0.x = tabx;
+	//texel0.y = taby;
 
 	vec2 jumptc = vec2( tabx, taby );
 
-
 	vec4 jumpel = texture2D(jumptex, jumptc);
 
-//assume little endian
+	//assume little endian
 	int jumpi = int(jumpel.x*255) + 
 		int(jumpel.y*255) * 256 +
 		int(jumpel.z*255) * 256 * 256;
@@ -150,29 +164,42 @@ void main (void)
 			float( (jumpi%ormapsz) ) / float(ormapsz), 
 			float( (jumpi/ormapsz) ) / float(ormapsz) );
 
-	vec4 diffel = texture2D(texture0, jumpc.xy);
+	//texel0.x = jumpc.x;
+	//texel0.y = jumpc.y;
+
+	//vec4 diffel = texture2D(texture0, jumpc.xy);
 	vec4 posxel = texture2D(posxtex, jumpc.xy);
 	vec4 posyel = texture2D(posytex, jumpc.xy);
 	vec4 poszel = texture2D(posztex, jumpc.xy);
 
+	//texel0.xyz = posyel.xyz;
+	//texel0 = texture2D(texture0, jumpc.xy);
+
+
 	int steps = 5;
-	int step;
+	int step = 0;
 
-	float posoffx = (255 * posxel.x) + 256 * 255 * posxel.y - 30000;
-	float posoffy = (255 * posyel.x) + 256 * 255 * posyel.y - 30000;
-	float posoffz = (255 * poszel.x) + 256 * 255 * poszel.y - 30000;
+	vec4 posoff;
 
-	vec4 posoff = vec4(posoffx, posoffy, posoffz, 1);
+	posoff.x = (255 * posxel.x) + 256 * 255 * posxel.y - 30000;
+	posoff.y = (255 * posyel.x) + 256 * 255 * posyel.y - 30000;
+	posoff.z = (255 * poszel.x) + 256 * 255 * poszel.y - 30000;
+	posoff.w = 1;
 
 	vec4 posoff2 = mvp * posoff;
-	posoff2 = posoff2 / posoff2.w;
+	//posoff2 = posoff2 / posoff2.w;
 
-	float upoff = dot(updir, vec3(outpos2 - posoff2) );
-	float sideoff = dot(sidedir, vec3(outpos2 - posoff2) );
+	//texel0.x = posoff2.x;
+	//texel0.y = posoff2.y;
+	//texel0.z = posoff2.z;
+	
+	//float upoff = dot(updir, vec3(outpos2 - posoff2) );
+	//float sideoff = dot(sidedir, vec3(outpos2 - posoff2) );
 
-	upoff = upoff / totuplen;
-	sideoff = sideoff / totsidelen;
+	//upoff = upoff / totuplen;
+	//sideoff = sideoff / totsidelen;
 
+/*
 	vec2 upnavc = jumpc + vec2(0, 2.0 / float(ormapsz));
 	vec2 sidenavc = jumpc + vec2(2.0 / float(ormapsz), 0);
 	
@@ -227,18 +254,20 @@ void main (void)
 		//diffel = vec4(jumpc.x,jumpc.y,0,1);
 	}
 
+	//if( length( 
+
 //empty space
 //	if(jumpel.z > 0.99)
 //		discard;
 //wrong
-		
+		*/
 
-	vec4 texel0 = texture2D(texture0, gl_TexCoord[0].xy);
+	//vec4 texel0 = texture2D(texture0, gl_TexCoord[0].xy);
 	//vec4 texel1 = texture(texture1, texCoordOut0);
 	//vec4 texel2 = texture(texture2, texCoordOut0);
 	//vec4 texel3 = texture(texture3, texCoordOut0);
 
-	texel0 = diffel;
+	//texel0 = diffel;
 
 //	texel0 = vec4(viewdir.xyz, 1);
 
