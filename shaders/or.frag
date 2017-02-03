@@ -2,6 +2,9 @@
 
 #version 120
 
+#extension GL_EXT_gpu_shader4 : enable
+
+
 uniform vec4 color;
 
 uniform sampler2D texture0;
@@ -50,6 +53,8 @@ uniform float orjlat;
 varying vec4 outpos;
 
 uniform int ormapsz;	//widths and heights of diffuse and position textures
+
+uniform mat4 mvp;
 
 void main (void)
 {
@@ -149,6 +154,78 @@ void main (void)
 	vec4 posxel = texture2D(posxtex, jumpc.xy);
 	vec4 posyel = texture2D(posytex, jumpc.xy);
 	vec4 poszel = texture2D(posztex, jumpc.xy);
+
+	int steps = 5;
+	int step;
+
+	float posoffx = (255 * posxel.x) + 256 * 255 * posxel.y - 30000;
+	float posoffy = (255 * posyel.x) + 256 * 255 * posyel.y - 30000;
+	float posoffz = (255 * poszel.x) + 256 * 255 * poszel.y - 30000;
+
+	vec4 posoff = vec4(posoffx, posoffy, posoffz, 1);
+
+	vec4 posoff2 = mvp * posoff;
+	posoff2 = posoff2 / posoff2.w;
+
+	float upoff = dot(updir, vec3(outpos2 - posoff2) );
+	float sideoff = dot(sidedir, vec3(outpos2 - posoff2) );
+
+	upoff = upoff / totuplen;
+	sideoff = sideoff / totsidelen;
+
+	vec2 upnavc = jumpc + vec2(0, 2.0 / float(ormapsz));
+	vec2 sidenavc = jumpc + vec2(2.0 / float(ormapsz), 0);
+	
+	vec4 posxelupnav = texture2D(posxtex, upnavc.xy);
+	vec4 posyelupnav = texture2D(posytex, upnavc.xy);
+	vec4 poszelupnav = texture2D(posztex, upnavc.xy);
+
+	vec4 posxelsidenav = texture2D(posxtex, sidenavc.xy);
+	vec4 posyelsidenav = texture2D(posytex, sidenavc.xy);
+	vec4 poszelsidenav = texture2D(posztex, sidenavc.xy);
+
+	float upnavposx = (255 * posxelupnav.x) + 256 * 255 * posxelupnav.y - 30000;
+	float upnavposy = (255 * posyelupnav.x) + 256 * 255 * posyelupnav.y - 30000;
+	float upnavposz = (255 * poszelupnav.x) + 256 * 255 * poszelupnav.y - 30000;
+
+	float sidenavposx = (255 * posxelsidenav.x) + 256 * 255 * posxelsidenav.y - 30000;
+	float sidenavposy = (255 * posyelsidenav.x) + 256 * 255 * posyelsidenav.y - 30000;
+	float sidenavposz = (255 * poszelsidenav.x) + 256 * 255 * poszelsidenav.y - 30000;	
+
+	vec4 upnavpos = vec4(upnavposx,upnavposy,upnavposz,1);
+	vec4 sidenavpos = vec4(sidenavposx,sidenavposy,sidenavposz,1);
+
+	//vec3 upnavpos = vec3(upnavposx,upnavposy,upnavposz);
+	//vec3 sidenavpos = vec3(sidenavposx,sidenavposy,sidenavposz);
+
+	upnavpos = mvp * upnavpos;
+	sidenavpos = mvp * sidenavpos;
+
+	vec3 upnavpos2 = upnavpos.xyz;
+	vec3 sidenavpos2 = sidenavpos.xyz;
+
+	upnavpos2 = normalize( upnavpos2 );
+	sidenavpos2 = normalize( sidenavpos2 );
+
+	//component ratios
+	//length?
+	//vec2 offvec = vec2( sideoff, upoff );
+	vec3 offvec = normalize( outpos2.xyz - posoff.xyz );
+	float upcpt = dot( upnavpos2, offvec );
+	float sidecpt = dot( sidenavpos2, offvec );
+
+	jumpc = jumpc + vec2( upcpt, sidecpt ) * (steps - step) / float(ormapsz);
+	//jumpc = jumpc + vec2( upcpt, sidecpt );
+
+	diffel = texture2D(texture0, jumpc.xy);
+	posxel = texture2D(posxtex, jumpc.xy);
+	posyel = texture2D(posytex, jumpc.xy);
+	poszel = texture2D(posztex, jumpc.xy);
+
+	for(step=0; step<steps; ++step)
+	{
+		//diffel = vec4(jumpc.x,jumpc.y,0,1);
+	}
 
 //empty space
 //	if(jumpel.z > 0.99)
