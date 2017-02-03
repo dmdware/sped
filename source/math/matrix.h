@@ -318,5 +318,7 @@ public:
 #undef M
 
 void LogMat(const float* m);
+bool InvertMatrix(const float m[16], float invOut[16]);
+
 
 #endif

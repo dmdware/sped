@@ -72,7 +72,8 @@
 #define SSLOT_ORJLAT			61
 #define SSLOT_VIEWVEC			62
 #define SSLOT_ORMAPSZ			63
-#define SSLOTS					64
+#define SSLOT_IMVP				64
+#define SSLOTS					65
 
 
 #ifdef PLATFORM_MAC

@@ -95,6 +95,10 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	//mvp.postmult(modelmat);
 	glUniformMatrix4fv(s->m_slot[SSLOT_MVP], 1, 0, mvp.m_matrix);
 
+	Matrix imvp;
+	InvertMatrix(mvp.m_matrix, imvp.m_matrix);
+	glUniformMatrix4fv(s->m_slot[SSLOT_IMVP], 1, 0, imvp.m_matrix);
+
 	Vec3f viewdir = Normalize(g_cam.m_view - g_cam.m_pos);
 	Vec3f updir = g_cam.up2();
 	Vec3f sidedir = Normalize(g_cam.m_strafe);
