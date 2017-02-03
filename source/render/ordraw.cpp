@@ -14,6 +14,7 @@
 #include "../save/saveedm.h"
 #include "../app/appmain.h"
 #include "../render/sortb.h"
+#include "../math/camera.h"
 
 OrList g_orlist;
 
@@ -130,11 +131,24 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	
 	glUniform1i(s->m_slot[SSLOT_ORMAPSZ], (int)g_bigtex);
 
-	Vec3f viewang = Vec3f(0,0,0) - viewdir;
+	//Vec3f viewang = Vec3f(0,0,0) - viewdir;
+	Vec3f viewang = viewdir;
 
 	//ratios
 	float orlon = 0.5 + atan2(viewang.z, viewang.x) / (2.0 * M_PI);
 	float orlat = 0.5 - asin(viewang.y)/M_PI;
+	////float orlon = atan2(viewang.x, viewang.z) / (2.0 * M_PI);
+	//float yaw = 0.5f + atan2(wrappos.z, wrappos.x) / (2.0f*M_PI);
+	if(ISNAN(orlon))
+		ErrMess("asdsdg","nanyaw");
+	//tan(0)=op/adj=0/1
+	//fprintf(g_applog, "prepos1 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
+	///viewang = Rotate(viewang, orlon, 0, 1, 0);
+	//fprintf(g_applog, "prepos2 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
+	////float orlat = atan2(viewang.y, viewang.x) / M_PI;
+	//float lat = 0.5f - asin(wrappos.y)/M_PI;
+
+	orlon = orlat = 0;
 	
 	glUniform1f(s->m_slot[SSLOT_ORJLON], (float)orlon);
 	glUniform1f(s->m_slot[SSLOT_ORJLAT], (float)orlat);
@@ -255,7 +269,7 @@ bool LoadOr1()
 	NameRender(diffpath, -1);
 	strcat(diffpath, "_diff.png");
 	MakeRel(diffpath, diffpath2);
-	CreateTex(or->difftexi, diffpath2, true, false);
+	CreateTex(or->difftexi, diffpath2, false, false);
 	
 #if 0
 	unsigned int difftexi;
@@ -269,28 +283,28 @@ bool LoadOr1()
 	NameRender(posxpath, -1);
 	strcat(posxpath, "_posx.png");
 	MakeRel(posxpath, posxpath2);
-	CreateTex(or->postexi[0], posxpath2, true, false);
+	CreateTex(or->postexi[0], posxpath2, false, false);
 
 	char posypath[SPE_MAX_PATH+1];
 	char posypath2[SPE_MAX_PATH+1];
 	NameRender(posypath, -1);
 	strcat(posypath, "_posy.png");
 	MakeRel(posypath, posypath2);
-	CreateTex(or->postexi[1], posypath2, true, false);
+	CreateTex(or->postexi[1], posypath2, false, false);
 
 	char poszpath[SPE_MAX_PATH+1];
 	char poszpath2[SPE_MAX_PATH+1];
 	NameRender(poszpath, -1);
 	strcat(poszpath, "_posz.png");
 	MakeRel(poszpath, poszpath2);
-	CreateTex(or->postexi[2], poszpath2, true, false);
+	CreateTex(or->postexi[2], poszpath2, false, false);
 
 	char jumppath[SPE_MAX_PATH+1];
 	char jumppath2[SPE_MAX_PATH+1];
 	NameRender(jumppath, -1);
 	strcat(jumppath, "_isle.png");
 	MakeRel(jumppath, jumppath2);
-	CreateTex(or->jumptexi, jumppath2, true, false);
+	CreateTex(or->jumptexi, jumppath2, false, false);
 
 	return true;
 }
@@ -519,6 +533,24 @@ void ViewTopo(const char* fullpath)
 	FreeEdMap(&g_edmap);
 
 	LoadOr(fullpath);
+
+	Vec3f up = Vec3f(0,1,0);
+	Vec3f side = Vec3f(1,0,0);
+	Vec3f view = Vec3f(0,0,-1);
+#if 0
+
+	up = Rotate(up, M_PI*(float)orlat/(float)g_orlats-M_PI/2.0f, 1, 0, 0);
+	side = Rotate(side, M_PI*(float)orlat/(float)g_orlats-M_PI/2.0f, 1, 0, 0);
+	view = Rotate(view, M_PI*(float)orlat/(float)g_orlats-M_PI/2.0f, 1, 0, 0);
+
+	up = Rotate(up, M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
+	side = Rotate(side, M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
+	view = Rotate(view, M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
+#endif
+
+	Vec3f pos = Vec3f(0,0,0) - view * 10000;
+
+	g_cam.position( pos.x, pos.y, pos.z, view.x, view.y, view.z, up.x, up.y, up.z);
 
 	return;
 	//g_mode = ORVIEW;
