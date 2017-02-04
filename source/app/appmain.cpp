@@ -28,7 +28,7 @@
 #include "../tool/rendersprite.h"
 #include "../tool/rendertopo.h"
 #include "../debug.h"
-#include "sesim.h"
+#include "segui.h"
 #include "../sim/tile.h"
 #include "undo.h"
 #include "../render/ordraw.h"
@@ -93,6 +93,24 @@ void Draw()
         sprintf(dbgstr, "b's:%d", (int)g_edmap.m_brush.size());
         RichText rdbgstr(dbgstr);
         DrawShadowedText(MAINFONT8, 0, g_height-16, &rdbgstr);
+
+		if(g_rolllock)
+		{
+			char rlstr[123] = " Roll-lock enabled: orientability map \n object only has yaw and pitch \n rotations";
+			RichText rlstrr = RichText(rlstr);
+			float rlc[4] = {1,0,0,1};
+			float w, h;
+			float x, y;
+
+			x = g_toprightviewport->m_pos[0];
+			y = g_toprightviewport->m_pos[1]+16;
+			w = g_toprightviewport->m_pos[2]-x;
+			h = g_toprightviewport->m_pos[3]-y;
+
+			DrawBoxShadText(MAINFONT8, x, y, w, h, &rlstrr, rlc, 0, -1);
+			//DrawShadowedText(MAINFONT8, x, y, &rlstrr, rlc);
+		}
+
         EndS();
     }
 

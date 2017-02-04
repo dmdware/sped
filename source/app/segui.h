@@ -15,6 +15,10 @@
 #define PROJ_PERSP		2
 extern int g_projtype;
 
+class Viewport;
+
+extern Viewport* g_toprightviewport;
+
 extern float g_snapgrid;
 extern bool g_showsky;
 extern char g_lastsave[SPE_MAX_PATH+1];

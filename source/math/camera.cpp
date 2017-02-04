@@ -114,7 +114,7 @@ void Camera::position(float posx, float posy, float posz, float viewx, float vie
 	calcpitch();
 }
 
-void Camera::rotatebymoUseS(int dx, int dy)
+void Camera::rotatebymouse(int dx, int dy)
 {
 	if( (dx == 0) && (dy == 0) ) return;
 

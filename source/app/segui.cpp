@@ -36,6 +36,8 @@ bool g_showsky = false;
 float g_snapgrid = 25;
 char g_lastsave[SPE_MAX_PATH+1];
 
+Viewport* g_toprightviewport = NULL;
+
 void AnyKeyDown(int k)
 {
 	SkipLogo();
@@ -2565,6 +2567,8 @@ Viewport(Widget* parent, const char* n, void (*reframef)(Widget* thisw),
 	viewportsframe->add(new Viewport(viewportsframe, "top left viewport",		Resize_TopLeftViewport,		&DrawViewport, &ViewportLDown, &ViewportLUp, &ViewportMousemove, &ViewportRDown, &ViewportRUp, ViewportMousewheel, NULL, NULL, 1));
 	viewportsframe->add(new Viewport(viewportsframe, "bottom right viewport",	Resize_BottomRightViewport,	&DrawViewport, &ViewportLDown, &ViewportLUp, &ViewportMousemove, &ViewportRDown, &ViewportRUp, ViewportMousewheel, NULL, NULL, 2));
 	viewportsframe->add(new Viewport(viewportsframe, "top right viewport",		Resize_TopRightViewport,	&DrawViewport, &ViewportLDown, &ViewportLUp, &ViewportMousemove, &ViewportRDown, &ViewportRUp, ViewportMousewheel, NULL, NULL, 3));
+
+	g_toprightviewport = (Viewport*)*viewportsframe->m_subwidg.rbegin();
 
 	g_vptype[VIEWPORT_FRONT] = VpType(Vec3f(0, 0, MAX_DISTANCE/3), Vec3f(0, 1, 0), "Front");
 	g_vptype[VIEWPORT_TOP] = VpType(Vec3f(0, MAX_DISTANCE/3, 0), Vec3f(0, 0, -1), "Top");

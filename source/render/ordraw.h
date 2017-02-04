@@ -8,6 +8,8 @@
 #include "../tool/rendertopo.h"
 #include "../texture.h"
 
+extern bool g_rolllock;
+
 class OrList;
 
 void UpdateOrient();

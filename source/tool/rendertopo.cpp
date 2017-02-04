@@ -11305,12 +11305,14 @@ void Emerge2(Surf *surf,
 			Vec3f place2,
 			float div=19)
 {
+#if 0	//ignore for use in MapGlobe4
 	PreEmTest(surf,
 		esp,
 		ig1,
 		ig2,
 		place,
 		place2);
+#endif
 
 	for(std::list<SurfPt*>::iterator sit=surf->pts2.begin();
 		sit!=surf->pts2.end();
@@ -11318,8 +11320,10 @@ void Emerge2(Surf *surf,
 	{
 		SurfPt *sp = *sit;
 
+#if 0	//MapGlobe4()....
 		if(sp->ring < 0)
 			continue;
+#endif
 
 		sp->prevwrap = sp->wrappos;
 
@@ -11386,7 +11390,7 @@ void Emerge2(Surf *surf,
 #endif
 	}
 
-	TestE(surf, place, ig1, ig2);
+	//TestE(surf, place, ig1, ig2);
 }
 
 //jump along ring, add link
@@ -12403,8 +12407,10 @@ again:
 	{
 		SurfPt *p = *pit;
 
+#if 0	//ignore for use in MapGlobe4();
 		if(p->ring < 0)
 			continue;
+#endif
 
 		strong = strong * c / (c+1) + p->wrappos / (c+1);
 		c++;

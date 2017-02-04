@@ -27,7 +27,7 @@ public:
 	void position(float posx, float posy, float posz, float viewx, float viewy, float viewz, float upx, float upy, float upz);
 	void rotateview(float angle, float x, float y, float z);
 	void lookat(Vec3f at);
-	void rotatebymoUseS(int dx, int dy);
+	void rotatebymouse(int dx, int dy);
 	Vec3f lookpos();
 	void grounded(bool ground);
 	void rotateabout(Vec3f center, float rad, float x, float y, float z);

@@ -18,6 +18,7 @@
 
 OrList g_orlist;
 
+bool g_rolllock = false;
 
 void DrawOr(OrList *ol, int frame, Vec3f pos, 
 		float pitchrad, 
@@ -561,6 +562,8 @@ void ViewTopo(const char* fullpath)
 	Vec3f pos = Vec3f(0,0,0) - view * 10000;
 
 	g_cam.position( pos.x, pos.y, pos.z, view.x, view.y, view.z, up.x, up.y, up.z);
+
+	g_rolllock = true;
 
 	return;
 	//g_mode = ORVIEW;

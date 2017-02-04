@@ -25,6 +25,7 @@
 #include "../sim/explocrater.h"
 #include "../tool/rendersprite.h"
 #include "../debug.h"
+#include "../render/ordraw.h"
 
 VpType g_vptype[VIEWPORT_TYPES];
 VpWrap g_viewport[4];
@@ -1062,9 +1063,17 @@ void ViewportRotate(int which, int dx, int dy)
 	//t->m_offset = RotateAround(t->m_offset, g_focus, dy / 100.0f, strafe.x, strafe.y, strafe.z);
 	//t->m_offset = RotateAround(t->m_offset, g_focus, dx / 100.0f, t->m_up.x, t->m_up.y, t->m_up.z);
 
-	g_cam.rotateabout(g_cam.m_view, dy / 100.0f, g_cam.m_strafe.x, g_cam.m_strafe.y, g_cam.m_strafe.z);
-	g_cam.rotateabout(g_cam.m_view, dx / 100.0f, g_cam.m_up.x, g_cam.m_up.y, g_cam.m_up.z);
-
+	if(!g_rolllock)
+	{
+		g_cam.rotateabout(g_cam.m_view, dy / 100.0f, g_cam.m_strafe.x, g_cam.m_strafe.y, g_cam.m_strafe.z);
+		g_cam.rotateabout(g_cam.m_view, dx / 100.0f, g_cam.m_up.x, g_cam.m_up.y, g_cam.m_up.z);
+	}
+	else
+	{
+		//g_cam.rotatebymouse(dx/MOUSE_SENSITIVITY/100.0f, dy/MOUSE_SENSITIVITY/100.0f);
+		g_cam.rotateabout(g_cam.m_view, dy / 100.0f, g_cam.m_strafe.x, g_cam.m_strafe.y, g_cam.m_strafe.z);
+		g_cam.rotateabout(g_cam.m_view, dx / 100.0f, 0,1,0);
+	}
 	//Log("rotate "<<dx/10.0f<<","<<dy/10.0f<<std::endl;
 	//
 	//SortEdB(&g_edmap, g_focus, g_focus + t->m_offset);
