@@ -85,7 +85,8 @@ vec3 RotAr(vec3 v, vec3 around, float rad, float x, float y, float z)
 	return v;	
 }
 
-vec4 DecBin(vec3 posxel, vec3 posyel, vec3 poszel)
+//decode binary
+vec4 DecBin(vec4 posxel, vec4 posyel, vec4 poszel)
 {
 	vec4 pos;
 
@@ -97,17 +98,56 @@ vec4 DecBin(vec3 posxel, vec3 posyel, vec3 poszel)
 	return pos;
 }
 
+//decompose vector into two components.
+//ignore into-the-screen direction.
+//up and side are assumed to be normalized.
+//return the resulting vector.
+vec3 Decompose(vec3 v, vec3 side, vec3 up)
+{	
+	//components
+	vec2 cpts;
+
+	cpts.x = dot(v, side);
+	v = v - side * cpts.x;
+	cpts.y = dot(v, up);
+
+	return ( side * cpts.x + up * cpts.y );
+}
+
+//also decompose, like above, but get the ratios
+//for the components, instead of resulting vector.
+vec2 Decompose2(vec3 v, vec3 side, vec3 up)
+{
+	//components
+	vec2 cpts;
+
+	cpts.x = dot(v, side);
+	v = v - side * cpts.x;
+	cpts.y = dot(v, up);
+
+	return cpts;
+}
+
 void main (void)
 {
 vec4 texel0;
 
 	vec3 cen = ( cornera.xyz + cornerc.xyz ) / 2.0;
 
-	vec4 outpos2 = outpos / outpos.w;
-	outpos2 = imvp * outpos2;
-	outpos2 = outpos2 / outpos2.w;
+	//vec4 outpos2 = outpos / outpos.w;
+	//outpos2 = imvp * outpos2;
+	//outpos2 = outpos2 / outpos2.w;
+	vec4 outpos2 = outpos;
+	//vec4 outpos2 = gl_FragCoord;
+	//outpos2.w = 1;
+	//outpos2 = mvp * outpos;
+	//outpos2 = outpos2 / outpos2.w;
 
 
+	//in image, top-left is origin.
+	//in SpEd, space coords going up is increasing y coord value,
+	//which means updir in space is reverse of texture y coord increase.
+	//so use -1 for movement up along texture
 	vec3 updir = ( cornera.xyz - cornerd.xyz );
 	vec3 sidedir = ( cornerc.xyz - cornerd.xyz );
 	float totuplen = length( updir );
@@ -118,8 +158,20 @@ vec4 texel0;
 	viewdir = normalize( viewdir );
 
 
+	//uprat is measured from the bottom space coord going up,
+	//but gives negative pixel image y coord going down,
+	//so make it within [0..1]. EDIT: will use -1 tex jump instead.
 	float uprat = dot(updir, (outpos2.xyz - cornerd.xyz) / totsidelen );
 	float siderat = dot(sidedir, (outpos2.xyz - cornerd.xyz) / totuplen );
+
+	//uprat = 1.0 - uprat;
+
+
+	//outpos2.x = siderat;
+	//outpos2.y = uprat;
+	//outpos2.z = 0;
+
+	//outpos2 = texture2D(texture0, outpos2.xy);
 
 
 	//eliminate into-the-screen direction offset
@@ -130,8 +182,9 @@ vec4 texel0;
 
 	//jump table index coords
 
-	int tabx = int(siderat*(orjplwpx-1)) + int(orjlon*orjplwpx*(orjlons-1));
-	int taby = int(uprat*(orjplhpx-1)) + int(orjlat*orjplhpx*(orjlats-1));
+	int tabx = int(siderat*(orjplwpx-1)) + int(orjlon*(orjlons-1)*orjplwpx);
+	//int taby = int(uprat*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
+	int taby = int((1.0-uprat)*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
 	float tabxf = float(tabx)/(orjplwpx * orjlons);
 	float tabyf = float(taby)/(orjplhpx * orjlats);
 
@@ -147,6 +200,9 @@ vec4 texel0;
 		int(jumpel.y*255) * 256 +
 		int(jumpel.z*255) * 256 * 256;
 
+	//if(jumpi == 0)
+	//	discard;
+
 	vec2 jumpc = vec2( 
 			float( (jumpi%ormapsz) ) / float(ormapsz), 
 			float( (jumpi/ormapsz) ) / float(ormapsz) );
@@ -156,25 +212,25 @@ vec4 texel0;
 	vec4 posyel = texture2D(posytex, jumpc.xy);
 	vec4 poszel = texture2D(posztex, jumpc.xy);
 
-	int steps = 700;
+	int steps = 7;
 	int step = 0;
 
-	vec4 posoff;
+	vec4 offpos;
 
 	for(step=0; step<steps; ++step)
 	{
 		//diffel = vec4(jumpc.x,jumpc.y,0,1);
-		posoff = DecBin(posxel, posyel, poszel);
+		offpos = DecBin(posxel, posyel, poszel);
 		//rotate based on viewing angle
-		//posoff.xyz = RotAr(posoff.xyz, cen, latrad, 1, 0, 0);
-		//posoff.xyz = RotAr(posoff.xyz, cen, lonrad, 0, 1, 0);
+		offpos.xyz = RotAr(offpos.xyz, cen, latrad, 1, 0, 0);
+		offpos.xyz = RotAr(offpos.xyz, cen, lonrad, 0, 1, 0);
 
 
 		//(orlon,orlat) contains the rotation.
 		//apply rotation to the rgb coords.
 
 		//1 pixel offset up and right
-		vec2 upnavc = jumpc + vec2(0, 1.0 / float(ormapsz));
+		vec2 upnavc = jumpc + vec2(0, -1.0 / float(ormapsz));
 		vec2 sidenavc = jumpc + vec2(1.0 / float(ormapsz), 0);
 	
 		posxel = texture2D(posxtex, upnavc.xy);
@@ -182,62 +238,56 @@ vec4 texel0;
 		poszel = texture2D(posztex, upnavc.xy);
 		//this is what space (offset) direction will be for 1 pixel 
 		//move up on or. position/diffuse maps.
-		vec4 upnavpos = DecBin(posxel, posyel, poszel);
+		vec4 upnavoff = DecBin(posxel, posyel, poszel);
 		//rotate based on viewing angle
-		//upnavpos.xyz = RotAr(upnavpos.xyz, cen, latrad, 1, 0, 0);
-		//upnavpos.xyz = RotAr(upnavpos.xyz, cen, lonrad, 0, 1, 0);
+		upnavoff.xyz = RotAr(upnavoff.xyz, cen, latrad, 1, 0, 0);
+		upnavoff.xyz = RotAr(upnavoff.xyz, cen, lonrad, 0, 1, 0);
 		//get relative offset from current position in absolute space
-		upnavpos = vec4( ( upnavpos.xyz -  posoff.xyz ), 1 );
+		upnavoff = vec4( ( upnavoff.xyz -  offpos.xyz ), 1 );
 
 		posxel = texture2D(posxtex, sidenavc.xy);
 		posyel = texture2D(posytex, sidenavc.xy);
 		poszel = texture2D(posztex, sidenavc.xy);
 		//this is what space (offset) direction will be for 1 pixel 
 		//move right on or. position/diffuse maps.
-		vec4 sidenavpos = DecBin(posxel, posyel, poszel);
+		vec4 sidenavoff = DecBin(posxel, posyel, poszel);
 		//rotate based on viewing angle
-		//sidenavpos.xyz = RotAr(sidenavpos.xyz, cen, latrad, 1, 0, 0);
-		//sidenavpos.xyz = RotAr(sidenavpos.xyz, cen, lonrad, 0, 1, 0);
+		sidenavoff.xyz = RotAr(sidenavoff.xyz, cen, latrad, 1, 0, 0);
+		sidenavoff.xyz = RotAr(sidenavoff.xyz, cen, lonrad, 0, 1, 0);
 		//get relative offset from current position in absolute space
-		sidenavpos = vec4( ( sidenavpos.xyz -  posoff.xyz ), 1 );
+		sidenavoff = vec4( ( sidenavoff.xyz -  offpos.xyz ), 1 );
 
 
 		//eliminate into-the-screen direction offset
 		//side
-		uprat = dot(updir, (sidenavpos.xyz)  );
-		siderat = dot(sidedir, (sidenavpos.xyz) );
-		sidenavpos.xyz = updir * uprat + sidedir * siderat;
-		sidenavpos.xyz = normalize( sidenavpos.xyz );
+		sidenavoff.xyz = Decompose(sidenavoff.xyz, sidedir, updir);
+		sidenavoff.xyz = normalize( sidenavoff.xyz );
 		//up
-		uprat = dot(updir, (upnavpos.xyz)  );
-		siderat = dot(sidedir, (upnavpos.xyz) );
-		upnavpos.xyz = updir * uprat + sidedir * siderat;
-		upnavpos.xyz = normalize( upnavpos.xyz );
+		upnavoff.xyz = Decompose(upnavoff.xyz, sidedir, updir);
+		upnavoff.xyz = normalize( upnavoff.xyz );
 
 
 		//component ratios to get closer to the texture coords for diffuse.
 		//offvec = needed offset of texture coords in absolute space to
 		//the screen fragment.
-		vec3 offvec = ( outpos2.xyz - posoff.xyz );
+		vec3 offvec = ( outpos2.xyz - offpos.xyz );
+		offvec = Decompose(offvec, sidedir, updir);
 
-		//eliminate into-the-screen direction offset
-		uprat = dot(updir, (offvec)  );
-		siderat = dot(sidedir, (offvec) );
-		offvec = updir * uprat + sidedir * siderat;
 
 		//normalize, because we want just the direction and have our
 		//own jumping speed in pixels.
 		offvec = normalize( offvec );
 
 		//get component contributions of up,right along textures
-		float upcpt = dot( upnavpos.xyz, offvec );
-		offvec = offvec - upnavpos.xyz * upcpt;
-		float sidecpt = dot( sidenavpos.xyz, offvec );
+		vec2 texjump = Decompose2( offvec, sidenavoff.xyz, upnavoff.xyz );
+		texjump.y = - texjump.y;
+		texjump = normalize( texjump );
+
 
 		//jump a decreasing distance in pixels
-		//jumpc = jumpc + vec2( sidecpt, upcpt ) * (steps - step) / float(ormapsz);
+		//jumpc = jumpc + texjump * (steps - step) / float(ormapsz);
 
-		jumpc = jumpc + vec2( sidecpt, upcpt ) / float(ormapsz);
+		jumpc = jumpc + texjump / float(ormapsz);
 
 
 		diffel = texture2D(texture0, jumpc.xy);
@@ -248,22 +298,24 @@ vec4 texel0;
 		gl_FragColor.xyz = diffel.xyz;
 		gl_FragColor.w = 1;
 
-		posoff.x = (255 * posxel.x) + 256 * 255 * posxel.y - 30000;
-		posoff.y = (255 * posyel.x) + 256 * 255 * posyel.y - 30000;
-		posoff.z = (255 * poszel.x) + 256 * 255 * poszel.y - 30000;
-		posoff.w = 1;
+		offpos = DecBin(posxel, posyel, poszel);
 		//rotate based on viewing angle
-		//posoff.xyz = RotAr(posoff.xyz, cen, latrad, 1, 0, 0);
-		//posoff.xyz = RotAr(posoff.xyz, cen, lonrad, 0, 1, 0);
+		offpos.xyz = RotAr(offpos.xyz, cen, latrad, 1, 0, 0);
+		offpos.xyz = RotAr(offpos.xyz, cen, lonrad, 0, 1, 0);
 
 
-		vec4 mvppos = mvp * posoff;
+		vec4 mvppos = mvp * offpos;
 		//mvppos = mvppos / mvppos.w;
 		gl_FragDepth = mvppos.z / mvppos.w;
 	}
 
+	//gl_FragColor.xyz = outpos2.xyz;
+	//gl_FragColor.w = 1;
+
+	//gl_FragDepth = 0.1;
+
 	
-	//if( length( posoff.xyz - outpos2.xyz ) > 10000)
+	//if( length( offpos.xyz - outpos2.xyz ) > 10000)
 	//	discard;
 
 //empty space

@@ -67,8 +67,21 @@ void main(void)
 	gl_Position = mvp * gl_Vertex;
 	gl_Position.w = 1;	//ortho=1/persp?
 
-	outpos = mvp * gl_Vertex;
-	outpos.w = 1;
+	//IMPORTANT:
+	//the gl_Vertex coordinates must be in absolute space.
+	//any translation must be added to the vertices before
+	//sending them here.
+	//rotations must be defined in (orjlon,orjlat) relative
+	//to the layed out structure of corners of the quad
+	//which is already perpindicular to the viewing angle.
+	//if a model transformation is applied,
+	//outpos2 in the fragment shader must be the absolute
+	//space coordinate after all the translation and rotation.
+
+	//outpos = mvp * gl_Vertex;
+	//outpos.w = 1;
+	//absolute
+	outpos = gl_Vertex;
 
 	//absolute coordinates
 	//not
