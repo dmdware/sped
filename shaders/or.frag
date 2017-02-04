@@ -183,8 +183,8 @@ vec4 texel0;
 	//jump table index coords
 
 	int tabx = int(siderat*(orjplwpx-1)) + int(orjlon*(orjlons-1)*orjplwpx);
-	//int taby = int(uprat*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
-	int taby = int((1.0-uprat)*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
+	int taby = int(uprat*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
+	//int taby = int((1.0-uprat)*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
 	float tabxf = float(tabx)/(orjplwpx * orjlons);
 	float tabyf = float(taby)/(orjplhpx * orjlats);
 
@@ -207,12 +207,18 @@ vec4 texel0;
 			float( (jumpi%ormapsz) ) / float(ormapsz), 
 			float( (jumpi/ormapsz) ) / float(ormapsz) );
 
+	if(jumpi == 0)
+	{
+		jumpc.x = 0.5;
+		jumpc.y = 0.5;
+	}
+
 	vec4 diffel = texture2D(texture0, jumpc.xy);
 	vec4 posxel = texture2D(posxtex, jumpc.xy);
 	vec4 posyel = texture2D(posytex, jumpc.xy);
 	vec4 poszel = texture2D(posztex, jumpc.xy);
 
-	int steps = 7;
+	int steps = 70;
 	int step = 0;
 
 	vec4 offpos;
@@ -225,13 +231,15 @@ vec4 texel0;
 		offpos.xyz = RotAr(offpos.xyz, cen, latrad, 1, 0, 0);
 		offpos.xyz = RotAr(offpos.xyz, cen, lonrad, 0, 1, 0);
 
+		float pixjump = float(steps - step);
+
 
 		//(orlon,orlat) contains the rotation.
 		//apply rotation to the rgb coords.
 
 		//1 pixel offset up and right
-		vec2 upnavc = jumpc + vec2(0, -1.0 / float(ormapsz));
-		vec2 sidenavc = jumpc + vec2(1.0 / float(ormapsz), 0);
+		vec2 upnavc = jumpc + vec2(0, -pixjump / float(ormapsz));
+		vec2 sidenavc = jumpc + vec2(pixjump / float(ormapsz), 0);
 	
 		posxel = texture2D(posxtex, upnavc.xy);
 		posyel = texture2D(posytex, upnavc.xy);
@@ -285,9 +293,9 @@ vec4 texel0;
 
 
 		//jump a decreasing distance in pixels
-		//jumpc = jumpc + texjump * (steps - step) / float(ormapsz);
+		jumpc = jumpc + texjump * pixjump / float(ormapsz);
 
-		jumpc = jumpc + texjump / float(ormapsz);
+		//jumpc = jumpc + texjump / float(ormapsz);
 
 
 		diffel = texture2D(texture0, jumpc.xy);
@@ -308,6 +316,9 @@ vec4 texel0;
 		//mvppos = mvppos / mvppos.w;
 		gl_FragDepth = mvppos.z / mvppos.w;
 	}
+
+	if( length( offpos.xyz - outpos2.xyz ) > 80 )
+		discard;
 
 	//gl_FragColor.xyz = outpos2.xyz;
 	//gl_FragColor.w = 1;

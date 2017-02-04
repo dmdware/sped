@@ -8489,6 +8489,9 @@ void OutTex2(Surf *surf, LoadedTex* out)
 		}
 	}
 
+	//for good measure
+	maxrad *= 2;
+
 	char infopath[SPE_MAX_PATH+1];
 	NameRender(infopath, -1);
 	strcat(infopath, "_info.txt");
