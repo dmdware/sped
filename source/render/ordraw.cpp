@@ -131,24 +131,34 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	
 	glUniform1i(s->m_slot[SSLOT_ORMAPSZ], (int)g_bigtex);
 
-	//Vec3f viewang = Vec3f(0,0,0) - viewdir;
-	Vec3f viewang = viewdir;
+	Vec3f viewang = Vec3f(0,0,0) - viewdir;
+	//Vec3f viewang = viewdir;
 
 	//ratios
-	float orlon = 0.5 + atan2(viewang.z, viewang.x) / (2.0 * M_PI);
-	float orlat = 0.5 - asin(viewang.y)/M_PI;
-	////float orlon = atan2(viewang.x, viewang.z) / (2.0 * M_PI);
+	///float orlon = 0.5 + atan2(viewang.z, viewang.x) / (2.0 * M_PI);
+	///float orlat = 0.5 - asin(viewang.y)/M_PI;
+	//float orlon = atan2(viewang.x, viewang.z) / (2.0 * M_PI);
+	
+	float orlon = atan2(viewang.z, viewang.x) / (2.0 * M_PI);
+	float orlat = - asin(viewang.y)/M_PI;
+
+	if(orlon < 0)
+		orlon = orlon + 1.0;
+
 	//float yaw = 0.5f + atan2(wrappos.z, wrappos.x) / (2.0f*M_PI);
 	if(ISNAN(orlon))
 		ErrMess("asdsdg","nanyaw");
 	//tan(0)=op/adj=0/1
 	//fprintf(g_applog, "prepos1 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
-	///viewang = Rotate(viewang, orlon, 0, 1, 0);
+	////viewang = Rotate(viewang, -orlon, 0, 1, 0);
 	//fprintf(g_applog, "prepos2 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
 	////float orlat = atan2(viewang.y, viewang.x) / M_PI;
 	//float lat = 0.5f - asin(wrappos.y)/M_PI;
 
-	orlon = orlat = 0;
+	if(orlat < 0)
+		orlat = orlat + 1;
+
+	//orlon = orlat = 0;
 	
 	glUniform1f(s->m_slot[SSLOT_ORJLON], (float)orlon);
 	glUniform1f(s->m_slot[SSLOT_ORJLAT], (float)orlat);
