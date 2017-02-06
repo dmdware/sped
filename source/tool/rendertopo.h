@@ -125,6 +125,7 @@ void GetCen(Surf *surf,
 
 bool MapGlobe2(Surf *surf);
 bool MapGlobe3(Surf *surf);
+bool MapGlobe4(Surf *surf);
 
 void Balance3(Surf *surf, int bestupdown);
 void RemDupTet(std::list<Tet*>* tets);

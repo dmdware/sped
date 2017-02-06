@@ -8513,9 +8513,9 @@ void OutTex2(Surf *surf, LoadedTex* out)
 			side = Rotate(side, M_PI*(float)orlat/(float)g_orlats-M_PI/2.0f, 1, 0, 0);
 			view = Rotate(view, M_PI*(float)orlat/(float)g_orlats-M_PI/2.0f, 1, 0, 0);
 
-			up = Rotate(up, M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
-			side = Rotate(side, M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
-			view = Rotate(view, M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
+			up = Rotate(up, 2.0*M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
+			side = Rotate(side, 2.0*M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
+			view = Rotate(view, 2.0*M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
 
 			for(int orxpx=0; orxpx<g_orwpx; orxpx++)
 			{

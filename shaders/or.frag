@@ -183,14 +183,17 @@ vec4 texel0;
 	//jump table index coords
 
 	int tabx = int(siderat*(orjplwpx-1)) + int(orjlon*(orjlons-1)*orjplwpx);
-	int taby = int(uprat*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
-	//int taby = int((1.0-uprat)*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
+	//int taby = int(uprat*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
+	int taby = int((1.0-uprat)*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
 	float tabxf = float(tabx)/(orjplwpx * orjlons);
 	float tabyf = float(taby)/(orjplhpx * orjlats);
 
 	//the angle of viewing of the object
-	float lonrad = 3.1415 * 2.0 * orjlon;
-	float latrad = 3.1415 * 1.0 * orjlat;
+	float lonrad = 3.14159 * 2.0 * orjlon - 3.14159/2.0;
+	float latrad = 3.14159 * 1.0 * orjlat - 3.14159/2.0;
+
+	lonrad = -lonrad;
+	latrad = -latrad;
 
 	vec2 startjump = vec2( tabxf, tabyf );
 	vec4 jumpel = texture2D(jumptex, startjump);

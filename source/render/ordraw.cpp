@@ -132,32 +132,161 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	
 	glUniform1i(s->m_slot[SSLOT_ORMAPSZ], (int)g_bigtex);
 
+	//angle of view around the object will be opposite
+	//like if you view it from back with your view vector = (0,0,1) looking forward,
+	//object's view vector of rotation should be (0,0,-1) (with it's backside front, and looking backward)
 	Vec3f viewang = Vec3f(0,0,0) - viewdir;
 	//Vec3f viewang = viewdir;
+
+#if 0
+	//tests
+	{
+		//test1
+		Vec3f viewang1 = Vec3f(0,0,-1);
+		Vec3f viewang2 = Vec3f(0,0,-1);
+
+#if 0
+		//Vec3f up = Vec3f(0,1,0);
+		//Vec3f side = Vec3f(1,0,0);
+		//Vec3f view = Vec3f(0,0,-1);
+
+		up = Rotate(up, M_PI*(float)orlat/(float)g_orlats-M_PI/2.0f, 1, 0, 0);
+		side = Rotate(side, M_PI*(float)orlat/(float)g_orlats-M_PI/2.0f, 1, 0, 0);
+		view = Rotate(view, M_PI*(float)orlat/(float)g_orlats-M_PI/2.0f, 1, 0, 0);
+
+		up = Rotate(up, 2.0*M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
+		side = Rotate(side, 2.0*M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
+		view = Rotate(view, 2.0*M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
+#endif
+
+		float orlats = 16;
+		float orlons = 16;
+
+		float orlat1 = 3;
+		float orlon1 = 12+1-1;
+
+		float orlat2 = 8;
+		float orlon2 = 11-1+1;
+
+		float latrad1 = M_PI*(float)orlat1/(float)orlats-M_PI/2.0f;
+		float lonrad1 = 2.0*M_PI*(float)orlon1/(float)orlons-M_PI/2.0f;
+
+		float latrad2 = M_PI*(float)orlat2/(float)orlats-M_PI/2.0f;
+		float lonrad2 = 2.0*M_PI*(float)orlon2/(float)orlons-M_PI/2.0f;
+
+		//lonrad1 = 0;
+		//lonrad2 = 0;
+
+		viewang1 = Rotate(viewang1, latrad1, 1, 0, 0);
+		viewang2 = Rotate(viewang2, latrad2, 1, 0, 0);
+		
+		viewang1 = Rotate(viewang1, lonrad1, 0, 1, 0);
+		viewang2 = Rotate(viewang2, lonrad2, 0, 1, 0);
+
+
+		//float getorlon1 = atan2(viewang1.x, viewang1.z) / (2.0 * M_PI);
+		//float getorlon2 = atan2(viewang2.x, viewang2.z) / (2.0 * M_PI);
+		
+		//getyawreturn RADTODEG( atan2(dx, dz) );
+		float getorlon1 = 1.0 - (0.25 - atan2(viewang1.x, viewang1.z) / (2.0 * M_PI));
+		//float getorlon1 = 0.5 + atan2(viewang1.x, viewang1.z) / (1.0 * M_PI);
+		//float getorlon1 = 0.25 + atan2(viewang1.x, viewang1.z) / (2.0 * M_PI);
+		float getorlat1 = 0.5 + asin(viewang1.y)/M_PI;
+		//viewang1 = Rotate(viewang1, - M_PI * 1.0 * getorlat1, 1, 0, 0);
+		//float getorlon1 = atan2(viewang1.x, viewang1.z) / (1.0 * M_PI);
+		
+		float getorlon2 = 1.0 - (0.25 - atan2(viewang2.x, viewang2.z) / (2.0 * M_PI));
+		//float getorlon2 = 0.5 + atan2(viewang2.x, viewang2.z) / (1.0 * M_PI);
+		//float getorlon2 = 0.25 + atan2(viewang2.x, viewang2.z) / (2.0 * M_PI);
+		float getorlat2 = 0.5 + asin(viewang2.y)/M_PI;
+		//viewang2 = Rotate(viewang2, - M_PI * 1.0 * getorlat1, 1, 0, 0);
+		//float getorlon2 = atan2(viewang2.x, viewang2.z) / (1.0 * M_PI);
+
+		//if(getorlon1 < 0)
+		//	getorlon1 = getorlon1 + 1.0;
+		//if(getorlon2 < 0)
+		//	getorlon2 = getorlon2 + 1.0;
+
+		//float yaw = 0.5f + atan2(wrappos.z, wrappos.x) / (2.0f*M_PI);
+		//if(ISNAN(orlon))
+		//	ErrMess("asdsdg","nanyaw");
+		//tan(0)=op/adj=0/1
+		//fprintf(g_applog, "prepos1 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
+		//viewang1 = Rotate(viewang1, -orlon1, 0, 1, 0);
+		//viewang2 = Rotate(viewang2, -orlon2, 0, 1, 0);
+		//fprintf(g_applog, "prepos2 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
+		//float getorlat1 = atan2(viewang1.y, viewang1.x) / M_PI;
+		//float getorlat2 = atan2(viewang2.y, viewang2.x) / M_PI;
+
+		fprintf(g_applog, "\n\r test1: \r\n");
+		fprintf(g_applog, "\r\n");
+
+#if 01
+		fprintf(g_applog, "start lon #1: ratio:%f (denom:%f) rad:%f \r\n",
+			orlon1/orlons, orlons, lonrad1);
+		fprintf(g_applog, "get lon #1: ratio:%f \r\n",
+			getorlon1);
+
+#endif
+
+		fprintf(g_applog, "\r\n");
+
+#if 01
+		fprintf(g_applog, "start lat #1: ratio:%f (denom:%f) rad:%f \r\n",
+			orlat1/orlats, orlats, latrad1);
+		fprintf(g_applog, "get lat #1: ratio:%f \r\n",
+			getorlat1);
+#endif
+
+		fprintf(g_applog, "\r\n");
+
+#if 10
+		fprintf(g_applog, "start lon #2: ratio:%f (denom:%f) rad:%f \r\n",
+			orlon2/orlons, orlons, lonrad2);
+		fprintf(g_applog, "get lon #2: ratio:%f \r\n",
+			getorlon2);
+#endif	
+		fprintf(g_applog, "\r\n");
+
+#if 01
+		fprintf(g_applog, "start lat #2: ratio:%f (denom:%f) rad:%f \r\n",
+			orlat2/orlats, orlats, latrad2);
+		fprintf(g_applog, "get lat #2: ratio:%f \r\n",
+			getorlat2);
+#endif
+		fprintf(g_applog, "\r\n");
+
+		fflush(g_applog);
+	}
+	exit(0);
+#endif
 
 	//ratios
 	///float orlon = 0.5 + atan2(viewang.z, viewang.x) / (2.0 * M_PI);
 	///float orlat = 0.5 - asin(viewang.y)/M_PI;
-	float orlon = atan2(viewang.x, viewang.z) / (2.0 * M_PI);
+	//float orlon = atan2(viewang.x, viewang.z) / (2.0 * M_PI);
 	
 	//float orlon = atan2(viewang.z, viewang.x) / (2.0 * M_PI);
 	//float orlat = - asin(viewang.y)/M_PI;
 
-	if(orlon < 0)
-		orlon = orlon + 1.0;
+	//if(orlon < 0)
+	//	orlon = orlon + 1.0;
 
 	//float yaw = 0.5f + atan2(wrappos.z, wrappos.x) / (2.0f*M_PI);
-	if(ISNAN(orlon))
-		ErrMess("asdsdg","nanyaw");
+	//if(ISNAN(orlon))
+	//	ErrMess("asdsdg","nanyaw");
 	//tan(0)=op/adj=0/1
 	//fprintf(g_applog, "prepos1 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
-	viewang = Rotate(viewang, -orlon, 0, 1, 0);
+	//viewang = Rotate(viewang, -orlon, 0, 1, 0);
 	//fprintf(g_applog, "prepos2 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
-	float orlat = atan2(viewang.y, viewang.x) / M_PI;
+	//float orlat = atan2(viewang.y, viewang.x) / M_PI;
 	//float lat = 0.5f - asin(wrappos.y)/M_PI;
 
-	if(orlat < 0)
-		orlat = orlat + 1;
+	//if(orlat < 0)
+	//	orlat = orlat + 1;
+
+	float orlon = 1.0 - (0.25 - atan2(viewang.x, viewang.z) / (2.0 * M_PI));
+	float orlat = 0.5 + asin(viewang.y)/M_PI;
 
 	//orlon = orlat = 0;
 	
