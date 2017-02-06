@@ -8364,113 +8364,6 @@ interc:
 //bounce rays with "globe" to get intersections and map those by long,lat to orientability map
 void OutTex2(Surf *surf, LoadedTex* out)
 {
-#if 0
-	int t=0;
-	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
-		tit!=surf->tets2.end();
-		++tit)
-	{
-		Tet *tet = *tit;
-
-		LoadedTex ltex;
-		AllocTex(&ltex, BIGTEX, BIGTEX, 3);
-
-
-		for(int outpx=0; outpx<BIGTEX; outpx++)
-		{
-			for(int outpy=0; outpy<BIGTEX; outpy++)
-			{
-				Vec3f line[2];
-
-				line[1] = Vec3f(0,0,0);
-				line[0] = Vec3f(30000,0,0);
-
-				float lat = M_PI*
-					(float)outpy/(float)BIGTEX;
-				line[0] = Rotate(line[0], lat, 0, 0, 1);
-				//fprintf(g_applog, "prepos3 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
-				float yaw = M_PI*
-					(float)2.0f*(float)outpx/(float)BIGTEX;
-				line[0] = Rotate(line[0], -yaw, 0, 1, 0);
-
-				LoadedTex *tex=NULL, *ntex=NULL, *stex=NULL;
-				Vec2f texc;
-				Vec3f wp, rp, n;
-				Tet *tet2 = tet;
-				double fU, fV;
-
-				if(TraceRay3(surf,
-					line,
-					&tex,
-					&stex,
-					&ntex,
-					&texc,
-					&wp,&rp,
-					&n,
-					&tet2,
-					&fU, &fV))
-				{
-					if(tet2!=tet)
-						continue;
-
-					unsigned char c[4];
-
-					//texc.x = texc.x - (int)texc.x;
-					//texc.y = texc.y - (int)texc.y;
-
-					int intx = texc.x * tex->sizex;
-					int inty = texc.y * tex->sizey;
-
-					while(intx < 0)
-						intx += tex->sizex;
-					while(inty < 0)
-						inty += tex->sizey;
-					while(intx >= tex->sizex)
-						intx -= tex->sizex;
-					while(inty >= tex->sizey)
-						inty -= tex->sizey;
-
-					c[0] = tex->data[ tex->channels * (intx + inty * tex->sizex) + 0 ];
-					c[1] = tex->data[ tex->channels * (intx + inty * tex->sizex) + 1 ];
-					c[2] = tex->data[ tex->channels * (intx + inty * tex->sizex) + 2 ];
-
-					unsigned short vx = 30000 + rp.x;
-					unsigned short vy = 30000 + rp.y;
-					unsigned short vz = 30000 + rp.z;
-
-					//	unsigned short vx = 30000 + wp.x;
-					//		unsigned short vy = 30000 + wp.y;
-					//		unsigned short vz = 30000 + wp.z;
-
-					Vec3f trg = Vec3f(255,0,0) * (1 - fU - fV) + 
-						Vec3f(0,255,0) * (fU) + 
-						Vec3f(0,0,255) * (fV);
-
-					c[0] = trg.x;
-					c[1] = trg.y;
-					c[2] = trg.z;
-
-					ltex.data[ 3 * (outpx + outpy * ltex.sizex) + 0 ] = c[0];
-					ltex.data[ 3 * (outpx + outpy * ltex.sizex) + 1 ] = c[1];
-					ltex.data[ 3 * (outpx + outpy * ltex.sizex) + 2 ] = c[2];
-
-					//*((unsigned short*)&(out[1].data[ 3 * (outpx + outpy * out[1].sizex) + 0 ])) = vx;
-					//out[1].data[ 3 * (outpx + outpy * out[1].sizex) + 2 ] = 0;
-				}
-			}
-		}
-
-		char file[32];
-		sprintf(file, "renders/outaa%d.png", t);
-		char full[SPE_MAX_PATH+1];
-		FullPath(file, full);
-		SavePNG2(full, &ltex);
-		++t;
-
-	}
-	return;
-#endif
-
 	float maxrad = 1;
 
 	//maximum radius (for constructing the "billboard" plane quad)
@@ -8500,7 +8393,25 @@ void OutTex2(Surf *surf, LoadedTex* out)
 	if(infofp)
 		fclose(infofp);
 
+	for(std::list<SurfPt*>::iterator pit=surf->pts2.begin();
+		pit!=surf->pts2.end();
+		++pit)
+	{
+		SurfPt *p = *pit;
+		Vec3f wrappos = p->wrappos;
+		wrappos = Normalize(wrappos);
+	//float orlon = 1.0 - ( - atan2(viewang.x, viewang.z) / (2.0 * M_PI));
+	//float orlat = asin(viewang.y)/M_PI;
+		float lat = asin(wrappos.y)/M_PI;
+		float lon = 1.0 - ( - atan2(wrappos.x, wrappos.z) / (2.0 * M_PI));
+		p->wrapposan.x = lat;
+		p->wrapposan.y = lon;
+	}
+
 	//islands / jump lookup map
+	//based on real pos and angle, intersect orig mesh,
+	//get diffuse/positions/bigtex texture pixel index (spherical mapped map),
+	//must know spherical wrappos x,y of each ir intersect
 	for(int orlon=0; orlon<g_orlons; orlon++)
 	{
 		for(int orlat=0; orlat<g_orlats; orlat++)
@@ -8509,13 +8420,13 @@ void OutTex2(Surf *surf, LoadedTex* out)
 			Vec3f side = Vec3f(1,0,0);
 			Vec3f view = Vec3f(0,0,-1);
 
-			up = Rotate(up, M_PI*(float)orlat/(float)g_orlats-M_PI/2.0f, 1, 0, 0);
-			side = Rotate(side, M_PI*(float)orlat/(float)g_orlats-M_PI/2.0f, 1, 0, 0);
-			view = Rotate(view, M_PI*(float)orlat/(float)g_orlats-M_PI/2.0f, 1, 0, 0);
+			up = Rotate(up, 1.0*M_PI*(float)orlat/(float)g_orlats, 1, 0, 0);
+			side = Rotate(side, 1.0*M_PI*(float)orlat/(float)g_orlats, 1, 0, 0);
+			view = Rotate(view, 1.0*M_PI*(float)orlat/(float)g_orlats, 1, 0, 0);
 
-			up = Rotate(up, 2.0*M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
-			side = Rotate(side, 2.0*M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
-			view = Rotate(view, 2.0*M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
+			up = Rotate(up, 2.0*M_PI*(float)orlon/(float)g_orlons, 0, 1, 0);
+			side = Rotate(side, 2.0*M_PI*(float)orlon/(float)g_orlons, 0, 1, 0);
+			view = Rotate(view, 2.0*M_PI*(float)orlon/(float)g_orlons, 0, 1, 0);
 
 			for(int orxpx=0; orxpx<g_orwpx; orxpx++)
 			{
@@ -8560,6 +8471,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 					double fU, fV;
 
 					//intersection by "pos" (real positions, not wrap positions of unwrap globe)
+					//get diffuse colours at 
 					if(TraceRay4(surf,
 						line,
 						&tex,
@@ -8576,6 +8488,11 @@ void OutTex2(Surf *surf, LoadedTex* out)
 						//get wrappos map tex coord from pos intersection tet
 						//and assign that "island's" coord index at the RG(B) at the (tabx,taby) table lookup
 
+						//how do we know the pixi of the diffuse/positions maps?
+						//we make the diffuse/positions based on the wrappos angles.
+						//so orc = wrappos angle (lat,lon) on [0..1]
+						//maybe make wrapposan var's?
+
 						//GenTexC(txc[v],tri3[v],
 						//	tet->texc,tet->texcpos);
 
@@ -8587,10 +8504,23 @@ void OutTex2(Surf *surf, LoadedTex* out)
 						//Vec2f orc = sp[0]->orc * (1 - fU - fV) + 
 						//	sp[1]->orc * (fU) + 
 						//	sp[2]->orc * (fV);
+
+						//get jump index from tabx,taby into diffuse and positions maps (of size bigtex,bigtex)
 						
-						Vec2f orc = tet->texc[0] * (1 - fU - fV) + 
-							tet->texc[1] * (fU) + 
-							tet->texc[2] * (fV);
+						//is this texc. of original model diffuse texture's coordinates? or "bigtex" coords?
+						//we haven't placed the "bigtex" data yet into the positions/texture, so how do we
+						//know where to jump?
+						//Vec2f orc = tet->texc[0] * (1 - fU - fV) + 
+						//	tet->texc[1] * (fU) + 
+						//	tet->texc[2] * (fV);
+						//must TraceRay* into orig tri's and get that tet's globe wrappos's pix index
+						//Vec2f orc = 
+						//	sp[0]->wrappos * (1 - fU - fV) +
+						//	sp[1]->wrappos;
+						//get orc x,y ()
+						Vec2f orc = sp[0]->wrapposan * (1 - fU - fV) + 
+							sp[1]->wrapposan * (fU) + 
+							sp[2]->wrapposan * (fV);
 
 						while(orc.x < 0)
 							orc.x += 1;
@@ -8605,6 +8535,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 						unsigned int orci = (g_bigtex-1) * orc.x + 
 							g_bigtex * (g_bigtex-1) * orc.y;
 
+						//[1] = jump islands map of size (orlons*orwpx,orlats*orhpx)
 						unsigned char *outorc = 
 						(unsigned char*)&(out[1].data[ (tabx + taby * out[1].sizex) * 3 + 0]);
 
@@ -8645,7 +8576,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 
 			float lat = M_PI*
 				(float)outpy/(float)BIGTEX;
-			line[0] = Rotate(line[0], lat, 0, 0, 1);
+			line[0] = Rotate(line[0], lat, 0, 0, 1);	///???
 			//fprintf(g_applog, "prepos3 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
 			float yaw = M_PI*
 				(float)2.0f*(float)outpx/(float)BIGTEX;
@@ -8669,10 +8600,10 @@ void OutTex2(Surf *surf, LoadedTex* out)
 				&tet,
 				&fU, &fV))
 			{
-				fprintf(g_applog, "\r\n out texc=%f,%f \r\n",
-					texc.x,
-					texc.y);
-				fflush(g_applog);
+				//fprintf(g_applog, "\r\n out texc=%f,%f \r\n",
+				//	texc.x,
+				//	texc.y);
+				//fflush(g_applog);
 
 				unsigned char c[4];
 

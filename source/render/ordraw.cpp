@@ -150,13 +150,13 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 		//Vec3f side = Vec3f(1,0,0);
 		//Vec3f view = Vec3f(0,0,-1);
 
-		up = Rotate(up, M_PI*(float)orlat/(float)g_orlats-M_PI/2.0f, 1, 0, 0);
-		side = Rotate(side, M_PI*(float)orlat/(float)g_orlats-M_PI/2.0f, 1, 0, 0);
-		view = Rotate(view, M_PI*(float)orlat/(float)g_orlats-M_PI/2.0f, 1, 0, 0);
+		up = Rotate(up, M_PI*(float)orlat/(float)g_orlats, 1, 0, 0);
+		side = Rotate(side, M_PI*(float)orlat/(float)g_orlats, 1, 0, 0);
+		view = Rotate(view, M_PI*(float)orlat/(float)g_orlats, 1, 0, 0);
 
-		up = Rotate(up, 2.0*M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
-		side = Rotate(side, 2.0*M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
-		view = Rotate(view, 2.0*M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
+		up = Rotate(up, 2.0*M_PI*(float)orlon/(float)g_orlons, 0, 1, 0);
+		side = Rotate(side, 2.0*M_PI*(float)orlon/(float)g_orlons, 0, 1, 0);
+		view = Rotate(view, 2.0*M_PI*(float)orlon/(float)g_orlons, 0, 1, 0);
 #endif
 
 		float orlats = 16;
@@ -285,8 +285,17 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	//if(orlat < 0)
 	//	orlat = orlat + 1;
 
-	float orlon = 1.0 - (0.25 - atan2(viewang.x, viewang.z) / (2.0 * M_PI));
-	float orlat = 0.5 + asin(viewang.y)/M_PI;
+	//float orlon = 1.0 - (0.25 - atan2(viewang.x, viewang.z) / (2.0 * M_PI));
+	//float orlat = 0.5 + asin(viewang.y)/M_PI;
+	
+	float orlon = 1.0 - ( - atan2(viewang.x, viewang.z) / (2.0 * M_PI));
+	float orlat = asin(viewang.y)/M_PI;
+
+	if(orlon < 0)
+		orlon = orlon + 1;
+
+	if(orlat < 0)
+		orlat = orlat + 1;
 
 	//orlon = orlat = 0;
 	

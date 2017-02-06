@@ -157,6 +157,7 @@ public:
 	int ring;
 	int file;
 	bool checked;
+	Vec2f wrapposan;	//angles lat,lon
 
 	bool hasneib(SurfPt *neib)
 	{
