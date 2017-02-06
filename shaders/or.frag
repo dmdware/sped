@@ -189,11 +189,19 @@ vec4 texel0;
 	float tabyf = float(taby)/(orjplhpx * orjlats);
 
 	//the angle of viewing of the object
-	float lonrad = 3.14159 * 2.0 * orjlon - 3.14159/2.0;
-	float latrad = 3.14159 * 1.0 * orjlat - 3.14159/2.0;
+	//float lonrad = 3.14159 * 2.0 * orjlon - 3.14159/2.0;
+	//float latrad = 3.14159 * 1.0 * orjlat - 3.14159/2.0;
+	float lonrad = 3.14159 * 2.0 * orjlon;
+	float latrad = 3.14159 * 1.0 * orjlat;
 
-	lonrad = -lonrad;
-	latrad = -latrad;
+	//what is 0 rot.? (0 orjlon/orjlat)
+	//it is -pi/2, which is what to view=(0,0,-1)?
+	//it is obj's view (0,0,-1) rot'd on x to (0,1,0).
+	//so to a viewer with view=(0,0,-1) it would 
+	//be looking up from bottom.
+	//viewang final would be = -cam viewdir = 
+	//lonrad = -lonrad;
+	//latrad = -latrad;
 
 	vec2 startjump = vec2( tabxf, tabyf );
 	vec4 jumpel = texture2D(jumptex, startjump);
