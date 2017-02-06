@@ -135,6 +135,12 @@ bool CheckCompleteRing(Surf *surf,
 void CheckFan(Surf *surf,
 			  SurfPt *sp);
 
+
+Vec3f SetLatLon(Vec3f v, float orlatrat, float orlonrat);
+Vec3f SetLatLonAr(Vec3f v, Vec3f cen, float orlatrat, float orlonrat);
+float GetLon(float x, float z);
+float GetLat(float y);
+
 class SurfPt
 {
 public:

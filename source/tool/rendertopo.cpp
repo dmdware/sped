@@ -8360,6 +8360,30 @@ interc:
 	return re;
 }
 
+Vec3f SetLatLon(Vec3f v, float orlatrat, float orlonrat)
+{
+	v = Rotate(v, 1.0*M_PI*orlatrat, 1, 0, 0);
+	v = Rotate(v, 2.0*M_PI*orlonrat, 0, 1, 0);
+	return v;
+}
+
+Vec3f SetLatLonAr(Vec3f v, Vec3f cen, float orlatrat, float orlonrat)
+{
+	v = v - cen;
+	v = SetLatLon(v, orlatrat, orlonrat);
+	v = v + cen;
+	return v;
+}
+
+float GetLon(float x, float z)
+{
+	return ( 1.0 - ( - atan2(viewang.x, viewang.z) / (2.0 * M_PI)) );
+}
+
+float GetLat(float y)
+{
+	return ( asin(y)/M_PI );
+}
 
 //bounce rays with "globe" to get intersections and map those by long,lat to orientability map
 void OutTex2(Surf *surf, LoadedTex* out)
