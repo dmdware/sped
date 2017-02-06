@@ -128,6 +128,52 @@ vec2 Decompose2(vec3 v, vec3 side, vec3 up)
 	return cpts;
 }
 
+//project vector onto plane, ie draw a 
+//line from the vector parallal to plane 
+//normal, up to the plane
+vec3 ProjVecOntoPl(vec3 v, vec3 pn)
+{
+	//http://www.maplesoft.com/support/help/Maple/view.aspx?path=MathApps/ProjectionOfVectorOntoPlane
+	//plane assumed to have d=0 (on origin)
+	//subtract "cen" (object center) from v first 
+	//before following equation, then add it back,
+	//if object is not centered on origin.
+	return (v - pn * dot(v, pn) / (pow(length(pn),2.0)) );
+	
+}
+
+vec3 SetLatLon(vec3 v, float orlatrat, float orlonrat)
+{
+	return v;
+	v = Rot(v, 1.0*3.14159*orlatrat-3.14159/2.0, 1, 0, 0);
+	v = Rot(v, 2.0*3.14159*orlonrat-3.14159/2.0, 0, 1, 0);
+	return v;
+}
+
+vec3 SetLatLonAr(vec3 v, vec3 cen, float orlatrat, float orlonrat)
+{
+	v = v - cen;
+	v = SetLatLon(v, orlatrat, orlonrat);
+	v = v + cen;
+	return v;
+}
+
+float GetLon(float x, float z)
+{
+	float orlon = ( 1.0 - (0.25 - atan(x, z) / (2.0 * 3.14159)) );
+	if(orlon < 0)
+		orlon = orlon + 1;
+	return orlon;
+}
+
+float GetLat(float y)
+{
+	float orlat = (0.5 + asin(y)/3.14159 );
+	if(orlat < 0)
+		orlat = orlat + 1;
+	return orlat;
+}
+
 void main (void)
 {
 vec4 texel0;
@@ -178,6 +224,7 @@ vec4 texel0;
 	//float incpt;
 	//incpt = dot(outpos2.xyz, viewdir);
 	//outpos2.xyz = outpos2.xyz - viewdir * incpt;
+	outpos2.xyz = ProjVecOntoPl(outpos2.xyz, viewdir);
 
 
 	//jump table index coords
@@ -191,8 +238,8 @@ vec4 texel0;
 	//the angle of viewing of the object
 	//float lonrad = 3.14159 * 2.0 * orjlon - 3.14159/2.0;
 	//float latrad = 3.14159 * 1.0 * orjlat - 3.14159/2.0;
-	float lonrad = 3.14159 * 2.0 * orjlon;
-	float latrad = 3.14159 * 1.0 * orjlat;
+	//float lonrad = 3.14159 * 2.0 * orjlon;
+	//float latrad = 3.14159 * 1.0 * orjlat;
 
 	//what is 0 rot.? (0 orjlon/orjlat)
 	//it is -pi/2, which is what to view=(0,0,-1)?
@@ -229,7 +276,7 @@ vec4 texel0;
 	vec4 posyel = texture2D(posytex, jumpc.xy);
 	vec4 poszel = texture2D(posztex, jumpc.xy);
 
-	int steps = 70;
+	int steps = 700;
 	int step = 0;
 
 	vec4 offpos;
@@ -239,10 +286,11 @@ vec4 texel0;
 		//diffel = vec4(jumpc.x,jumpc.y,0,1);
 		offpos = DecBin(posxel, posyel, poszel);
 		//rotate based on viewing angle
-		offpos.xyz = RotAr(offpos.xyz, cen, latrad, 1, 0, 0);
-		offpos.xyz = RotAr(offpos.xyz, cen, lonrad, 0, 1, 0);
+		offpos.xyz = SetLatLon(offpos.xyz, orjlat, orjlon);
+		offpos.xyz = ProjVecOntoPl(offpos.xyz, viewdir);
 
 		float pixjump = float(steps - step);
+		pixjump = min(pixjump, 10);
 
 
 		//(orlon,orlat) contains the rotation.
@@ -259,8 +307,8 @@ vec4 texel0;
 		//move up on or. position/diffuse maps.
 		vec4 upnavoff = DecBin(posxel, posyel, poszel);
 		//rotate based on viewing angle
-		upnavoff.xyz = RotAr(upnavoff.xyz, cen, latrad, 1, 0, 0);
-		upnavoff.xyz = RotAr(upnavoff.xyz, cen, lonrad, 0, 1, 0);
+		upnavoff.xyz = SetLatLon(upnavoff.xyz, orjlat, orjlon);
+		upnavoff.xyz = ProjVecOntoPl(upnavoff.xyz, viewdir);
 		//get relative offset from current position in absolute space
 		upnavoff = vec4( ( upnavoff.xyz -  offpos.xyz ), 1 );
 
@@ -271,26 +319,28 @@ vec4 texel0;
 		//move right on or. position/diffuse maps.
 		vec4 sidenavoff = DecBin(posxel, posyel, poszel);
 		//rotate based on viewing angle
-		sidenavoff.xyz = RotAr(sidenavoff.xyz, cen, latrad, 1, 0, 0);
-		sidenavoff.xyz = RotAr(sidenavoff.xyz, cen, lonrad, 0, 1, 0);
+		sidenavoff.xyz = SetLatLon(sidenavoff.xyz, orjlat, orjlon);
+		sidenavoff.xyz = ProjVecOntoPl(sidenavoff.xyz, viewdir);
 		//get relative offset from current position in absolute space
 		sidenavoff = vec4( ( sidenavoff.xyz -  offpos.xyz ), 1 );
 
 
 		//eliminate into-the-screen direction offset
 		//side
-		sidenavoff.xyz = Decompose(sidenavoff.xyz, sidedir, updir);
+		//sidenavoff.xyz = Decompose(sidenavoff.xyz, sidedir, updir);
 		sidenavoff.xyz = normalize( sidenavoff.xyz );
 		//up
-		upnavoff.xyz = Decompose(upnavoff.xyz, sidedir, updir);
+		//upnavoff.xyz = Decompose(upnavoff.xyz, sidedir, updir);
 		upnavoff.xyz = normalize( upnavoff.xyz );
 
 
 		//component ratios to get closer to the texture coords for diffuse.
 		//offvec = needed offset of texture coords in absolute space to
 		//the screen fragment.
+		//offpos.xyz = Decompose(offpos.xyz, sidedir, updir);
+		//outpos2.xyz = Decompose(outpos2.xyz, sidedir, updir);
 		vec3 offvec = ( outpos2.xyz - offpos.xyz );
-		offvec = Decompose(offvec, sidedir, updir);
+		//offvec = Decompose(offvec, sidedir, updir);
 
 
 		//normalize, because we want just the direction and have our
@@ -319,8 +369,8 @@ vec4 texel0;
 
 		offpos = DecBin(posxel, posyel, poszel);
 		//rotate based on viewing angle
-		offpos.xyz = RotAr(offpos.xyz, cen, latrad, 1, 0, 0);
-		offpos.xyz = RotAr(offpos.xyz, cen, lonrad, 0, 1, 0);
+		offpos.xyz = SetLatLon(offpos.xyz, orjlat, orjlon);
+		offpos.xyz = ProjVecOntoPl(offpos.xyz, viewdir);
 
 
 		vec4 mvppos = mvp * offpos;
@@ -328,7 +378,7 @@ vec4 texel0;
 		gl_FragDepth = mvppos.z / mvppos.w;
 	}
 
-	if( length( offpos.xyz - outpos2.xyz ) > 80 )
+	if( length( offpos.xyz - outpos2.xyz ) > 98 )
 		discard;
 
 	//gl_FragColor.xyz = outpos2.xyz;

@@ -8362,8 +8362,8 @@ interc:
 
 Vec3f SetLatLon(Vec3f v, float orlatrat, float orlonrat)
 {
-	v = Rotate(v, 1.0*M_PI*orlatrat, 1, 0, 0);
-	v = Rotate(v, 2.0*M_PI*orlonrat, 0, 1, 0);
+	v = Rotate(v, 1.0*M_PI*orlatrat-M_PI/2.0, 1, 0, 0);
+	v = Rotate(v, 2.0*M_PI*orlonrat-M_PI/2.0, 0, 1, 0);
 	return v;
 }
 
@@ -8375,14 +8375,26 @@ Vec3f SetLatLonAr(Vec3f v, Vec3f cen, float orlatrat, float orlonrat)
 	return v;
 }
 
+	//float orlon = 1.0 - (0.25 - atan2(viewang.x, viewang.z) / (2.0 * M_PI));
+	//float orlat = 0.5 + asin(viewang.y)/M_PI;
 float GetLon(float x, float z)
 {
-	return ( 1.0 - ( - atan2(viewang.x, viewang.z) / (2.0 * M_PI)) );
+	float orlon = ( 1.0 - (0.25 - atan2(x, z) / (2.0 * M_PI)) );
+	if(orlon < 0)
+		orlon = orlon + 1;
+	if(orlon >= 1)
+		orlon = orlon - 1;
+	return orlon;
 }
 
 float GetLat(float y)
 {
-	return ( asin(y)/M_PI );
+	float orlat = ( 0.5 + asin(y)/M_PI );
+	if(orlat < 0)
+		orlat = orlat + 1;
+	if(orlat >= 1)
+		orlat = orlat - 1;
+	return orlat;
 }
 
 //bounce rays with "globe" to get intersections and map those by long,lat to orientability map
@@ -8426,8 +8438,10 @@ void OutTex2(Surf *surf, LoadedTex* out)
 		wrappos = Normalize(wrappos);
 	//float orlon = 1.0 - ( - atan2(viewang.x, viewang.z) / (2.0 * M_PI));
 	//float orlat = asin(viewang.y)/M_PI;
-		float lat = asin(wrappos.y)/M_PI;
-		float lon = 1.0 - ( - atan2(wrappos.x, wrappos.z) / (2.0 * M_PI));
+		///float lat = asin(wrappos.y)/M_PI;
+		///float lon = 1.0 - ( - atan2(wrappos.x, wrappos.z) / (2.0 * M_PI));
+		float lat = GetLat(wrappos.y);
+		float lon = GetLon(wrappos.x, wrappos.z);
 		p->wrapposan.x = lat;
 		p->wrapposan.y = lon;
 	}
@@ -8443,7 +8457,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 			Vec3f up = Vec3f(0,1,0);
 			Vec3f side = Vec3f(1,0,0);
 			Vec3f view = Vec3f(0,0,-1);
-
+#if 0
 			up = Rotate(up, 1.0*M_PI*(float)orlat/(float)g_orlats, 1, 0, 0);
 			side = Rotate(side, 1.0*M_PI*(float)orlat/(float)g_orlats, 1, 0, 0);
 			view = Rotate(view, 1.0*M_PI*(float)orlat/(float)g_orlats, 1, 0, 0);
@@ -8451,7 +8465,11 @@ void OutTex2(Surf *surf, LoadedTex* out)
 			up = Rotate(up, 2.0*M_PI*(float)orlon/(float)g_orlons, 0, 1, 0);
 			side = Rotate(side, 2.0*M_PI*(float)orlon/(float)g_orlons, 0, 1, 0);
 			view = Rotate(view, 2.0*M_PI*(float)orlon/(float)g_orlons, 0, 1, 0);
-
+#else
+			up = SetLatLon(up, (float)orlat/(float)g_orlats, (float)orlon/(float)g_orlons);
+			side = SetLatLon(side, (float)orlat/(float)g_orlats, (float)orlon/(float)g_orlons);
+			view = SetLatLon(view, (float)orlat/(float)g_orlats, (float)orlon/(float)g_orlons);
+#endif
 			for(int orxpx=0; orxpx<g_orwpx; orxpx++)
 			{
 				for(int orypx=0; orypx<g_orhpx; orypx++)
@@ -8542,9 +8560,19 @@ void OutTex2(Surf *surf, LoadedTex* out)
 						//	sp[0]->wrappos * (1 - fU - fV) +
 						//	sp[1]->wrappos;
 						//get orc x,y ()
-						Vec2f orc = sp[0]->wrapposan * (1 - fU - fV) + 
-							sp[1]->wrapposan * (fU) + 
-							sp[2]->wrapposan * (fV);
+						//Vec2f orc = sp[0]->wrapposan * (1 - fU - fV) + 
+						//	sp[1]->wrapposan * (fU) + 
+						//	sp[2]->wrapposan * (fV);
+						Vec3f wrappos = Normalize(sp[0]->wrappos) * (1 - fU - fV) +
+							Normalize(sp[1]->wrappos) * (fU) +
+							Normalize(sp[2]->wrappos) * (fV);
+
+						wrappos = Normalize(wrappos);
+
+						Vec2f orc;
+
+						orc.x = GetLat(wrappos.y);
+						orc.y = GetLon(wrappos.x, wrappos.z);
 
 						while(orc.x < 0)
 							orc.x += 1;
@@ -8570,6 +8598,27 @@ void OutTex2(Surf *surf, LoadedTex* out)
 						*(outorc+2) = *(((unsigned char*)&orci)+2);
 
 						//out[1].data[ (tabx + taby * out[1].sizex) * 3 + 2] = 0;
+
+						//fill empty space indices with something most useful
+						for(int orxpx2=0; orxpx2<g_orwpx; ++orxpx2)
+						{
+							for(int orypx2=0; orypx2<g_orhpx; ++orypx2)
+							{
+								//jump table (islands) index coords
+								int tabx2 = orxpx2 + orlon * g_orwpx;
+								int taby2 = orypx2 + orlat * g_orhpx;
+								
+								unsigned char *outorc2 = 
+								(unsigned char*)&(out[1].data[ (tabx2 + taby2 * out[1].sizex) * 3 + 0]);
+
+								if( *(outorc2+0) || *(outorc2+1) || *(outorc2+2) )
+									continue;
+
+								*(outorc2+0) = *(((unsigned char*)&orci)+0);
+								*(outorc2+1) = *(((unsigned char*)&orci)+1);
+								*(outorc2+2) = *(((unsigned char*)&orci)+2);
+							}
+						}
 					}
 				}
 			}
@@ -8596,8 +8645,10 @@ void OutTex2(Surf *surf, LoadedTex* out)
 			Vec3f line[2];
 
 			line[1] = Vec3f(0,0,0);
-			line[0] = Vec3f(30000,0,0);
+			//line[0] = Vec3f(30000,0,0);
+			line[0] = Vec3f(0,0,30000);
 
+#if 0
 			float lat = M_PI*
 				(float)outpy/(float)BIGTEX;
 			line[0] = Rotate(line[0], lat, 0, 0, 1);	///???
@@ -8605,6 +8656,9 @@ void OutTex2(Surf *surf, LoadedTex* out)
 			float yaw = M_PI*
 				(float)2.0f*(float)outpx/(float)BIGTEX;
 			line[0] = Rotate(line[0], -yaw, 0, 1, 0);
+#else
+			line[0] = SetLatLon(line[0], (float)outpy/(float)BIGTEX, (float)outpx/(float)BIGTEX);
+#endif
 
 			LoadedTex *tex=NULL, *ntex=NULL, *stex=NULL;
 			Vec2f texc;
@@ -8685,156 +8739,6 @@ void OutTex2(Surf *surf, LoadedTex* out)
 			AllocTex(&outtex[2], g_bigtex, g_bigtex, 3);	//posx
 			AllocTex(&outtex[3], g_bigtex, g_bigtex, 3);	//posy
 			AllocTex(&outtex[4], g_bigtex, g_bigtex, 3);	//posz
-#endif
-/*
-				if(focus)
-				{
-					fprintf(g_applog, "focus(%d,%d): rp:(%f,%f,%f) wp:(%f,%f,%f)\r\n",
-						outpx, outpy,
-						rp.x,rp.y,rp.z,
-						wp.x,wp.y,wp.z);
-					for(int vii=0; vii<4; ++vii)
-					{
-						if(!tet->neib[vii])
-							continue;
-						fprintf(g_applog, "tet->neib[%d] = \r\n\tpos=(%f,%f,%f)\r\n\twrap=(%f,%f,%f)\r\n",
-							vii,
-							tet->neib[vii]->pos.x,
-							tet->neib[vii]->pos.y,
-							tet->neib[vii]->pos.z,
-							tet->neib[vii]->wrappos.x,
-							tet->neib[vii]->wrappos.y,
-							tet->neib[vii]->wrappos.z);
-					}
-					fflush(g_applog);
-				}
-*/
-#if 0
-				unsigned short vd = 30000 - Magnitude(rp);
-
-				//if(vx == 30000)
-			//		vx=0;
-		//		if(vy == 30000)
-	//				vy=0;
-//				if(vz == 30000)
-//					vz=0;
-				
-				*((unsigned short*)&(out[1].data[ 3 * (outpx + outpy * out[1].sizex) + 0 ])) = vx;
-				out[1].data[ 3 * (outpx + outpy * out[1].sizex) + 2 ] = 0;
-				
-				*((unsigned short*)&(out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 0 ])) = vy;
-				out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 2 ] = 0;
-				
-				*((unsigned short*)&(out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 0 ])) = vz;
-				out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 2 ] = 0;
-
-				float nx = n.x;
-				float ny = n.y;
-				float nz = n.z;
-				
-				out[5].data[ 3 * (outpx + outpy * out[5].sizex) + 0 ] = (unsigned char)(nx*127)+127;
-				out[5].data[ 3 * (outpx + outpy * out[5].sizex) + 1 ] = (unsigned char)(ny*127)+127;
-				out[5].data[ 3 * (outpx + outpy * out[5].sizex) + 2 ] = (unsigned char)(nz*127)+127;
-
-				///*
-			//	out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 0 ] = (unsigned char)((rp.x+1000/4+1)/(10));
-			//	out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 1 ] = (unsigned char)((rp.y+1000/4+1)/(10));
-			//	out[3].data[ 3 * (outpx + outpy * out[3].sizex) + 2 ] = (unsigned char)((rp.z+1000/4+1)/(10));
-				
-			//	out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 0 ] = (unsigned char)((wp.x+1000/4+1)/(10));
-			//	out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 1 ] = (unsigned char)((wp.y+1000/4+1)/(10));
-			//	out[2].data[ 3 * (outpx + outpy * out[2].sizex) + 2 ] = (unsigned char)((wp.z+1000/4+1)/(10));
-//*/
-				//*((unsigned short*)&(out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 0 ])) = vd;
-				//out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 2 ] = 0;
-
-				unsigned short hash = 1;
-
-				unsigned int ti=0;
-
-				for(std::list<Tet*>::iterator tit=surf->tets2.begin();
-					tit!=surf->tets2.end();
-					++tit)
-				{
-					if(*tit == tet)
-						break;
-					++ti;
-				}
-
-				struct PlayerColor
-				{
-					unsigned char color[3];
-					char name[32];
-				};
-
-				#define PLAYER_COLORS	48
-
-				//if(ti>=PLAYER_COLORS)
-				//	ErrMess(">pc",">pc");
-
-				//extern PlayerColor g_pycols[PLAYER_COLORS];
-
-				PlayerColor g_pycols[PLAYER_COLORS] =
-				{
-					{{0x7e, 0x1e, 0x9c}, "Purple"},
-					{{0x15, 0xb0, 0x1a}, "Green"},
-					{{0x03, 0x43, 0xdf}, "Blue"},
-					{{0xff, 0x81, 0xc0}, "Pink"},
-					{{0x65, 0x37, 0x00}, "Brown"},
-					{{0xe5, 0x00, 0x00}, "Red"},
-					{{0x95, 0xd0, 0xfc}, "Light Blue"},
-					{{0x02, 0x93, 0x86}, "Teal"},
-					{{0xf9, 0x73, 0x06}, "Orange"},
-					{{0x96, 0xf9, 0x7b}, "Light Green"},
-					{{0xc2, 0x00, 0x78}, "Magenta"},
-					{{0xff, 0xff, 0x14}, "Yellow"},
-					{{0x75, 0xbb, 0xfd}, "Sky Blue"},
-					{{0x92, 0x95, 0x91}, "Grey"},
-					{{0x89, 0xfe, 0x05}, "Lime Green"},
-					{{0xbf, 0x77, 0xf6}, "Light Purple"},
-					{{0x9a, 0x0e, 0xea}, "Violet"},
-					{{0x33, 0x35, 0x00}, "Dark Green"},
-					{{0x06, 0xc2, 0xac}, "Turquoise"},
-					{{0xc7, 0x9f, 0xef}, "Lavender"},
-					{{0x00, 0x03, 0x5b}, "Dark Blue"},
-					{{0xd1, 0xb2, 0x6f}, "Tan"},
-					{{0x00, 0xff, 0xff}, "Cyan"},
-					{{0x13, 0xea, 0xc9}, "Aqua"},
-					{{0x06, 0x47, 0x0c}, "Forest Green"},
-					{{0xae, 0x71, 0x81}, "Mauve"},
-					{{0x35, 0x06, 0x3e}, "Dark Purple"},
-					{{0x01, 0xff, 0x07}, "Bright Green"},
-					{{0x65, 0x00, 0x21}, "Maroon"},
-					{{0x6e, 0x75, 0x0e}, "Olive"},
-					{{0xff, 0x79, 0x6c}, "Salmon"},
-					{{0xe6, 0xda, 0xa6}, "Beige"},
-					{{0x05, 0x04, 0xaa}, "Royal Blue"},
-					{{0x00, 0x11, 0x46}, "Navy Blue"},
-					{{0xce, 0xa2, 0xfd}, "Lilac"},
-					{{0x00, 0x00, 0x00}, "Black"},
-					{{0xff, 0x02, 0x8d}, "Hot Pink"},
-					{{0xad, 0x81, 0x50}, "Light Brown"},
-					{{0xc7, 0xfd, 0xb5}, "Pale Green"},
-					{{0xff, 0xb0, 0x7c}, "Peach"},
-					{{0x67, 0x7a, 0x04}, "Olive Green"},
-					{{0xcb, 0x41, 0x6b}, "Dark Pink"},
-					{{0x8e, 0x82, 0xfe}, "Periwinkle"},
-					{{0x53, 0xfc, 0xa1}, "Sea Green"},
-					{{0xaa, 0xff, 0x32}, "Lime"},
-					{{0x38, 0x02, 0x82}, "Indigo"},
-					{{0xce, 0xb3, 0x01}, "Mustard"},
-					{{0xff, 0xd1, 0xdf}, "Light Pink"}
-				};
-
-				out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 0 ] = g_pycols[ti%PLAYER_COLORS].color[0];
-				out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 1 ] = g_pycols[ti%PLAYER_COLORS].color[1];
-				out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 2 ] = g_pycols[ti%PLAYER_COLORS].color[2];
-
-				//for(int hti=0; hti<ti; hti++)
-				//	hash = ((hash<<11)|(hash>>(16-11)))^(111+hti);
-				
-				//*((unsigned short*)&(out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 0 ])) = hash;
-				//out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 2 ] = 0;
 #endif
 			}
 			else

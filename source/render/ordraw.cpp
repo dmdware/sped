@@ -20,6 +20,17 @@ OrList g_orlist;
 
 bool g_rolllock = false;
 
+//project vector onto plane, ie draw a line from the vector parallal to plane normal, up to the plane
+Vec3f ProjVecOntoPl(Vec3f v, Plane3f p)
+{
+	//http://www.maplesoft.com/support/help/Maple/view.aspx?path=MathApps/ProjectionOfVectorOntoPlane
+	//plane assumed to have d=0 (on origin)
+	//subtract "cen" (object center) from v first before following equation, then add it back,
+	//if object is not centered on origin.
+	return (v - p.m_normal * Dot(v, p.m_normal) / (pow(Magnitude(p.m_normal),2.0f)) );
+	
+}
+
 void DrawOr(OrList *ol, int frame, Vec3f pos, 
 		float pitchrad, 
 		float yawrad)
@@ -162,11 +173,11 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 		float orlats = 16;
 		float orlons = 16;
 
-		float orlat1 = 3;
-		float orlon1 = 12+1-1;
+		float orlat1 = 3+12;
+		float orlon1 = 12+1-1-12;
 
-		float orlat2 = 8;
-		float orlon2 = 11-1+1;
+		float orlat2 = 8-6;
+		float orlon2 = 11-1+1+4;
 
 		float latrad1 = M_PI*(float)orlat1/(float)orlats-M_PI/2.0f;
 		float lonrad1 = 2.0*M_PI*(float)orlon1/(float)orlons-M_PI/2.0f;
@@ -288,14 +299,17 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	//float orlon = 1.0 - (0.25 - atan2(viewang.x, viewang.z) / (2.0 * M_PI));
 	//float orlat = 0.5 + asin(viewang.y)/M_PI;
 	
-	float orlon = 1.0 - ( - atan2(viewang.x, viewang.z) / (2.0 * M_PI));
-	float orlat = asin(viewang.y)/M_PI;
+	//float orlon = 1.0 - ( - atan2(viewang.x, viewang.z) / (2.0 * M_PI));
+	//float orlat = asin(viewang.y)/M_PI;
 
-	if(orlon < 0)
-		orlon = orlon + 1;
+	//if(orlon < 0)
+	//	orlon = orlon + 1;
 
-	if(orlat < 0)
-		orlat = orlat + 1;
+	//if(orlat < 0)
+	//	orlat = orlat + 1;
+
+	float orlon = GetLon(viewang.x, viewang.z);
+	float orlat = GetLat(viewang.y);
 
 	//orlon = orlat = 0;
 	
@@ -697,7 +711,7 @@ void ViewTopo(const char* fullpath)
 	view = Rotate(view, M_PI*(float)orlon/(float)g_orlons-M_PI/2.0f, 0, 1, 0);
 #endif
 
-	Vec3f pos = Vec3f(0,0,0) - view * 10000;
+	Vec3f pos = Vec3f(0,0,0) - view * 30000;
 
 	g_cam.position( pos.x, pos.y, pos.z, view.x, view.y, view.z, up.x, up.y, up.z);
 

@@ -109,6 +109,20 @@ void Draw()
 
 			DrawBoxShadText(MAINFONT8, x, y, w, h, &rlstrr, rlc, 0, -1);
 			//DrawShadowedText(MAINFONT8, x, y, &rlstrr, rlc);
+
+			//Vec3f viewang = Normalize( g_cam.m_view - g_cam.m_pos );
+			Vec3f viewang = Vec3f(0,0,0) - Normalize( g_cam.m_view - g_cam.m_pos );
+			float orlon = GetLon(viewang.x, viewang.z);
+			float orlat = GetLat(viewang.y);
+
+			char datastr[123];
+			sprintf(datastr, "viewdir:%f,%f,%f   orlon=%f    orlat=%f",
+				viewang.x, viewang.y, viewang.z, orlon, orlat);
+			RichText rd = RichText(datastr);
+
+			y = g_toprightviewport->m_pos[3]-16;
+			
+			DrawBoxShadText(MAINFONT8, x, y, w, h, &rd, rlc, 0, -1);
 		}
 
         EndS();
