@@ -3223,6 +3223,16 @@ bool ClipTris(Surf *surf, Surf *fullsurf)
 {	
 again:
 
+	static __int64 last = GetTicks();
+
+	if(GetTicks() - last > 1000*60*60)	//more than hour?
+	{
+		last = GetTicks();
+		std::string dt = DateTime();
+		fprintf(g_applog, "%s ClipTris: %d tets, %d surf pt's\r\n",
+			(int)surf->tets2.size(), (int)surf->pts2.size());
+	}
+
 	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
 		tit!=surf->tets2.end();
 		++tit)
@@ -3758,6 +3768,16 @@ again:
 
 	for(int i11=0; i11<i1 && tit1!=surf->tets2.end(); i11++)
 		tit1++;
+
+	static __int64 last = GetTicks();
+
+	if(GetTicks() - last > 1000*60*60)	//more than hour?
+	{
+		last = GetTicks();
+		std::string dt = DateTime();
+		fprintf(g_applog, "%s JoinPts: %d tets, %d surf pt's\r\n",
+			(int)surf->tets2.size(), (int)surf->pts2.size());
+	}
 
 	Test(surf);
 	for(;
