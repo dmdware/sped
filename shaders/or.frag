@@ -276,7 +276,7 @@ vec4 texel0;
 	vec4 posyel = texture2D(posytex, jumpc.xy);
 	vec4 poszel = texture2D(posztex, jumpc.xy);
 
-	int steps = 700;
+	int steps = 23;//23;
 	int step = 0;
 
 	vec4 offpos;
