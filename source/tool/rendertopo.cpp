@@ -3230,7 +3230,9 @@ again:
 		last = GetTicks();
 		std::string dt = DateTime();
 		fprintf(g_applog, "%s ClipTris: %d tets, %d surf pt's\r\n",
+			dt.c_str(),
 			(int)surf->tets2.size(), (int)surf->pts2.size());
+		fflush(g_applog);
 	}
 
 	for(std::list<Tet*>::iterator tit=surf->tets2.begin();
@@ -3776,7 +3778,9 @@ again:
 		last = GetTicks();
 		std::string dt = DateTime();
 		fprintf(g_applog, "%s JoinPts: %d tets, %d surf pt's\r\n",
+			dt.c_str(),
 			(int)surf->tets2.size(), (int)surf->pts2.size());
+		fflush(g_applog);
 	}
 
 	Test(surf);
