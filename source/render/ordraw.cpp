@@ -146,8 +146,10 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	//angle of view around the object will be opposite
 	//like if you view it from back with your view vector = (0,0,1) looking forward,
 	//object's view vector of rotation should be (0,0,-1) (with it's backside front, and looking backward)
-	Vec3f viewang = Vec3f(0,0,0) - viewdir;
-	//Vec3f viewang = viewdir;
+	//Vec3f objdir = Vec3f(0,0,0) - viewdir;
+	//Vec3f objdir = viewdir;
+	//orientation of object forward in absolute space
+	Vec3f objdir = Normalize( Vec3f(0,0,-1) );
 
 #if 0
 	//tests
@@ -273,12 +275,12 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 #endif
 
 	//ratios
-	///float orlon = 0.5 + atan2(viewang.z, viewang.x) / (2.0 * M_PI);
-	///float orlat = 0.5 - asin(viewang.y)/M_PI;
-	//float orlon = atan2(viewang.x, viewang.z) / (2.0 * M_PI);
+	///float orlon = 0.5 + atan2(objdir.z, objdir.x) / (2.0 * M_PI);
+	///float orlat = 0.5 - asin(objdir.y)/M_PI;
+	//float orlon = atan2(objdir.x, objdir.z) / (2.0 * M_PI);
 	
-	//float orlon = atan2(viewang.z, viewang.x) / (2.0 * M_PI);
-	//float orlat = - asin(viewang.y)/M_PI;
+	//float orlon = atan2(objdir.z, objdir.x) / (2.0 * M_PI);
+	//float orlat = - asin(objdir.y)/M_PI;
 
 	//if(orlon < 0)
 	//	orlon = orlon + 1.0;
@@ -288,19 +290,19 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	//	ErrMess("asdsdg","nanyaw");
 	//tan(0)=op/adj=0/1
 	//fprintf(g_applog, "prepos1 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
-	//viewang = Rotate(viewang, -orlon, 0, 1, 0);
+	//objdir = Rotate(objdir, -orlon, 0, 1, 0);
 	//fprintf(g_applog, "prepos2 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
-	//float orlat = atan2(viewang.y, viewang.x) / M_PI;
+	//float orlat = atan2(objdir.y, objdir.x) / M_PI;
 	//float lat = 0.5f - asin(wrappos.y)/M_PI;
 
 	//if(orlat < 0)
 	//	orlat = orlat + 1;
 
-	//float orlon = 1.0 - (0.25 - atan2(viewang.x, viewang.z) / (2.0 * M_PI));
-	//float orlat = 0.5 + asin(viewang.y)/M_PI;
+	//float orlon = 1.0 - (0.25 - atan2(objdir.x, objdir.z) / (2.0 * M_PI));
+	//float orlat = 0.5 + asin(objdir.y)/M_PI;
 	
-	//float orlon = 1.0 - ( - atan2(viewang.x, viewang.z) / (2.0 * M_PI));
-	//float orlat = asin(viewang.y)/M_PI;
+	//float orlon = 1.0 - ( - atan2(objdir.x, objdir.z) / (2.0 * M_PI));
+	//float orlat = asin(objdir.y)/M_PI;
 
 	//if(orlon < 0)
 	//	orlon = orlon + 1;
@@ -308,8 +310,8 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	//if(orlat < 0)
 	//	orlat = orlat + 1;
 
-	float orlon = GetLon(viewang.x, viewang.z);
-	float orlat = GetLat(viewang.y);
+	float orlon = GetLon(objdir.x, objdir.z);
+	float orlat = GetLat(objdir.y);
 
 	//orlon = orlat = 0;
 	

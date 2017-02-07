@@ -144,7 +144,7 @@ vec3 ProjVecOntoPl(vec3 v, vec3 pn)
 
 vec3 SetLatLon(vec3 v, float orlatrat, float orlonrat)
 {
-	return v;
+	//return v;
 	v = Rot(v, 1.0*3.14159*orlatrat-3.14159/2.0, 1, 0, 0);
 	v = Rot(v, 2.0*3.14159*orlonrat-3.14159/2.0, 0, 1, 0);
 	return v;
@@ -229,9 +229,37 @@ vec4 texel0;
 
 	//jump table index coords
 
-	int tabx = int(siderat*(orjplwpx-1)) + int(orjlon*(orjlons-1)*orjplwpx);
-	//int taby = int(uprat*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
-	int taby = int((1.0-uprat)*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
+	//the jump depends on 1.) object orientation and 2.) viewing angle.
+	//so the overall viewed angle is what's needed for the jump,
+	//but only the object's orientation angles are passed (orjlon,orjlat).
+
+	vec2 viewang;
+	viewang.x = GetLat(-viewdir.y);
+	viewang.y = GetLon(-viewdir.x, -viewdir.z);
+
+	//incedent angles
+	//will be the object's direction, reverse rotated
+	//by view angle.
+	//object's orientation angles are reversed,
+	//because we don't need object's rotation, but camera's
+	//rotation (the camera's angles were used when generating
+	//the jump table).
+	//vec3 incview = SetLatLon( -viewdir, 1.0 - orjlat, 1.0 - orjlon );
+	//float inclat = GetLat( incview.y );
+	//float inclon = GetLon( incview.x, incview.z );
+	float inclat = 2.0 - orjlat - viewang.x;
+	float inclon = 2.0 - orjlon - viewang.y;
+
+	if(inclat >= 1)
+		inclat = inclat - 1;
+	if(inclon >= 1)
+		inclon = inclon - 1;
+
+	int tabx = int(siderat*(orjplwpx-1)) + int(inclon*(orjlons-1)*orjplwpx);
+	int taby = int((1.0-uprat)*(orjplhpx-1)) + int(inclat*(orjlats-1)*orjplhpx);
+	//int tabx = int(siderat*(orjplwpx-1)) + int(orjlon*(orjlons-1)*orjplwpx);
+	////int taby = int(uprat*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
+	//int taby = int((1.0-uprat)*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
 	float tabxf = float(tabx)/(orjplwpx * orjlons);
 	float tabyf = float(taby)/(orjplhpx * orjlats);
 
@@ -251,6 +279,10 @@ vec4 texel0;
 	//latrad = -latrad;
 
 	vec2 startjump = vec2( tabxf, tabyf );
+
+	startjump.x = 0.5;
+	startjump.y = 0.5;
+
 	vec4 jumpel = texture2D(jumptex, startjump);
 
 	//assume little endian
@@ -276,12 +308,14 @@ vec4 texel0;
 	vec4 posyel = texture2D(posytex, jumpc.xy);
 	vec4 poszel = texture2D(posztex, jumpc.xy);
 
-	int steps = 23;//23;
+	int steps = 90;//23;
 	int step = 0;
 
 	vec4 offpos;
 
-	for(step=0; step<steps; ++step)
+	float offlen = 999999;
+
+	for(step=0; step<steps && offlen > 20; ++step)
 	{
 		//diffel = vec4(jumpc.x,jumpc.y,0,1);
 		offpos = DecBin(posxel, posyel, poszel);
@@ -370,15 +404,19 @@ vec4 texel0;
 		offpos = DecBin(posxel, posyel, poszel);
 		//rotate based on viewing angle
 		offpos.xyz = SetLatLon(offpos.xyz, orjlat, orjlon);
-		offpos.xyz = ProjVecOntoPl(offpos.xyz, viewdir);
+		//offpos.xyz = ProjVecOntoPl(offpos.xyz, viewdir);
 
 
 		vec4 mvppos = mvp * offpos;
 		//mvppos = mvppos / mvppos.w;
 		gl_FragDepth = mvppos.z / mvppos.w;
+
+		offpos.xyz = ProjVecOntoPl(offpos.xyz, viewdir);
+
+		offlen = length( offpos.xyz - outpos2.xyz );
 	}
 
-	if( length( offpos.xyz - outpos2.xyz ) > 98 )
+	if( offlen > 20 )
 		discard;
 
 	//gl_FragColor.xyz = outpos2.xyz;

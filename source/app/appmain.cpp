@@ -110,14 +110,15 @@ void Draw()
 			DrawBoxShadText(MAINFONT8, x, y, w, h, &rlstrr, rlc, 0, -1);
 			//DrawShadowedText(MAINFONT8, x, y, &rlstrr, rlc);
 
-			//Vec3f viewang = Normalize( g_cam.m_view - g_cam.m_pos );
-			Vec3f viewang = Vec3f(0,0,0) - Normalize( g_cam.m_view - g_cam.m_pos );
-			float orlon = GetLon(viewang.x, viewang.z);
-			float orlat = GetLat(viewang.y);
+			//Vec3f objdir = Normalize( g_cam.m_view - g_cam.m_pos );
+			//Vec3f objdir = Vec3f(0,0,0) - Normalize( g_cam.m_view - g_cam.m_pos );
+			Vec3f objdir = Normalize( Vec3f(0,0,-1) );
+			float orlon = GetLon(objdir.x, objdir.z);
+			float orlat = GetLat(objdir.y);
 
 			char datastr[123];
-			sprintf(datastr, "viewdir:%f,%f,%f   orlon=%f    orlat=%f",
-				viewang.x, viewang.y, viewang.z, orlon, orlat);
+			sprintf(datastr, "objdir:%f,%f,%f   orlon=%f    orlat=%f",
+				objdir.x, objdir.y, objdir.z, orlon, orlat);
 			RichText rd = RichText(datastr);
 
 			y = g_toprightviewport->m_pos[3]-16;
@@ -1022,7 +1023,7 @@ void Init()
 #endif
 
     SDL_Init(SDL_INIT_VIDEO);
-    OpenLog("log14.txt", APPVERSION);
+    OpenLog("log.txt", APPVERSION);
     srand(GetTicks());
     g_lastsave[0] = '\0';
     LoadConfig();
@@ -1081,7 +1082,7 @@ extern "C" void __cdecl SteamAPIDebugTextHook( int32_t nSeverity, const char *pc
 #endif
 
 	if(!g_applog)
-		OpenLog("log14.txt", APPVERSION);
+		OpenLog("log.txt", APPVERSION);
 
 	Log(pchDebugText);
 	

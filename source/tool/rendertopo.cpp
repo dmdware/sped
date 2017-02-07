@@ -8399,8 +8399,8 @@ Vec3f SetLatLonAr(Vec3f v, Vec3f cen, float orlatrat, float orlonrat)
 	return v;
 }
 
-	//float orlon = 1.0 - (0.25 - atan2(viewang.x, viewang.z) / (2.0 * M_PI));
-	//float orlat = 0.5 + asin(viewang.y)/M_PI;
+	//float orlon = 1.0 - (0.25 - atan2(objdir.x, objdir.z) / (2.0 * M_PI));
+	//float orlat = 0.5 + asin(objdir.y)/M_PI;
 float GetLon(float x, float z)
 {
 	float orlon = ( 1.0 - (0.25 - atan2(x, z) / (2.0 * M_PI)) );
@@ -8460,8 +8460,8 @@ void OutTex2(Surf *surf, LoadedTex* out)
 		SurfPt *p = *pit;
 		Vec3f wrappos = p->wrappos;
 		wrappos = Normalize(wrappos);
-	//float orlon = 1.0 - ( - atan2(viewang.x, viewang.z) / (2.0 * M_PI));
-	//float orlat = asin(viewang.y)/M_PI;
+	//float orlon = 1.0 - ( - atan2(objdir.x, objdir.z) / (2.0 * M_PI));
+	//float orlat = asin(objdir.y)/M_PI;
 		///float lat = asin(wrappos.y)/M_PI;
 		///float lon = 1.0 - ( - atan2(wrappos.x, wrappos.z) / (2.0 * M_PI));
 		float lat = GetLat(wrappos.y);
@@ -8624,6 +8624,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 						//out[1].data[ (tabx + taby * out[1].sizex) * 3 + 2] = 0;
 
 						//fill empty space indices with something most useful
+#if 0
 						for(int orxpx2=0; orxpx2<g_orwpx; ++orxpx2)
 						{
 							for(int orypx2=0; orypx2<g_orhpx; ++orypx2)
@@ -8643,6 +8644,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 								*(outorc2+2) = *(((unsigned char*)&orci)+2);
 							}
 						}
+#endif
 					}
 				}
 			}
