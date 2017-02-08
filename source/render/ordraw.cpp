@@ -717,7 +717,7 @@ void ViewTopo(const char* fullpath)
 
 	g_cam.position( pos.x, pos.y, pos.z, view.x, view.y, view.z, up.x, up.y, up.z);
 
-	g_rolllock = true;
+	//g_rolllock = true;
 
 	return;
 	//g_mode = ORVIEW;

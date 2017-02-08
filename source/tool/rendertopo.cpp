@@ -8399,6 +8399,35 @@ Vec3f SetLatLonAr(Vec3f v, Vec3f cen, float orlatrat, float orlonrat)
 	return v;
 }
 
+Vec3f SetLatLonRoll(Vec3f v, float orlatrat, float orlonrat, float orrollrat)
+{
+	v = Rotate(v, 2.0*M_PI*orrollrat, 0, 0, 1);
+	v = SetLatLon(v, orlatrat, orlonrat);
+	return v;
+}
+
+Vec3f SetLatLonRollAr(Vec3f v, Vec3f cen, float orlatrat, float orlonrat, float orrollrat)
+{
+	v = v - cen;
+	v = SetLatLonRoll(v, orlatrat, orlonrat, orrollrat);
+	v = v + cen;
+	return v;
+}
+
+float GetRoll(Vec3f view, Vec3f side)
+{
+	float orlatrat = -GetLat(view.y);
+	float orlonrat = -GetLon(view.x, view.z);
+	side = Rotate(side, 2.0*M_PI*orlonrat-M_PI/2.0, 0, 1, 0);
+	side = Rotate(side, 1.0*M_PI*orlatrat-M_PI/2.0, 1, 0, 0);
+	float orroll = ( 1.0 - (0.0 - atan2(side.y, side.x) / (2.0 * M_PI)) );
+	if(orroll < 0)
+		orroll = orroll + 1;
+	if(orroll >= 1)
+		orroll = orroll - 1;
+	return orroll;
+}
+
 	//float orlon = 1.0 - (0.25 - atan2(objdir.x, objdir.z) / (2.0 * M_PI));
 	//float orlat = 0.5 + asin(objdir.y)/M_PI;
 float GetLon(float x, float z)

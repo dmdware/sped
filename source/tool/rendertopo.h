@@ -140,6 +140,9 @@ Vec3f SetLatLon(Vec3f v, float orlatrat, float orlonrat);
 Vec3f SetLatLonAr(Vec3f v, Vec3f cen, float orlatrat, float orlonrat);
 float GetLon(float x, float z);
 float GetLat(float y);
+Vec3f SetLatLonRoll(Vec3f v, float orlatrat, float orlonrat, float orrollrat);
+Vec3f SetLatLonRollAr(Vec3f v, Vec3f cen, float orlatrat, float orlonrat, float orrollrat);
+float GetRoll(Vec3f view, Vec3f side);
 
 class SurfPt
 {
