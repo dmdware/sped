@@ -8508,7 +8508,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 	{
 		for(int orlat=0; orlat<g_orlats; orlat++)
 		{
-			for(int orroll=0; orroll<g_orrolls; orroll++)
+			//for(int orroll=0; orroll<g_orrolls; orroll++)
 			{
 				Vec3f up = Vec3f(0,1,0);
 				Vec3f side = Vec3f(1,0,0);
@@ -8521,7 +8521,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 				up = Rotate(up, 2.0*M_PI*(float)orlon/(float)g_orlons, 0, 1, 0);
 				side = Rotate(side, 2.0*M_PI*(float)orlon/(float)g_orlons, 0, 1, 0);
 				view = Rotate(view, 2.0*M_PI*(float)orlon/(float)g_orlons, 0, 1, 0);
-#elif 0
+#elif 01
 				up = SetLatLon(up, (float)orlat/(float)g_orlats, (float)orlon/(float)g_orlons);
 				side = SetLatLon(side, (float)orlat/(float)g_orlats, (float)orlon/(float)g_orlons);
 				view = SetLatLon(view, (float)orlat/(float)g_orlats, (float)orlon/(float)g_orlons);
@@ -8548,7 +8548,8 @@ void OutTex2(Surf *surf, LoadedTex* out)
 #endif
 
 						//jump table (islands) index coords
-						int tabx = orxpx + orlon * g_orwpx + orroll * g_orwpx * g_orlons;
+						//int tabx = orxpx + orlon * g_orwpx + orroll * g_orwpx * g_orlons;
+						int tabx = orxpx + orlon * g_orwpx;
 						int taby = orypx + orlat * g_orhpx;
 
 						//set to "nothing" first (no island known yet)

@@ -163,7 +163,7 @@ vec3 SetLatLonAr(vec3 v, vec3 cen, float orlatrat, float orlonrat)
 
 vec3 SetLatLonRoll(vec3 v, float orlatrat, float orlonrat, float orrollrat)
 {
-	v = Rotate(v, 2.0*3.14159*orrollrat, 0, 0, 1);
+	v = Rot(v, 2.0*3.14159*orrollrat, 0, 0, 1);
 	v = SetLatLon(v, orlatrat, orlonrat);
 	return v;
 }
@@ -176,19 +176,6 @@ vec3 SetLatLonRollAr(vec3 v, vec3 cen, float orlatrat, float orlonrat, float orr
 	return v;
 }
 
-float GetRoll(vec3 view, vec3 side)
-{
-	float orlatrat = -GetLat(view.y);
-	float orlonrat = -GetLon(view.x, view.z);
-	side = Rotate(side, 2.0*3.14159*orlonrat-3.14159/2.0, 0, 1, 0);
-	side = Rotate(side, 1.0*3.14159*orlatrat-3.14159/2.0, 1, 0, 0);
-	float orroll = ( 1.0 - (0.0 - atan2(side.y, side.x) / (2.0 * 3.14159)) );
-	if(orroll < 0)
-		orroll = orroll + 1;
-	if(orroll >= 1)
-		orroll = orroll - 1;
-	return orroll;
-}
 
 float GetLon(float x, float z)
 {
@@ -204,6 +191,20 @@ float GetLat(float y)
 	if(orlat < 0)
 		orlat = orlat + 1;
 	return orlat;
+}
+
+float GetRoll(vec3 view, vec3 side)
+{
+	float orlatrat = -GetLat(view.y);
+	float orlonrat = -GetLon(view.x, view.z);
+	side = Rot(side, 2.0*3.14159*orlonrat-3.14159/2.0, 0, 1, 0);
+	side = Rot(side, 1.0*3.14159*orlatrat-3.14159/2.0, 1, 0, 0);
+	float orroll = ( 1.0 - (0.0 - atan(side.y, side.x) / (2.0 * 3.14159)) );
+	if(orroll < 0)
+		orroll = orroll + 1;
+	if(orroll >= 1)
+		orroll = orroll - 1;
+	return orroll;
 }
 
 void main (void)
@@ -327,8 +328,8 @@ vec4 texel0;
 		int(jumpel.y*255) * 256 +
 		int(jumpel.z*255) * 256 * 256;
 
-	//if(jumpi == 0)
-	//	discard;
+	if(jumpi == 0)
+		discard;
 
 	vec2 jumpc = vec2( 
 			float( (jumpi%ormapsz) ) / float(ormapsz), 
@@ -437,6 +438,10 @@ vec4 texel0;
 
 		gl_FragColor.xyz = diffel.xyz;
 		gl_FragColor.w = 1;
+
+		//if(startjump.x == 0 && startjump.y == 0)
+		//	gl_FragColor.xyz = diffel.xyz * 0.2;
+
 
 		offpos = DecBin(posxel, posyel, poszel);
 		//rotate based on viewing angle
