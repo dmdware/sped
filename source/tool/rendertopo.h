@@ -10,12 +10,14 @@
 
 extern int g_rendlon;
 extern int g_rendlat;
+extern int g_rendroll;
 extern int g_bigtex;
 
 extern int g_orwpx;	//orientability map plane width pixels
 extern int g_orhpx;	//orientability map plane height pixels
-extern int g_orlons;	//orientability map longitude slices
-extern int g_orlats;	//orientability map latitude slices
+extern int g_orlons;	//orientability map longitude slices (rotation)
+extern int g_orlats;	//orientability map latitude slices (rotation)
+extern int g_orrolls;	//orientability map roll slices (rotation)
 
 class Texture;
 class Tet;

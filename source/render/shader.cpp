@@ -428,6 +428,11 @@ void LoadShader(int shader, char* strVertex, char* strFragment, bool hasverts, b
 
 	CHECKGLERROR();
 	s->MapUniform(SSLOT_IMVP, "imvp");
+	
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_ORJROLL, "orjroll");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_ORJROLLS, "orjrolls");
 
 	CHECKGLERROR();
 }

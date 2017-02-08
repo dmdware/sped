@@ -43,7 +43,7 @@ int g_savebitdepth = 8;
 Vec3f g_origlightpos;
 Camera g_origcam;
 int g_rendside;
-int g_rendpitch, g_rendyaw, g_rendroll;
+int g_rendpitch, g_rendyaw;// redefined in specific use for orientability map: , g_rendroll;
 int g_nrendsides = 8;
 bool g_antialias = true;
 bool g_fit2pow = false;

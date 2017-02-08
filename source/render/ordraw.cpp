@@ -138,18 +138,20 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	
 	glUniform1f(s->m_slot[SSLOT_ORJPLWPX], (float)g_orwpx);
 	glUniform1f(s->m_slot[SSLOT_ORJPLHPX], (float)g_orhpx);
-	glUniform1f(s->m_slot[SSLOT_ORJLONS], (float)g_orlons);
-	glUniform1f(s->m_slot[SSLOT_ORJLATS], (float)g_orlats);
+	glUniform1i(s->m_slot[SSLOT_ORJLONS], (int)g_orlons);
+	glUniform1i(s->m_slot[SSLOT_ORJLATS], (int)g_orlats);
+	glUniform1i(s->m_slot[SSLOT_ORJROLLS], (int)g_orrolls);
 	
 	glUniform1i(s->m_slot[SSLOT_ORMAPSZ], (int)g_bigtex);
 
 	//angle of view around the object will be opposite
 	//like if you view it from back with your view vector = (0,0,1) looking forward,
 	//object's view vector of rotation should be (0,0,-1) (with it's backside front, and looking backward)
-	//Vec3f objdir = Vec3f(0,0,0) - viewdir;
-	//Vec3f objdir = viewdir;
+	//Vec3f objview = Vec3f(0,0,0) - viewdir;
+	//Vec3f objview = viewdir;
 	//orientation of object forward in absolute space
-	Vec3f objdir = Normalize( Vec3f(0,0,-1) );
+	Vec3f objview = Normalize( Vec3f(0,0,1) );
+	Vec3f objside = Normalize( Vec3f(1,0,0) );
 
 #if 0
 	//tests
@@ -275,12 +277,12 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 #endif
 
 	//ratios
-	///float orlon = 0.5 + atan2(objdir.z, objdir.x) / (2.0 * M_PI);
-	///float orlat = 0.5 - asin(objdir.y)/M_PI;
-	//float orlon = atan2(objdir.x, objdir.z) / (2.0 * M_PI);
+	///float orlon = 0.5 + atan2(objview.z, objview.x) / (2.0 * M_PI);
+	///float orlat = 0.5 - asin(objview.y)/M_PI;
+	//float orlon = atan2(objview.x, objview.z) / (2.0 * M_PI);
 	
-	//float orlon = atan2(objdir.z, objdir.x) / (2.0 * M_PI);
-	//float orlat = - asin(objdir.y)/M_PI;
+	//float orlon = atan2(objview.z, objview.x) / (2.0 * M_PI);
+	//float orlat = - asin(objview.y)/M_PI;
 
 	//if(orlon < 0)
 	//	orlon = orlon + 1.0;
@@ -290,19 +292,19 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	//	ErrMess("asdsdg","nanyaw");
 	//tan(0)=op/adj=0/1
 	//fprintf(g_applog, "prepos1 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
-	//objdir = Rotate(objdir, -orlon, 0, 1, 0);
+	//objview = Rotate(objview, -orlon, 0, 1, 0);
 	//fprintf(g_applog, "prepos2 %f,%f,%f\r\n", wrappos.x, wrappos.y, wrappos.z);
-	//float orlat = atan2(objdir.y, objdir.x) / M_PI;
+	//float orlat = atan2(objview.y, objview.x) / M_PI;
 	//float lat = 0.5f - asin(wrappos.y)/M_PI;
 
 	//if(orlat < 0)
 	//	orlat = orlat + 1;
 
-	//float orlon = 1.0 - (0.25 - atan2(objdir.x, objdir.z) / (2.0 * M_PI));
-	//float orlat = 0.5 + asin(objdir.y)/M_PI;
+	//float orlon = 1.0 - (0.25 - atan2(objview.x, objview.z) / (2.0 * M_PI));
+	//float orlat = 0.5 + asin(objview.y)/M_PI;
 	
-	//float orlon = 1.0 - ( - atan2(objdir.x, objdir.z) / (2.0 * M_PI));
-	//float orlat = asin(objdir.y)/M_PI;
+	//float orlon = 1.0 - ( - atan2(objview.x, objview.z) / (2.0 * M_PI));
+	//float orlat = asin(objview.y)/M_PI;
 
 	//if(orlon < 0)
 	//	orlon = orlon + 1;
@@ -310,13 +312,15 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	//if(orlat < 0)
 	//	orlat = orlat + 1;
 
-	float orlon = GetLon(objdir.x, objdir.z);
-	float orlat = GetLat(objdir.y);
+	float orlon = GetLon(objview.x, objview.z);
+	float orlat = GetLat(objview.y);
+	float orroll = GetRoll(objview, objside);
 
 	//orlon = orlat = 0;
 	
 	glUniform1f(s->m_slot[SSLOT_ORJLON], (float)orlon);
 	glUniform1f(s->m_slot[SSLOT_ORJLAT], (float)orlat);
+	glUniform1f(s->m_slot[SSLOT_ORJROLL], (float)orroll);
 
 	Vec2f ta, tb, tc, td;
 	ta = Vec2f(0,1);
@@ -495,8 +499,9 @@ void ResetOrRender()
 	//rendertopo.h/cpp
 	g_orwpx = 256;	//orientability map plane width pixels
 	g_orhpx = 256;	//orientability map plane height pixels
-	g_orlons = 16;	//orientability map longitude slices
-	g_orlats = 16;	//orientability map latitude slices
+	g_orlons = 16;	//orientability map longitude slices (rotations)
+	g_orlats = 16;	//orientability map latitude slices (rotations)
+	g_orrolls = 16;	//orientability map roll slices (rotations)
 	g_bigtex = 4096;	//orientability diffuse colors and surface positions map size
 }
 

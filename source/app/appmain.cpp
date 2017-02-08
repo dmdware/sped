@@ -110,15 +110,15 @@ void Draw()
 			DrawBoxShadText(MAINFONT8, x, y, w, h, &rlstrr, rlc, 0, -1);
 			//DrawShadowedText(MAINFONT8, x, y, &rlstrr, rlc);
 
-			//Vec3f objdir = Normalize( g_cam.m_view - g_cam.m_pos );
-			//Vec3f objdir = Vec3f(0,0,0) - Normalize( g_cam.m_view - g_cam.m_pos );
-			Vec3f objdir = Normalize( Vec3f(0,0,-1) );
-			float orlon = GetLon(objdir.x, objdir.z);
-			float orlat = GetLat(objdir.y);
+			//Vec3f objview = Normalize( g_cam.m_view - g_cam.m_pos );
+			//Vec3f objview = Vec3f(0,0,0) - Normalize( g_cam.m_view - g_cam.m_pos );
+			Vec3f objview = Normalize( Vec3f(0,0,-1) );
+			float orlon = GetLon(objview.x, objview.z);
+			float orlat = GetLat(objview.y);
 
 			char datastr[123];
-			sprintf(datastr, "objdir:%f,%f,%f   orlon=%f    orlat=%f",
-				objdir.x, objdir.y, objdir.z, orlon, orlat);
+			sprintf(datastr, "objview:%f,%f,%f   orlon=%f    orlat=%f",
+				objview.x, objview.y, objview.z, orlon, orlat);
 			RichText rd = RichText(datastr);
 
 			y = g_toprightviewport->m_pos[3]-16;
@@ -589,6 +589,11 @@ void LoadConfig()
 		else if(stricmp(keystr, "orientability_jump_latitudes") == 0)
 		{			
 			g_orlats = valuei;
+			//g_bigtex = imax( g_orwpx, g_orhpx ) * imax( g_orlons, g_orlats );
+		}
+		else if(stricmp(keystr, "orientability_jump_rolls") == 0)
+		{			
+			g_orrolls = valuei;
 			//g_bigtex = imax( g_orwpx, g_orhpx ) * imax( g_orlons, g_orlats );
 		}
 		else if(stricmp(keystr, "orientability_maps_size") == 0)
