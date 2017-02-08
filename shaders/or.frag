@@ -44,11 +44,13 @@ varying vec4 cornerdout;
 
 uniform float orjplwpx;
 uniform float orjplhpx;
-uniform float orjlons;
-uniform float orjlats;
+uniform int orjlons;
+uniform int orjlats;
+uniform int orjrolls;
 
 uniform float orjlon;	//ratio [0..1]
 uniform float orjlat;
+uniform float orjroll;
 
 varying vec4 outpos;
 uniform int ormapsz;	//widths and heights of diffuse and position textures
@@ -158,6 +160,36 @@ vec3 SetLatLonAr(vec3 v, vec3 cen, float orlatrat, float orlonrat)
 	return v;
 }
 
+
+vec3 SetLatLonRoll(vec3 v, float orlatrat, float orlonrat, float orrollrat)
+{
+	v = Rotate(v, 2.0*3.14159*orrollrat, 0, 0, 1);
+	v = SetLatLon(v, orlatrat, orlonrat);
+	return v;
+}
+
+vec3 SetLatLonRollAr(vec3 v, vec3 cen, float orlatrat, float orlonrat, float orrollrat)
+{
+	v = v - cen;
+	v = SetLatLonRoll(v, orlatrat, orlonrat, orrollrat);
+	v = v + cen;
+	return v;
+}
+
+float GetRoll(vec3 view, vec3 side)
+{
+	float orlatrat = -GetLat(view.y);
+	float orlonrat = -GetLon(view.x, view.z);
+	side = Rotate(side, 2.0*3.14159*orlonrat-3.14159/2.0, 0, 1, 0);
+	side = Rotate(side, 1.0*3.14159*orlatrat-3.14159/2.0, 1, 0, 0);
+	float orroll = ( 1.0 - (0.0 - atan2(side.y, side.x) / (2.0 * 3.14159)) );
+	if(orroll < 0)
+		orroll = orroll + 1;
+	if(orroll >= 1)
+		orroll = orroll - 1;
+	return orroll;
+}
+
 float GetLon(float x, float z)
 {
 	float orlon = ( 1.0 - (0.25 - atan(x, z) / (2.0 * 3.14159)) );
@@ -233,30 +265,35 @@ vec4 texel0;
 	//so the overall viewed angle is what's needed for the jump,
 	//but only the object's orientation angles are passed (orjlon,orjlat).
 
-	vec2 viewang;
-	viewang.x = GetLat(-viewdir.y);
-	viewang.y = GetLon(-viewdir.x, -viewdir.z);
+	//incident angles
+	//the combined angles of the camera and object rotations.
+	//set up a view and side vector,
+	//rotate by the object's rotations,
+	//then rotate that view and side vector by the reverse of the cam's rotations.
+	vec3 incview = vec3(0,0,1);
+	vec3 incside = vec3(1,0,0);
 
-	//incedent angles
-	//will be the object's direction, reverse rotated
-	//by view angle.
-	//object's orientation angles are reversed,
-	//because we don't need object's rotation, but camera's
-	//rotation (the camera's angles were used when generating
-	//the jump table).
-	//vec3 incview = SetLatLon( -viewdir, 1.0 - orjlat, 1.0 - orjlon );
-	//float inclat = GetLat( incview.y );
-	//float inclon = GetLon( incview.x, incview.z );
-	float inclat = 2.0 - orjlat - viewang.x;
-	float inclon = 2.0 - orjlon - viewang.y;
+	incview = SetLatLonRoll(incview, orjlat, orjlon, orjroll);
+	incside = SetLatLonRoll(incside, orjlat, orjlon, orjroll);
 
-	if(inclat >= 1)
-		inclat = inclat - 1;
-	if(inclon >= 1)
-		inclon = inclon - 1;
+	float camlat = GetLat(viewdir.y);
+	float camlon = GetLon(viewdir.x, viewdir.z);
+	float camroll = GetRoll(viewdir, sidedir);
 
-	int tabx = int(siderat*(orjplwpx-1)) + int(inclon*(orjlons-1)*orjplwpx);
-	int taby = int((1.0-uprat)*(orjplhpx-1)) + int(inclat*(orjlats-1)*orjplhpx);
+	incview = SetLatLonRoll(incview, 1-camlat, 1-camlon, 1-camroll);
+	incside = SetLatLonRoll(incside, 1-camlat, 1-camlon, 1-camroll);
+
+	float inclat = GetLat(incview.y);
+	float inclon = GetLon(incview.x, incview.z);
+	float incroll = GetRoll(incview, incside);
+
+	int tabx = int(siderat*(orjplwpx-1)) + 
+		int(inclon*(orjlons-1)*orjplwpx) +
+		int(incroll*(orjrolls-1)*orjlons*orjplwpx);
+
+	int taby = int((1.0-uprat)*(orjplhpx-1)) + 
+		int(inclat*(orjlats-1)*orjplhpx);
+
 	//int tabx = int(siderat*(orjplwpx-1)) + int(orjlon*(orjlons-1)*orjplwpx);
 	////int taby = int(uprat*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
 	//int taby = int((1.0-uprat)*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
@@ -320,7 +357,7 @@ vec4 texel0;
 		//diffel = vec4(jumpc.x,jumpc.y,0,1);
 		offpos = DecBin(posxel, posyel, poszel);
 		//rotate based on viewing angle
-		offpos.xyz = SetLatLon(offpos.xyz, orjlat, orjlon);
+		offpos.xyz = SetLatLonRoll(offpos.xyz, orjlat, orjlon, orjroll);
 		offpos.xyz = ProjVecOntoPl(offpos.xyz, viewdir);
 
 		float pixjump = float(steps - step);
@@ -341,7 +378,7 @@ vec4 texel0;
 		//move up on or. position/diffuse maps.
 		vec4 upnavoff = DecBin(posxel, posyel, poszel);
 		//rotate based on viewing angle
-		upnavoff.xyz = SetLatLon(upnavoff.xyz, orjlat, orjlon);
+		upnavoff.xyz = SetLatLonRoll(upnavoff.xyz, orjlat, orjlon, orjroll);
 		upnavoff.xyz = ProjVecOntoPl(upnavoff.xyz, viewdir);
 		//get relative offset from current position in absolute space
 		upnavoff = vec4( ( upnavoff.xyz -  offpos.xyz ), 1 );
@@ -353,7 +390,7 @@ vec4 texel0;
 		//move right on or. position/diffuse maps.
 		vec4 sidenavoff = DecBin(posxel, posyel, poszel);
 		//rotate based on viewing angle
-		sidenavoff.xyz = SetLatLon(sidenavoff.xyz, orjlat, orjlon);
+		sidenavoff.xyz = SetLatLonRoll(sidenavoff.xyz, orjlat, orjlon, orjroll);
 		sidenavoff.xyz = ProjVecOntoPl(sidenavoff.xyz, viewdir);
 		//get relative offset from current position in absolute space
 		sidenavoff = vec4( ( sidenavoff.xyz -  offpos.xyz ), 1 );
@@ -403,7 +440,7 @@ vec4 texel0;
 
 		offpos = DecBin(posxel, posyel, poszel);
 		//rotate based on viewing angle
-		offpos.xyz = SetLatLon(offpos.xyz, orjlat, orjlon);
+		offpos.xyz = SetLatLonRoll(offpos.xyz, orjlat, orjlon, orjroll);
 		//offpos.xyz = ProjVecOntoPl(offpos.xyz, viewdir);
 
 
