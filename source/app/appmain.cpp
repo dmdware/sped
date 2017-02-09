@@ -90,7 +90,8 @@ void Draw()
 #endif
         Ortho(g_width, g_height, 1, 1, 1, 1);
         char dbgstr[128];
-        sprintf(dbgstr, "b's:%d", (int)g_edmap.m_brush.size());
+		sprintf(dbgstr, "b's:%d fps:%f", (int)g_edmap.m_brush.size(),
+			(float)g_instantdrawfps);
         RichText rdbgstr(dbgstr);
         DrawShadowedText(MAINFONT8, 0, g_height-16, &rdbgstr);
 
@@ -110,6 +111,7 @@ void Draw()
 			DrawBoxShadText(MAINFONT8, x, y, w, h, &rlstrr, rlc, 0, -1);
 			//DrawShadowedText(MAINFONT8, x, y, &rlstrr, rlc);
 
+#if 0
 			//Vec3f objview = Normalize( g_cam.m_view - g_cam.m_pos );
 			//Vec3f objview = Vec3f(0,0,0) - Normalize( g_cam.m_view - g_cam.m_pos );
 			Vec3f objview = Normalize( Vec3f(0,0,-1) );
@@ -124,6 +126,7 @@ void Draw()
 			y = g_toprightviewport->m_pos[3]-16;
 			
 			DrawBoxShadText(MAINFONT8, x, y, w, h, &rd, rlc, 0, -1);
+#endif
 		}
 
         EndS();
@@ -196,6 +199,20 @@ void DrawScene(Matrix projection, Matrix viewmat, Matrix modelmat, Matrix modelv
 	}
 #endif
 
+	if(g_orlist.on)
+	//if(0)
+	{
+		//glDisable(GL_CULL_FACE);
+		if(g_projtype == PROJ_ORTHO)
+			UseShadow(SHADER_OR, projection, viewmat, modelmat, modelviewinv, mvLightPos, lightDir);
+		else
+		//g_projtype = PROJ_PERSP;
+			UseShadow(SHADER_ORPERSP, projection, viewmat, modelmat, modelviewinv, mvLightPos, lightDir);
+		DrawOr(&g_orlist, g_renderframe, Vec3f(0,0,0), 
+			0,0);
+		EndS();
+	}
+
 #if 1
 	if(g_projtype == PROJ_ORTHO)
 		UseShadow(SHADER_MAP, projection, viewmat, modelmat, modelviewinv, mvLightPos, lightDir);
@@ -251,21 +268,6 @@ void DrawScene(Matrix projection, Matrix viewmat, Matrix modelmat, Matrix modelv
     DrawEdMap(&g_edmap, g_showsky);
     CHECKGLERROR();
     EndS();
-
-	if(g_orlist.on)
-	//if(0)
-	{
-		glDisable(GL_CULL_FACE);
-		if(g_projtype == PROJ_ORTHO)
-			UseShadow(SHADER_OR, projection, viewmat, modelmat, modelviewinv, mvLightPos, lightDir);
-		else
-		//g_projtype = PROJ_PERSP;
-			UseShadow(SHADER_ORPERSP, projection, viewmat, modelmat, modelviewinv, mvLightPos, lightDir);
-		DrawOr(&g_orlist, g_renderframe, Vec3f(0,0,0), 
-			M_PI*2.0f*(float)g_rendpitch/(float)g_nrendsides, 
-			M_PI*2.0f*(float)g_rendyaw/(float)g_nrendsides);
-		EndS();
-	}
 		
 
 #if 0
@@ -651,6 +653,9 @@ void EnumerateMaps()
 
 bool DrawNextFrame(int desiredFrameRate)
 {
+	//if(g_orlist.on)
+	return true;	//speed test
+
 	static long long lastTime = GetTicks();
 	static long long elapsedTime = 0;
 

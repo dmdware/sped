@@ -8695,7 +8695,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 
 								//pixel index
 								unsigned int orci = (int)((g_bigtex-1+1) * orc.x) + 
-									int(g_bigtex * (g_bigtex-1+1) * orc.y);
+									(int)(g_bigtex) * (int)((g_bigtex-1+1) * orc.y);
 
 								//[1] = jump islands map of size (orlons*orwpx,orlats*orhpx)
 								unsigned char *outorc = 
@@ -8745,34 +8745,87 @@ void OutTex2(Surf *surf, LoadedTex* out)
 #endif
 								//out[1].data[ (tabx + taby * out[1].sizex) * 3 + 2] = 0;
 
-								//fill empty space indices with something most useful
-	#if 0
-								for(int orxpx2=0; orxpx2<g_orwpx; ++orxpx2)
-								{
-									for(int orypx2=0; orypx2<g_orhpx; ++orypx2)
-									{
-										//jump table (islands) index coords
-										int tabx2 = orxpx2 + orlon * g_orwpx;
-										int taby2 = orypx2 + orlat * g_orhpx;
-
-										unsigned char *outorc2 = 
-											(unsigned char*)&(out[1].data[ (tabx2 + taby2 * out[1].sizex) * 3 + 0]);
-
-										if( *(outorc2+0) || *(outorc2+1) || *(outorc2+2) )
-											continue;
-
-										*(outorc2+0) = *(((unsigned char*)&orci)+0);
-										*(outorc2+1) = *(((unsigned char*)&orci)+1);
-										*(outorc2+2) = *(((unsigned char*)&orci)+2);
-									}
-								}
-	#endif
-
 								//break;
 							}
 						}
 					}
 				}
+
+				////filly empties
+
+				//fill empty space indices with something most useful
+#if 01
+				bool doagain;
+again:
+				doagain = false;
+				for(int orxpx2=0; orxpx2<g_orwpx; ++orxpx2)
+				{
+					for(int orypx2=0; orypx2<g_orhpx; ++orypx2)
+					{
+						//jump table (islands) index coords
+						int tabx2 = orxpx2 + orlon * g_orwpx;
+						int taby2 = orypx2 + orlat * g_orhpx + orroll * g_orhpx * g_orlats;
+
+						unsigned char *outorc3 = 
+							(unsigned char*)&(out[1].data[ (tabx2 + taby2 * out[1].sizex) * 3 + 0]);
+
+						if( *(outorc3+0) || *(outorc3+1) || *(outorc3+2) )
+							continue;
+
+						//get smartest neighbour to copy
+
+						int minx = imax(0,orxpx2-1);
+						int miny = imax(0,orypx2-1);
+						int maxx = imin(g_orwpx-1,orxpx2+1);
+						int maxy = imin(g_orhpx-1,orypx2+1);
+
+						unsigned char *outorcs[8];
+
+						outorcs[0] = (unsigned char*)&(out[1].data[ (minx + miny * out[1].sizex) * 3 + 0]);	//-1,-1
+						outorcs[1] = (unsigned char*)&(out[1].data[ (tabx2 + miny * out[1].sizex) * 3 + 0]);//0,-1
+						outorcs[2] = (unsigned char*)&(out[1].data[ (maxx + miny * out[1].sizex) * 3 + 0]);//1,-1
+						outorcs[3] = (unsigned char*)&(out[1].data[ (maxx + taby2 * out[1].sizex) * 3 + 0]);//1,0
+						outorcs[4] = (unsigned char*)&(out[1].data[ (maxx + maxy * out[1].sizex) * 3 + 0]);//1,1
+						outorcs[5] = (unsigned char*)&(out[1].data[ (tabx2 + maxy * out[1].sizex) * 3 + 0]);//0,1
+						outorcs[6] = (unsigned char*)&(out[1].data[ (minx + maxy * out[1].sizex) * 3 + 0]);//-1,1
+						outorcs[7] = (unsigned char*)&(out[1].data[ (minx + taby2 * out[1].sizex) * 3 + 0]);//-1,0
+
+						int use = -1;
+
+						if( ( *(outorcs[0]+0) || *(outorcs[0]+1) || *(outorcs[0]+2) ) )
+							use = 0;
+						else if( ( *(outorcs[2]+0) || *(outorcs[2]+1) || *(outorcs[2]+2) ) )
+							use = 2;
+						else if( ( *(outorcs[4]+0) || *(outorcs[4]+1) || *(outorcs[4]+2) ) )
+							use = 4;
+						else if( ( *(outorcs[6]+0) || *(outorcs[6]+1) || *(outorcs[6]+2) ) )
+							use = 6;
+						else if( ( *(outorcs[1]+0) || *(outorcs[1]+1) || *(outorcs[1]+2) ) )
+							use = 1;
+						else if( ( *(outorcs[5]+0) || *(outorcs[5]+1) || *(outorcs[5]+2) ) )
+							use = 5;
+						else if( ( *(outorcs[7]+0) || *(outorcs[7]+1) || *(outorcs[7]+2) ) )
+							use = 7;
+						else if( ( *(outorcs[3]+0) || *(outorcs[3]+1) || *(outorcs[3]+2) ) )
+							use = 3;
+
+						if(use < 0)
+							continue;
+
+						unsigned int orci = *(unsigned int*)outorcs[use];
+
+						*(outorc3+0) = *(((unsigned char*)&orci)+0);
+						*(outorc3+1) = *(((unsigned char*)&orci)+1);
+						*(outorc3+2) = *(((unsigned char*)&orci)+2);
+
+						//goto again;
+						doagain = true;
+					}
+				}
+
+				if(doagain)
+					goto again;
+#endif
 			}
 		}
 	}

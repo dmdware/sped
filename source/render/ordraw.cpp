@@ -120,6 +120,11 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	Vec2f t[6];
 	///////
 
+	if(g_projtype == PROJ_ORTHO)
+		maxrad *= 1.1;
+	else if(g_projtype == PROJ_PERSP)
+		maxrad * 1.9;
+
 	Vec3f a, b, c, d;
 	a = pos + updir * maxrad - sidedir * maxrad;
 	b = pos + updir * maxrad + sidedir * maxrad;
@@ -135,7 +140,9 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	glUniform4fv(s->m_slot[SSLOT_CORNERB], 1, (float*)&b4);
 	glUniform4fv(s->m_slot[SSLOT_CORNERC], 1, (float*)&c4);
 	glUniform4fv(s->m_slot[SSLOT_CORNERD], 1, (float*)&d4);
-	
+
+	glUniform3fv(s->m_slot[SSLOT_CAMCEN], 1, (float*)&g_cam.m_pos);
+
 	glUniform1i(s->m_slot[SSLOT_ORJPLWPX], (int)g_orwpx);
 	glUniform1i(s->m_slot[SSLOT_ORJPLHPX], (int)g_orhpx);
 	glUniform1i(s->m_slot[SSLOT_ORJLONS], (int)g_orlons);
@@ -829,7 +836,7 @@ void ViewTopo(const char* fullpath)
 
 	g_cam.position( pos.x, pos.y, pos.z, view.x, view.y, view.z, up.x, up.y, up.z);
 
-	//g_rolllock = true;
+	g_rolllock = true;
 
 	return;
 	//g_mode = ORVIEW;

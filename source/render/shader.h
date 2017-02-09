@@ -86,7 +86,8 @@
 #define SSLOT_INCIDLAT			75
 #define SSLOT_INCIDLON			76
 #define SSLOT_INCIDROLL			78
-#define SSLOTS					79
+#define SSLOT_CAMCEN			79
+#define SSLOTS					80
 
 
 #ifdef PLATFORM_MAC

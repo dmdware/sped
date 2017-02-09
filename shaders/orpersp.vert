@@ -36,6 +36,19 @@ varying float elevy;
 uniform vec3 sundirection;
 uniform mat4 normalMat;
 
+
+varying vec4 outpos;
+
+
+	/*
+	The difference from ortho here,
+	is the "viewdir" must be defined for
+	each screen fragment.
+	*/
+
+varying vec3 perspview;
+uniform vec3 camcen;
+
 void main(void)
 {
 	//vec4 vpos = (view * (model * position));
@@ -47,6 +60,22 @@ void main(void)
 	//gl_Position = projection * view * model * gl_Vertex;
 	gl_Position = mvp * gl_Vertex;
 	//gl_Position.w = 1;	//ortho=1/persp?
+
+	perspview = normalize( gl_Vertex.xyz - camcen );
+
+	//IMPORTANT:
+	//the gl_Vertex coordinates must be in absolute space.
+	//any translation must be added to the vertices before
+	//sending them here.
+	//rotations must be defined in (orjlon,orjlat) relative
+	//to the layed out structure of corners of the quad
+	//which is already perpindicular to the viewing angle.
+	//if a model transformation is applied,
+	//outpos2 in the fragment shader must be the absolute
+	//space coordinate after all the translation and rotation.
+
+	//absolute
+	outpos = gl_Vertex;
 
 	elevy = gl_Vertex.y;
 	//elevtransp = 1;

@@ -83,21 +83,6 @@ void main(void)
 	//absolute
 	outpos = gl_Vertex;
 
-	//absolute coordinates
-	//not
-	corneraout = mvp * cornera;
-	//corneraout = cornera;
-	corneraout.w = 1;
-	cornerbout = mvp * cornerb;
-	//cornerbout = cornerb;
-	cornerbout.w = 1;
-	cornercout = mvp * cornerc;
-	//cornercout = cornerc;
-	cornercout.w = 1;
-	cornerdout = mvp * cornerd;
-	//cornerdout = cornerd;
-	cornerdout.w = 1;
-
 
 	elevy = gl_Vertex.y;
 	//elevtransp = 1;

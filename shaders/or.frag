@@ -155,7 +155,8 @@ vec3 ProjVecOntoPl(vec3 v, vec3 pn)
 	//subtract "cen" (object center) from v first 
 	//before following equation, then add it back,
 	//if object is not centered on origin.
-	return (v - pn * dot(v, pn) / (pow(length(pn),2.0)) );
+	//return (v - pn * dot(v, pn) / (pow(length(pn),2.0)) );
+	return (v - pn * dot(v, pn) );	//assume pn normalized
 	
 }
 
@@ -331,25 +332,24 @@ vec4 texel0;
 	gl_FragColor.xyz = diffel.xyz;
 	gl_FragColor.w = 1;
 
-	int steps = 23;//23;
+	int steps = 29;//23;
 	int step = 0;
 
 	vec4 offpos;
 
 	float offlen = 999999;
 
-	for(step=0; step<steps && offlen > 20; ++step)
+	//diffel = vec4(jumpc.x,jumpc.y,0,1);
+	offpos = DecBin(posxel, posyel, poszel);
+	//rotate based on viewing angle
+	offpos.xyz = SetLatLonRoll(offpos.xyz, orjlat, orjlon, orjroll);
+	vec4 mvppos = offpos;
+	offpos.xyz = ProjVecOntoPl(offpos.xyz, viewdir);
+
+
+	for(step=0; step<steps && offlen >= 20; ++step)
 	{
-		//diffel = vec4(jumpc.x,jumpc.y,0,1);
-		offpos = DecBin(posxel, posyel, poszel);
-		//rotate based on viewing angle
-		offpos.xyz = SetLatLonRoll(offpos.xyz, orjlat, orjlon, orjroll);
-		offpos.xyz = ProjVecOntoPl(offpos.xyz, viewdir);
-
-		float pixjump = float(steps - step);
-		pixjump = min(pixjump, 10);
-
-
+		float pixjump = min(10.0, float(steps - step));
 		//(orlon,orlat) contains the rotation.
 		//apply rotation to the rgb coords.
 
@@ -415,14 +415,9 @@ vec4 texel0;
 
 		//jumpc = jumpc + texjump / float(ormapsz);
 
-
-		diffel = texture2D(texture0, jumpc.xy);
 		posxel = texture2D(posxtex, jumpc.xy);
 		posyel = texture2D(posytex, jumpc.xy);
 		poszel = texture2D(posztex, jumpc.xy);
-
-		gl_FragColor.xyz = diffel.xyz;
-		gl_FragColor.w = 1;
 
 		//if(startjump.x == 0 && startjump.y == 0)
 		//	gl_FragColor.xyz = diffel.xyz * 0.2;
@@ -433,10 +428,7 @@ vec4 texel0;
 		offpos.xyz = SetLatLonRoll(offpos.xyz, orjlat, orjlon, orjroll);
 		//offpos.xyz = ProjVecOntoPl(offpos.xyz, viewdir);
 
-
-		vec4 mvppos = mvp * offpos;
-		//mvppos = mvppos / mvppos.w;
-		gl_FragDepth = mvppos.z / mvppos.w;
+		mvppos = offpos;
 
 		offpos.xyz = ProjVecOntoPl(offpos.xyz, viewdir);
 
@@ -452,9 +444,19 @@ vec4 texel0;
 	//gl_FragColor.x = float(tabx%orjplwpx)/float(orjplwpx);
 	//gl_FragColor.y = float(taby%orjplhpx)/float(orjplhpx);
 	//gl_FragColor.z = 0;
+
+	//offlen = length( offpos.xyz - outpos2.xyz );
 	
 	if( offlen > 20 )
 		discard;
+
+	mvppos = mvp * mvppos;
+	//mvppos = mvppos / mvppos.w;
+	gl_FragDepth = mvppos.z / mvppos.w;
+
+	diffel = texture2D(texture0, jumpc.xy);
+	gl_FragColor.xyz = diffel.xyz;
+	gl_FragColor.w = 1;
 
 	//gl_FragColor.xyz = outpos2.xyz;
 	//gl_FragColor.w = 1;

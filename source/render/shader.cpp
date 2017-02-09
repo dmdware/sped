@@ -456,6 +456,8 @@ void LoadShader(int shader, char* strVertex, char* strFragment, bool hasverts, b
 	s->MapUniform(SSLOT_INCIDLON, "inclon");
 	CHECKGLERROR();
 	s->MapUniform(SSLOT_INCIDROLL, "incroll");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_CAMCEN, "camcen");
 
 	CHECKGLERROR();
 }
