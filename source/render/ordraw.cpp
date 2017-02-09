@@ -406,6 +406,8 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	//RevSet...?
 	incview = SetLatLonRoll(incview, 1-camlat, 1-camlon, 1-camroll);
 	incside = SetLatLonRoll(incside, 1-camlat, 1-camlon, 1-camroll);
+	//incview = RevSetLatLonRoll(incview, camlat, camlon, camroll);
+	//incside = RevSetLatLonRoll(incside, camlat, camlon, camroll);
 
 	float inclat = GetLat(incview.y);
 	float inclon = GetLon(incview.x, incview.z);

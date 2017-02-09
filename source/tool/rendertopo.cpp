@@ -7821,7 +7821,8 @@ bool TraceRay4(Surf* surf,
 			  Vec3f *rewp, Vec3f *rerp, 
 			  Vec3f* ren,
 			  Tet **retet,
-			  double *refU, double *refV)
+			  double *refU, double *refV,
+			  bool igback)
 {
 	bool re = false;
 	int nearesti = -1;
@@ -7883,6 +7884,17 @@ bool TraceRay4(Surf* surf,
 
 		if(IntersectedPolygon(tr, line, 3, &ir))
 		{
+			Vec3f tetn = Normal(tr);
+			Vec3f ldir = Normalize(line[1]-line[0]);
+
+			float ldot = Dot(tetn, ldir);
+
+			//hit back side?
+			if(ldot >= 0 && igback)
+			{
+				continue;
+			}
+
 			goto interc;
 		}
 		//if(IntersectedPolygon(tr2, line, 3, &ir))
@@ -8408,6 +8420,15 @@ Vec3f SetLatLonRoll(Vec3f v, float orlatrat, float orlonrat, float orrollrat)
 	return v;
 }
 
+//reverse angles and order of rotations
+Vec3f RevSetLatLonRoll(Vec3f v, float orlatrat, float orlonrat, float orrollrat)
+{
+	v = Rotate(v, 2.0*M_PI*(-orlonrat)+M_PI/2.0, 0, 1, 0);
+	v = Rotate(v, 1.0*M_PI*(-orlatrat)+M_PI/2.0, 1, 0, 0);
+	v = Rotate(v, 1.0*M_PI*(-orrollrat), 0, 0, 1);
+	return v;
+}
+
 Vec3f SetLatLonRollAr(Vec3f v, Vec3f cen, float orlatrat, float orlonrat, float orrollrat)
 {
 	v = v - cen;
@@ -8613,7 +8634,8 @@ void OutTex2(Surf *surf, LoadedTex* out)
 								&wp,&rp,
 								&n,
 								&tet,
-								&fU, &fV))
+								&fU, &fV,
+								true))
 							{
 								unsigned char c[4];
 
@@ -8685,6 +8707,42 @@ void OutTex2(Surf *surf, LoadedTex* out)
 								*(outorc+1) = *(((unsigned char*)&orci)+1);
 								*(outorc+2) = *(((unsigned char*)&orci)+2);
 
+								//test by diffuse or norm
+#if 0
+								{			
+									unsigned char c[4];
+
+									//texc.x = texc.x - (int)texc.x;
+									//texc.y = texc.y - (int)texc.y;
+
+									int intx = texc.x * tex->sizex;
+									int inty = texc.y * tex->sizey;
+
+									while(intx < 0)
+										intx += tex->sizex;
+									while(inty < 0)
+										inty += tex->sizey;
+									while(intx >= tex->sizex)
+										intx -= tex->sizex;
+									while(inty >= tex->sizey)
+										inty -= tex->sizey;
+
+									c[0] = tex->data[ tex->channels * (intx + inty * tex->sizex) + 0 ];
+									c[1] = tex->data[ tex->channels * (intx + inty * tex->sizex) + 1 ];
+									c[2] = tex->data[ tex->channels * (intx + inty * tex->sizex) + 2 ];
+
+									
+								*(outorc+0) = c[0];
+								*(outorc+1) = c[1];
+								*(outorc+2) = c[2];
+
+								
+				*(outorc+0) = (unsigned char)((n[0]*127)+127);
+				*(outorc+1) = (unsigned char)((n[1]*127)+127);
+				*(outorc+2) = (unsigned char)((n[2]*127)+127);
+
+								}
+#endif
 								//out[1].data[ (tabx + taby * out[1].sizex) * 3 + 2] = 0;
 
 								//fill empty space indices with something most useful
@@ -8724,6 +8782,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 			AllocTex(&outtex[2], g_bigtex, g_bigtex, 3);	//posx
 			AllocTex(&outtex[3], g_bigtex, g_bigtex, 3);	//posy
 			AllocTex(&outtex[4], g_bigtex, g_bigtex, 3);	//posz
+	AllocTex(&outtex[5], g_bigtex, g_bigtex, 3);	//norms
 #endif
 	for(int outpx=0; outpx<g_bigtex; outpx++)
 	{
@@ -8827,6 +8886,10 @@ void OutTex2(Surf *surf, LoadedTex* out)
 				*((unsigned short*)&(out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 0 ])) = vz;
 				out[4].data[ 3 * (outpx + outpy * out[4].sizex) + 2 ] = 0;
 				
+				out[5].data[ 3 * (outpx + outpy * out[5].sizex) + 0 ] = (unsigned char)((n[0]*127)+127);
+				out[5].data[ 3 * (outpx + outpy * out[5].sizex) + 1 ] = (unsigned char)((n[1]*127)+127);
+				out[5].data[ 3 * (outpx + outpy * out[5].sizex) + 2 ] = (unsigned char)((n[2]*127)+127);
+
 #if 0
 			AllocTex(&outtex[0], g_bigtex, g_bigtex, 3);	//diffuse
 			AllocTex(&outtex[1], g_orwpx * g_orlons, g_orhpx * g_orlats * g_orrolls, 3);	//jump/islands map

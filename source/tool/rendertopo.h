@@ -79,7 +79,8 @@ bool TraceRay4(Surf* surf,
 			  Vec3f *rewp, Vec3f *rerp, 
 			  Vec3f* ren,
 			  Tet **retet,
-			  double *refU, double *refV);
+			  double *refU, double *refV,
+			  bool igback=false);
 
 void Balance4(Surf *surf);
 
@@ -143,6 +144,7 @@ Vec3f SetLatLonAr(Vec3f v, Vec3f cen, float orlatrat, float orlonrat);
 float GetLon(float x, float z);
 float GetLat(float y);
 Vec3f SetLatLonRoll(Vec3f v, float orlatrat, float orlonrat, float orrollrat);
+Vec3f RevSetLatLonRoll(Vec3f v, float orlatrat, float orlonrat, float orrollrat);
 Vec3f SetLatLonRollAr(Vec3f v, Vec3f cen, float orlatrat, float orlonrat, float orrollrat);
 float GetRoll(Vec3f view, Vec3f side);
 

@@ -310,8 +310,8 @@ vec4 texel0;
 		int(jumpel.y*255) * 256 +
 		int(jumpel.z*255) * 256 * 256;
 
-	if(jumpi == 0)
-		discard;
+	//if(jumpi == 0)
+	//	discard;
 
 	vec2 jumpc = vec2( 
 			float( (jumpi%ormapsz) ) / float(ormapsz), 
@@ -331,7 +331,7 @@ vec4 texel0;
 	gl_FragColor.xyz = diffel.xyz;
 	gl_FragColor.w = 1;
 
-	int steps = 0;//23;
+	int steps = 23;//23;
 	int step = 0;
 
 	vec4 offpos;
@@ -453,8 +453,8 @@ vec4 texel0;
 	//gl_FragColor.y = float(taby%orjplhpx)/float(orjplhpx);
 	//gl_FragColor.z = 0;
 	
-	//if( offlen > 20 )
-	//	discard;
+	if( offlen > 20 )
+		discard;
 
 	//gl_FragColor.xyz = outpos2.xyz;
 	//gl_FragColor.w = 1;
