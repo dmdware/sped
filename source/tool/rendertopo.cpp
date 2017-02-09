@@ -8402,7 +8402,7 @@ Vec3f SetLatLonAr(Vec3f v, Vec3f cen, float orlatrat, float orlonrat)
 
 Vec3f SetLatLonRoll(Vec3f v, float orlatrat, float orlonrat, float orrollrat)
 {
-	v = Rotate(v, 2.0*M_PI*orrollrat-M_PI/2.0, 0, 0, 1);
+	v = Rotate(v, 1.0*M_PI*orrollrat, 0, 0, 1);
 	v = SetLatLon(v, orlatrat, orlonrat);
 	return v;
 }
@@ -8421,11 +8421,19 @@ float GetRoll(Vec3f view, Vec3f side)
 	float orlonrat = -GetLon(view.x, view.z);
 	side = Rotate(side, 2.0*M_PI*orlonrat-M_PI/2.0, 0, 1, 0);
 	side = Rotate(side, 1.0*M_PI*orlatrat-M_PI/2.0, 1, 0, 0);
-	float orroll = ( (0.25 + atan2(side.y, side.x) / (2.0 * M_PI)) );
-	if(orroll < 0)
-		orroll = orroll + 1;
-	if(orroll >= 1)
-		orroll = orroll - 1;
+	//float orroll = ( (0.0 + atan2(side.y, side.x) / (2.0 * M_PI)) );
+	
+	side = Normalize(side);
+
+	//float orlat = ( 0.5 - 
+	//	asin(y)/M_PI );
+	//float orroll = 0.5 - asin(side.y) / M_PI;
+	//float orroll = 1.0 + asin(side.x) / M_PI;
+	float orroll = 1.0 - acos(side.x) / M_PI;
+	//if(orroll < 0)
+	//	orroll = orroll + 1;
+	//if(orroll >= 1)
+	//	orroll = orroll - 1;
 	return orroll;
 }
 
@@ -8433,7 +8441,8 @@ float GetRoll(Vec3f view, Vec3f side)
 	//float orlat = 0.5 + asin(objview.y)/M_PI;
 float GetLon(float x, float z)
 {
-	float orlon = ( (0.25 + atan2(x, z) / (2.0 * M_PI)) );
+	float orlon = ( (0.25 + 
+		atan2(x, z) / (2.0 * M_PI)) );
 	if(orlon < 0)
 		orlon = orlon + 1;
 	if(orlon >= 1)
@@ -8443,7 +8452,8 @@ float GetLon(float x, float z)
 
 float GetLat(float y)
 {
-	float orlat = ( 0.5 - asin(y)/M_PI );
+	float orlat = ( 0.5 - 
+		asin(y)/M_PI );
 	if(orlat < 0)
 		orlat = orlat + 1;
 	if(orlat >= 1)
@@ -8648,8 +8658,8 @@ void OutTex2(Surf *surf, LoadedTex* out)
 								//wrappos = Normalize(wrappos);
 								Vec3f wrappos = Normalize( wp );
 								Vec2f orc;
-								orc.x = GetLat(wrappos.y);
-								orc.y = GetLon(wrappos.x, wrappos.z);
+								orc.y = GetLat(wrappos.y);	//latitude is vertical offset
+								orc.x = GetLon(wrappos.x, wrappos.z);	//longitude is horizontal
 
 								while(orc.x < 0)
 									orc.x += 1;

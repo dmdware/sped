@@ -153,13 +153,14 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	Vec3f objview = Normalize( Vec3f(0,0,1) );
 	Vec3f objside = Normalize( Vec3f(1,0,0) );
 
-#if 0
+#if 01
 	//tests
 	{
 		//test1
 		Vec3f viewang1 = Vec3f(0,0,1);
-		//Vec3f viewside1 = Vec3f(0,1,-1);
+		Vec3f viewside1 = Vec3f(1,0,0);
 		Vec3f viewang2 = Vec3f(0,0,1);
+		Vec3f viewside2 = Vec3f(1,0,0);
 
 #if 0
 		//Vec3f up = Vec3f(0,1,0);
@@ -177,51 +178,76 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 
 		float orlats = 16;
 		float orlons = 16;
+		float orrolls = 16;
 
 		float orlat1 = 3+12;
 		float orlon1 = 12+1-1-12;
+		float orroll1 = 4+3;
 
 		float orlat2 = 8-6;
 		float orlon2 = 11-1+1+4;
+		float orroll2 = 14;
+
+		orroll1 = orroll2-7;
 
 		float latrad1 = M_PI*(float)orlat1/(float)orlats-M_PI/2.0f;
 		float lonrad1 = 2.0*M_PI*(float)orlon1/(float)orlons-M_PI/2.0f;
+		float rollrad1 = 1.0*M_PI*(float)orroll1/(float)orrolls;
 
 		float latrad2 = M_PI*(float)orlat2/(float)orlats-M_PI/2.0f;
 		float lonrad2 = 2.0*M_PI*(float)orlon2/(float)orlons-M_PI/2.0f;
+		float rollrad2 = 1.0*M_PI*(float)orroll2/(float)orrolls;
 
 		//lonrad1 = 0;
 		//lonrad2 = 0;
 
-		viewang1 = Rotate(viewang1, latrad1, 1, 0, 0);
-		viewang2 = Rotate(viewang2, latrad2, 1, 0, 0);
-		
-		viewang1 = Rotate(viewang1, lonrad1, 0, 1, 0);
-		viewang2 = Rotate(viewang2, lonrad2, 0, 1, 0);
+		//viewang1 = Rotate(viewang1, latrad1, 1, 0, 0);
+		//viewang2 = Rotate(viewang2, latrad2, 1, 0, 0);
 
+		//viewang1 = Rotate(viewang1, lonrad1, 0, 1, 0);
+		//viewang2 = Rotate(viewang2, lonrad2, 0, 1, 0);
+
+		viewang1 = SetLatLonRoll(viewang1, orlat1/orlats, orlon1/orlons, orroll1/orrolls);
+		viewside1 = SetLatLonRoll(viewside1, orlat1/orlats, orlon1/orlons, orroll1/orrolls);
+		viewang2 = SetLatLonRoll(viewang2, orlat2/orlats, orlon2/orlons, orroll2/orrolls);
+		viewside2 = SetLatLonRoll(viewside2, orlat2/orlats, orlon2/orlons, orroll2/orrolls);
+
+		
+		//viewang1 = SetLatLon(viewang1, orlat1/orlats, orlon1/orlons);
+		//viewside1 = SetLatLon(viewside1, orlat1/orlats, orlon1/orlons);
+		//viewang2 = SetLatLon(viewang2, orlat2/orlats, orlon2/orlons);
+		//viewside2 = SetLatLon(viewside2, orlat2/orlats, orlon2/orlons);
 
 		//float getorlon1 = atan2(viewang1.x, viewang1.z) / (2.0 * M_PI);
 		//float getorlon2 = atan2(viewang2.x, viewang2.z) / (2.0 * M_PI);
 		
+		float getorlon1 = GetLon(viewang1.x, viewang1.z);
+		float getorlat1 = GetLat(viewang1.y);
+		float getorroll1 = GetRoll(viewang1, viewside1);
+		
+		float getorlon2 = GetLon(viewang2.x, viewang2.z);
+		float getorlat2 = GetLat(viewang2.y);
+		float getorroll2 = GetRoll(viewang2, viewside2);
+
 		//getyawreturn RADTODEG( atan2(dx, dz) );
-		float getorlon1 = 0.0 + (0.25 + atan2(viewang1.x, viewang1.z) / (2.0 * M_PI));
+		//float getorlon1 = 0.0 + (0.25 + atan2(viewang1.x, viewang1.z) / (2.0 * M_PI));
 		//float getorlon1 = 0.5 + atan2(viewang1.x, viewang1.z) / (1.0 * M_PI);
 		//float getorlon1 = 0.25 + atan2(viewang1.x, viewang1.z) / (2.0 * M_PI);
-		float getorlat1 = 0.5 - asin(viewang1.y)/M_PI;
+		//float getorlat1 = 0.5 - asin(viewang1.y)/M_PI;
 		//viewang1 = Rotate(viewang1, - M_PI * 1.0 * getorlat1, 1, 0, 0);
 		//float getorlon1 = atan2(viewang1.x, viewang1.z) / (1.0 * M_PI);
 		
-		float getorlon2 = 0.0 + (0.25 + atan2(viewang2.x, viewang2.z) / (2.0 * M_PI));
+		//float getorlon2 = 0.0 + (0.25 + atan2(viewang2.x, viewang2.z) / (2.0 * M_PI));
 		//float getorlon2 = 0.5 + atan2(viewang2.x, viewang2.z) / (1.0 * M_PI);
 		//float getorlon2 = 0.25 + atan2(viewang2.x, viewang2.z) / (2.0 * M_PI);
-		float getorlat2 = 0.5 - asin(viewang2.y)/M_PI;
+		//float getorlat2 = 0.5 - asin(viewang2.y)/M_PI;
 		//viewang2 = Rotate(viewang2, - M_PI * 1.0 * getorlat1, 1, 0, 0);
 		//float getorlon2 = atan2(viewang2.x, viewang2.z) / (1.0 * M_PI);
 
-		if(getorlon1 < 0)
-			getorlon1 = getorlon1 + 1.0;
-		if(getorlon2 < 0)
-			getorlon2 = getorlon2 + 1.0;
+//		if(getorlon1 < 0)
+//			getorlon1 = getorlon1 + 1.0;
+//		if(getorlon2 < 0)
+//			getorlon2 = getorlon2 + 1.0;
 
 		//float yaw = 0.5f + atan2(wrappos.z, wrappos.x) / (2.0f*M_PI);
 		//if(ISNAN(orlon))
@@ -256,6 +282,15 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 
 		fprintf(g_applog, "\r\n");
 
+#if 01//////////////////////////////////
+		fprintf(g_applog, "start roll #1: ratio:%f (denom:%f) rad:%f \r\n",
+			orroll1/orrolls, orrolls, rollrad1);
+		fprintf(g_applog, "get roll #1: ratio:%f \r\n",
+			getorroll1);
+#endif////////////////////////////////////
+
+		fprintf(g_applog, "\r\n");
+
 #if 10
 		fprintf(g_applog, "start lon #2: ratio:%f (denom:%f) rad:%f \r\n",
 			orlon2/orlons, orlons, lonrad2);
@@ -270,6 +305,15 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 		fprintf(g_applog, "get lat #2: ratio:%f \r\n",
 			getorlat2);
 #endif
+		fprintf(g_applog, "\r\n");
+
+#if 01
+		fprintf(g_applog, "start roll #2: ratio:%f (denom:%f) rad:%f \r\n",
+			orroll2/orrolls, orrolls, rollrad2);
+		fprintf(g_applog, "get roll #2: ratio:%f \r\n",
+			getorroll2);
+#endif
+
 		fprintf(g_applog, "\r\n");
 
 		fflush(g_applog);
