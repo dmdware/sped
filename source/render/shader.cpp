@@ -435,6 +435,29 @@ void LoadShader(int shader, char* strVertex, char* strFragment, bool hasverts, b
 	s->MapUniform(SSLOT_ORJROLLS, "orjrolls");
 
 	CHECKGLERROR();
+	s->MapUniform(SSLOT_UPDIR, "updir");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_SIDEDIR, "sidedir");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_VIEWDIR, "viewdir");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_UPLEN, "uplen");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_SIDELEN, "sidelen");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_CAMLAT, "camlat");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_CAMLON, "camlon");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_CAMROLL, "camroll");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_INCIDLAT, "inclat");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_INCIDLON, "inclon");
+	CHECKGLERROR();
+	s->MapUniform(SSLOT_INCIDROLL, "incroll");
+
+	CHECKGLERROR();
 }
 
 void UseS(int shader)

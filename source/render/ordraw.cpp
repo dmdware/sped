@@ -153,7 +153,7 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	Vec3f objview = Normalize( Vec3f(0,0,1) );
 	Vec3f objside = Normalize( Vec3f(1,0,0) );
 
-#if 01
+#if 0
 	//tests
 	{
 		//test1
@@ -366,6 +366,62 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	glUniform1f(s->m_slot[SSLOT_ORJLON], (float)orlon);
 	glUniform1f(s->m_slot[SSLOT_ORJLAT], (float)orlat);
 	glUniform1f(s->m_slot[SSLOT_ORJROLL], (float)orroll);
+
+
+	//in image, top-left is origin.
+	//in SpEd, space coords going up is increasing y coord value,
+	//which means updir in space is reverse of texture y coord increase.
+	//so use -1 for movement up along texture
+	updir = ( a - d );
+	sidedir = ( c - d );
+	float uplen = Magnitude( updir );
+	float sidelen = Magnitude( sidedir );
+	updir = ( updir ) / uplen;
+	sidedir = ( sidedir ) / sidelen;
+	viewdir = Cross(  updir, sidedir );
+	viewdir = Normalize( viewdir );
+
+	
+	//jump table index coords
+
+	//the jump depends on 1.) object orientation and 2.) viewing angle.
+	//so the overall viewed angle is what's needed for the jump,
+	//but only the object's orientation angles are passed (orjlon,orjlat).
+
+	//incident angles
+	//the combined angles of the camera and object rotations.
+	//set up a view and side vector,
+	//rotate by the object's rotations,
+	//then rotate that view and side vector by the reverse of the cam's rotations.
+	Vec3f incview = Vec3f(0,0,1);
+	Vec3f incside = Vec3f(1,0,0);
+
+	incview = SetLatLonRoll(incview, orlat, orlon, orroll);
+	incside = SetLatLonRoll(incside, orlat, orlon, orroll);
+
+	float camlat = GetLat(viewdir.y);
+	float camlon = GetLon(viewdir.x, viewdir.z);
+	float camroll = GetRoll(viewdir, sidedir);
+
+	//RevSet...?
+	incview = SetLatLonRoll(incview, 1-camlat, 1-camlon, 1-camroll);
+	incside = SetLatLonRoll(incside, 1-camlat, 1-camlon, 1-camroll);
+
+	float inclat = GetLat(incview.y);
+	float inclon = GetLon(incview.x, incview.z);
+	float incroll = GetRoll(incview, incside);
+
+	glUniform3fv(s->m_slot[SSLOT_UPDIR], 1, (float*)&updir);
+	glUniform3fv(s->m_slot[SSLOT_SIDEDIR], 1, (float*)&sidedir);
+	glUniform3fv(s->m_slot[SSLOT_VIEWDIR], 1, (float*)&viewdir);
+	glUniform1f(s->m_slot[SSLOT_UPLEN], (float)uplen);
+	glUniform1f(s->m_slot[SSLOT_SIDELEN], (float)sidelen);
+	glUniform1f(s->m_slot[SSLOT_CAMLAT], (float)camlat);
+	glUniform1f(s->m_slot[SSLOT_CAMLON], (float)camlon);
+	glUniform1f(s->m_slot[SSLOT_CAMROLL], (float)camroll);
+	glUniform1f(s->m_slot[SSLOT_INCIDLAT], (float)inclat);
+	glUniform1f(s->m_slot[SSLOT_INCIDLON], (float)inclon);
+	glUniform1f(s->m_slot[SSLOT_INCIDROLL], (float)incroll);
 
 	Vec2f ta, tb, tc, td;
 	ta = Vec2f(0,1);

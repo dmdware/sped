@@ -58,6 +58,21 @@ uniform int ormapsz;	//widths and heights of diffuse and position textures
 uniform mat4 mvp;
 uniform mat4 imvp;
 
+uniform float camlat;
+uniform float camlon;
+uniform float camroll;
+
+uniform float inclat;
+uniform float inclon;
+uniform float incroll;
+
+uniform vec3 updir;
+uniform vec3 sidedir;
+uniform vec3 viewdir;
+
+uniform float uplen;
+uniform float sidelen;
+
 vec3 Rot(vec3 v, float rad, float x, float y, float z)
 {
 	vec3 newV;
@@ -163,7 +178,7 @@ vec3 SetLatLonAr(vec3 v, vec3 cen, float orlatrat, float orlonrat)
 
 vec3 SetLatLonRoll(vec3 v, float orlatrat, float orlonrat, float orrollrat)
 {
-	v = Rot(v, 2.0*3.14159*orrollrat-3.14159/2.0, 0, 0, 1);
+	v = Rot(v, 1.0*3.14159*orrollrat, 0, 0, 1);
 	v = SetLatLon(v, orlatrat, orlonrat);
 	return v;
 }
@@ -182,6 +197,8 @@ float GetLon(float x, float z)
 	float orlon = ( (0.25 + atan(x, z) / (2.0 * 3.14159)) );
 	if(orlon < 0)
 		orlon = orlon + 1;
+	if(orlon >= 1)
+		orlon = orlon - 1;
 	return orlon;
 }
 
@@ -190,20 +207,22 @@ float GetLat(float y)
 	float orlat = (0.5 - asin(y)/3.14159 );
 	if(orlat < 0)
 		orlat = orlat + 1;
+	if(orlat >= 1)
+		orlat = orlat - 1;
 	return orlat;
 }
 
 float GetRoll(vec3 view, vec3 side)
 {
-	float orlatrat = 1-GetLat(view.y);
-	float orlonrat = 1-GetLon(view.x, view.z);
+	float orlatrat = -GetLat(view.y);
+	float orlonrat = -GetLon(view.x, view.z);
 	side = Rot(side, 2.0*3.14159*orlonrat-3.14159/2.0, 0, 1, 0);
 	side = Rot(side, 1.0*3.14159*orlatrat-3.14159/2.0, 1, 0, 0);
-	float orroll = ( (0.25 + atan(side.y, side.x) / (2.0 * 3.14159)) );
-	if(orroll < 0)
-		orroll = orroll + 1;
-	if(orroll >= 1)
-		orroll = orroll - 1;
+	float orroll = ( (1.0 - acos(side.x) / 3.14159) );
+	//if(orroll < 0)
+	//	orroll = orroll + 1;
+	//if(orroll >= 1)
+	//	orroll = orroll - 1;
 	return orroll;
 }
 
@@ -225,25 +244,11 @@ vec4 texel0;
 	//outpos2 = outpos2 / outpos2.w;
 
 
-	//in image, top-left is origin.
-	//in SpEd, space coords going up is increasing y coord value,
-	//which means updir in space is reverse of texture y coord increase.
-	//so use -1 for movement up along texture
-	vec3 updir = ( cornera.xyz - cornerd.xyz );
-	vec3 sidedir = ( cornerc.xyz - cornerd.xyz );
-	float totuplen = length( updir );
-	float totsidelen = length( sidedir );
-	updir = ( updir ) / totuplen;
-	sidedir = ( sidedir ) / totsidelen;
-	vec3 viewdir = cross(  updir, sidedir );
-	viewdir = normalize( viewdir );
-
-
 	//uprat is measured from the bottom space coord going up,
 	//but gives negative pixel image y coord going down,
 	//so make it within [0..1]. EDIT: will use -1 tex jump instead.
-	float uprat = dot(updir, (outpos2.xyz - cornerd.xyz) / totsidelen );
-	float siderat = dot(sidedir, (outpos2.xyz - cornerd.xyz) / totuplen );
+	float uprat = dot(updir, (outpos2.xyz - cornerd.xyz) / sidelen );
+	float siderat = dot(sidedir, (outpos2.xyz - cornerd.xyz) / uplen );
 
 	//uprat = 1.0 - uprat;
 
@@ -263,32 +268,6 @@ vec4 texel0;
 
 
 	//jump table index coords
-
-	//the jump depends on 1.) object orientation and 2.) viewing angle.
-	//so the overall viewed angle is what's needed for the jump,
-	//but only the object's orientation angles are passed (orjlon,orjlat).
-
-	//incident angles
-	//the combined angles of the camera and object rotations.
-	//set up a view and side vector,
-	//rotate by the object's rotations,
-	//then rotate that view and side vector by the reverse of the cam's rotations.
-	vec3 incview = vec3(0,0,1);
-	vec3 incside = vec3(1,0,0);
-
-	incview = SetLatLonRoll(incview, orjlat, orjlon, orjroll);
-	incside = SetLatLonRoll(incside, orjlat, orjlon, orjroll);
-
-	float camlat = GetLat(viewdir.y);
-	float camlon = GetLon(viewdir.x, viewdir.z);
-	float camroll = GetRoll(viewdir, sidedir);
-
-	incview = SetLatLonRoll(incview, 1-camlat, 1-camlon, 1-camroll);
-	incside = SetLatLonRoll(incside, 1-camlat, 1-camlon, 1-camroll);
-
-	float inclat = GetLat(incview.y);
-	float inclon = GetLon(incview.x, incview.z);
-	float incroll = GetRoll(incview, incside);
 
 	int tabx = int(siderat*(orjplwpx)) + 
 		int(inclon*(orjlons))*orjplwpx ;
@@ -470,7 +449,10 @@ vec4 texel0;
 	//gl_FragColor.x = inclat;
 	//gl_FragColor.y = inclon;
 	//gl_FragColor.z = incroll;
-
+	//gl_FragColor.x = float(tabx%orjplwpx)/float(orjplwpx);
+	//gl_FragColor.y = float(taby%orjplhpx)/float(orjplhpx);
+	//gl_FragColor.z = 0;
+	
 	//if( offlen > 20 )
 	//	discard;
 
