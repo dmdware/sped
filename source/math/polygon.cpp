@@ -48,7 +48,7 @@ void Polyg::freeva()
 
 bool InsidePolygon(Vec3f vIntersection, Vec3f Poly[], long verticeCount)
 {
-	const double MATCH_FACTOR = 0.999;		// Used to cover up the error in floating point
+	const double MATCH_FACTOR = 0.9999;		// Used to cover up the error in floating point
 	double Angle = 0.0;						// Initialize the angle
 	Vec3f vA, vB;						// Create temp vectors
 

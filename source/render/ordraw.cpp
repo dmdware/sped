@@ -121,10 +121,10 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	///////
 
 	Vec3f a, b, c, d;
-	a = pos + updir * maxrad/2.0f - sidedir * maxrad/2.0f;
-	b = pos + updir * maxrad/2.0f + sidedir * maxrad/2.0f;
-	c = pos - updir * maxrad/2.0f + sidedir * maxrad/2.0f;
-	d = pos - updir * maxrad/2.0f - sidedir * maxrad/2.0f;
+	a = pos + updir * maxrad - sidedir * maxrad;
+	b = pos + updir * maxrad + sidedir * maxrad;
+	c = pos - updir * maxrad + sidedir * maxrad;
+	d = pos - updir * maxrad - sidedir * maxrad;
 
 	Vec4f a4 = Vec4f(a.x, a.y, a.z, 1);
 	Vec4f b4 = Vec4f(b.x, b.y, b.z, 1);
@@ -136,8 +136,8 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	glUniform4fv(s->m_slot[SSLOT_CORNERC], 1, (float*)&c4);
 	glUniform4fv(s->m_slot[SSLOT_CORNERD], 1, (float*)&d4);
 	
-	glUniform1f(s->m_slot[SSLOT_ORJPLWPX], (float)g_orwpx);
-	glUniform1f(s->m_slot[SSLOT_ORJPLHPX], (float)g_orhpx);
+	glUniform1i(s->m_slot[SSLOT_ORJPLWPX], (int)g_orwpx);
+	glUniform1i(s->m_slot[SSLOT_ORJPLHPX], (int)g_orhpx);
 	glUniform1i(s->m_slot[SSLOT_ORJLONS], (int)g_orlons);
 	glUniform1i(s->m_slot[SSLOT_ORJLATS], (int)g_orlats);
 	glUniform1i(s->m_slot[SSLOT_ORJROLLS], (int)g_orrolls);
@@ -157,8 +157,9 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	//tests
 	{
 		//test1
-		Vec3f viewang1 = Vec3f(0,0,-1);
-		Vec3f viewang2 = Vec3f(0,0,-1);
+		Vec3f viewang1 = Vec3f(0,0,1);
+		//Vec3f viewside1 = Vec3f(0,1,-1);
+		Vec3f viewang2 = Vec3f(0,0,1);
 
 #if 0
 		//Vec3f up = Vec3f(0,1,0);
@@ -203,24 +204,24 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 		//float getorlon2 = atan2(viewang2.x, viewang2.z) / (2.0 * M_PI);
 		
 		//getyawreturn RADTODEG( atan2(dx, dz) );
-		float getorlon1 = 1.0 - (0.25 - atan2(viewang1.x, viewang1.z) / (2.0 * M_PI));
+		float getorlon1 = 0.0 + (0.25 + atan2(viewang1.x, viewang1.z) / (2.0 * M_PI));
 		//float getorlon1 = 0.5 + atan2(viewang1.x, viewang1.z) / (1.0 * M_PI);
 		//float getorlon1 = 0.25 + atan2(viewang1.x, viewang1.z) / (2.0 * M_PI);
-		float getorlat1 = 0.5 + asin(viewang1.y)/M_PI;
+		float getorlat1 = 0.5 - asin(viewang1.y)/M_PI;
 		//viewang1 = Rotate(viewang1, - M_PI * 1.0 * getorlat1, 1, 0, 0);
 		//float getorlon1 = atan2(viewang1.x, viewang1.z) / (1.0 * M_PI);
 		
-		float getorlon2 = 1.0 - (0.25 - atan2(viewang2.x, viewang2.z) / (2.0 * M_PI));
+		float getorlon2 = 0.0 + (0.25 + atan2(viewang2.x, viewang2.z) / (2.0 * M_PI));
 		//float getorlon2 = 0.5 + atan2(viewang2.x, viewang2.z) / (1.0 * M_PI);
 		//float getorlon2 = 0.25 + atan2(viewang2.x, viewang2.z) / (2.0 * M_PI);
-		float getorlat2 = 0.5 + asin(viewang2.y)/M_PI;
+		float getorlat2 = 0.5 - asin(viewang2.y)/M_PI;
 		//viewang2 = Rotate(viewang2, - M_PI * 1.0 * getorlat1, 1, 0, 0);
 		//float getorlon2 = atan2(viewang2.x, viewang2.z) / (1.0 * M_PI);
 
-		//if(getorlon1 < 0)
-		//	getorlon1 = getorlon1 + 1.0;
-		//if(getorlon2 < 0)
-		//	getorlon2 = getorlon2 + 1.0;
+		if(getorlon1 < 0)
+			getorlon1 = getorlon1 + 1.0;
+		if(getorlon2 < 0)
+			getorlon2 = getorlon2 + 1.0;
 
 		//float yaw = 0.5f + atan2(wrappos.z, wrappos.x) / (2.0f*M_PI);
 		//if(ISNAN(orlon))

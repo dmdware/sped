@@ -349,6 +349,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\source\murmur\MurmurHash2.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\source\render\ordraw.cpp"
 				>
 			</File>
@@ -736,6 +740,10 @@
 			</File>
 			<File
 				RelativePath="..\..\source\render\ms3d.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\source\murmur\MurmurHash2.h"
 				>
 			</File>
 			<File

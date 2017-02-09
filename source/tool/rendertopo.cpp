@@ -8402,7 +8402,7 @@ Vec3f SetLatLonAr(Vec3f v, Vec3f cen, float orlatrat, float orlonrat)
 
 Vec3f SetLatLonRoll(Vec3f v, float orlatrat, float orlonrat, float orrollrat)
 {
-	v = Rotate(v, 2.0*M_PI*orrollrat, 0, 0, 1);
+	v = Rotate(v, 2.0*M_PI*orrollrat-M_PI/2.0, 0, 0, 1);
 	v = SetLatLon(v, orlatrat, orlonrat);
 	return v;
 }
@@ -8421,7 +8421,7 @@ float GetRoll(Vec3f view, Vec3f side)
 	float orlonrat = -GetLon(view.x, view.z);
 	side = Rotate(side, 2.0*M_PI*orlonrat-M_PI/2.0, 0, 1, 0);
 	side = Rotate(side, 1.0*M_PI*orlatrat-M_PI/2.0, 1, 0, 0);
-	float orroll = ( 1.0 - (0.0 - atan2(side.y, side.x) / (2.0 * M_PI)) );
+	float orroll = ( (0.25 + atan2(side.y, side.x) / (2.0 * M_PI)) );
 	if(orroll < 0)
 		orroll = orroll + 1;
 	if(orroll >= 1)
@@ -8433,7 +8433,7 @@ float GetRoll(Vec3f view, Vec3f side)
 	//float orlat = 0.5 + asin(objview.y)/M_PI;
 float GetLon(float x, float z)
 {
-	float orlon = ( 1.0 - (0.25 - atan2(x, z) / (2.0 * M_PI)) );
+	float orlon = ( (0.25 + atan2(x, z) / (2.0 * M_PI)) );
 	if(orlon < 0)
 		orlon = orlon + 1;
 	if(orlon >= 1)
@@ -8443,13 +8443,22 @@ float GetLon(float x, float z)
 
 float GetLat(float y)
 {
-	float orlat = ( 0.5 + asin(y)/M_PI );
+	float orlat = ( 0.5 - asin(y)/M_PI );
 	if(orlat < 0)
 		orlat = orlat + 1;
 	if(orlat >= 1)
 		orlat = orlat - 1;
 	return orlat;
 }
+
+class TopoMapping
+{
+public:
+	//assume that non-intersecting combos of yaw,pitch,roll,offx,offy
+	//don't map to anything or don't matter.
+	unsigned int out;
+	unsigned int key;
+};
 
 //bounce rays with "globe" to get intersections and map those by long,lat to orientability map
 void OutTex2(Surf *surf, LoadedTex* out)
@@ -8473,7 +8482,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 	}
 
 	//for good measure
-	maxrad *= 2;
+	//maxrad *= 2;
 
 	char infopath[SPE_MAX_PATH+1];
 	NameRender(infopath, -1);
@@ -8508,7 +8517,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 	{
 		for(int orlat=0; orlat<g_orlats; orlat++)
 		{
-			//for(int orroll=0; orroll<g_orrolls; orroll++)
+			for(int orroll=0; orroll<g_orrolls; orroll++)
 			{
 				Vec3f up = Vec3f(0,1,0);
 				Vec3f side = Vec3f(1,0,0);
@@ -8521,7 +8530,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 				up = Rotate(up, 2.0*M_PI*(float)orlon/(float)g_orlons, 0, 1, 0);
 				side = Rotate(side, 2.0*M_PI*(float)orlon/(float)g_orlons, 0, 1, 0);
 				view = Rotate(view, 2.0*M_PI*(float)orlon/(float)g_orlons, 0, 1, 0);
-#elif 01
+#elif 0
 				up = SetLatLon(up, (float)orlat/(float)g_orlats, (float)orlon/(float)g_orlons);
 				side = SetLatLon(side, (float)orlat/(float)g_orlats, (float)orlon/(float)g_orlons);
 				view = SetLatLon(view, (float)orlat/(float)g_orlats, (float)orlon/(float)g_orlons);
@@ -8550,7 +8559,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 						//jump table (islands) index coords
 						//int tabx = orxpx + orlon * g_orwpx + orroll * g_orwpx * g_orlons;
 						int tabx = orxpx + orlon * g_orwpx;
-						int taby = orypx + orlat * g_orhpx;
+						int taby = orypx + orlat * g_orhpx + orroll * g_orhpx * g_orlats;
 
 						//set to "nothing" first (no island known yet)
 						out[1].data[ ( tabx + taby * out[1].sizex ) * 3 + 0] = 0;
@@ -8561,14 +8570,14 @@ void OutTex2(Surf *surf, LoadedTex* out)
 						Vec3f line[2];
 
 						line[0] = up * -1 * maxrad + side * -1 * maxrad + 
-							up * (float)orypx / (float)g_orhpx * maxrad +
-							side * (float)orxpx / (float)g_orwpx * maxrad;
+							up * (float)orypx / (float)g_orhpx * maxrad * 2 +
+							side * (float)orxpx / (float)g_orwpx * maxrad * 2;
 
 						line[1] = line[0] +
-							view * maxrad * 1.1;
+							view * maxrad * 1.5;
 
 						line[0] = line[0] - 
-							view * maxrad * 1.1;
+							view * maxrad * 1.5;
 
 						LoadedTex *tex=NULL, *ntex=NULL, *stex=NULL;
 						Vec2f texc;
@@ -8576,115 +8585,122 @@ void OutTex2(Surf *surf, LoadedTex* out)
 						Tet *tet;
 						double fU, fV;
 
-						//intersection by "pos" (real positions, not wrap positions of unwrap globe)
-						//get diffuse colours at 
-						if(TraceRay4(surf,
-							line,
-							&tex,
-							&stex,
-							&ntex,
-							&texc,
-							&wp,&rp,
-							&n,
-							&tet,
-							&fU, &fV))
+						//Vec2f subline[2];
+
+						//for(int test=0; test<10; test++)
 						{
-							unsigned char c[4];
+							//subline
 
-							//get wrappos map tex coord from pos intersection tet
-							//and assign that "island's" coord index at the RG(B) at the (tabx,taby) table lookup
-
-							//how do we know the pixi of the diffuse/positions maps?
-							//we make the diffuse/positions based on the wrappos angles.
-							//so orc = wrappos angle (lat,lon) on [0..1]
-							//maybe make wrapposan var's?
-
-							//GenTexC(txc[v],tri3[v],
-							//	tet->texc,tet->texcpos);
-
-							SurfPt *sp[3];
-							sp[0] = tet->neib[0];
-							sp[1] = tet->neib[1];
-							sp[2] = tet->neib[2];
-
-							//Vec2f orc = sp[0]->orc * (1 - fU - fV) + 
-							//	sp[1]->orc * (fU) + 
-							//	sp[2]->orc * (fV);
-
-							//get jump index from tabx,taby into diffuse and positions maps (of size bigtex,bigtex)
-
-							//is this texc. of original model diffuse texture's coordinates? or "bigtex" coords?
-							//we haven't placed the "bigtex" data yet into the positions/texture, so how do we
-							//know where to jump?
-							//Vec2f orc = tet->texc[0] * (1 - fU - fV) + 
-							//	tet->texc[1] * (fU) + 
-							//	tet->texc[2] * (fV);
-							//must TraceRay* into orig tri's and get that tet's globe wrappos's pix index
-							//Vec2f orc = 
-							//	sp[0]->wrappos * (1 - fU - fV) +
-							//	sp[1]->wrappos;
-							//get orc x,y ()
-							//Vec2f orc = sp[0]->wrapposan * (1 - fU - fV) + 
-							//	sp[1]->wrapposan * (fU) + 
-							//	sp[2]->wrapposan * (fV);
-							Vec3f wrappos = Normalize(sp[0]->wrappos) * (1 - fU - fV) +
-								Normalize(sp[1]->wrappos) * (fU) +
-								Normalize(sp[2]->wrappos) * (fV);
-
-							wrappos = Normalize(wrappos);
-
-							Vec2f orc;
-
-							orc.x = GetLat(wrappos.y);
-							orc.y = GetLon(wrappos.x, wrappos.z);
-
-							while(orc.x < 0)
-								orc.x += 1;
-							while(orc.x >= 1)
-								orc.x -= 1;
-							while(orc.y < 0)
-								orc.y += 1;
-							while(orc.y >= 1)
-								orc.y -= 1;
-
-							//pixel index
-							unsigned int orci = (g_bigtex-1) * orc.x + 
-								g_bigtex * (g_bigtex-1) * orc.y;
-
-							//[1] = jump islands map of size (orlons*orwpx,orlats*orhpx)
-							unsigned char *outorc = 
-								(unsigned char*)&(out[1].data[ (tabx + taby * out[1].sizex) * 3 + 0]);
-
-							//*outorc = orci;
-							//assume little endian
-							*(outorc+0) = *(((unsigned char*)&orci)+0);
-							*(outorc+1) = *(((unsigned char*)&orci)+1);
-							*(outorc+2) = *(((unsigned char*)&orci)+2);
-
-							//out[1].data[ (tabx + taby * out[1].sizex) * 3 + 2] = 0;
-
-							//fill empty space indices with something most useful
-#if 0
-							for(int orxpx2=0; orxpx2<g_orwpx; ++orxpx2)
+							//intersection by "pos" (real positions, not wrap positions of unwrap globe)
+							//get diffuse colours at 
+							if(TraceRay4(surf,
+								line,
+								&tex,
+								&stex,
+								&ntex,
+								&texc,
+								&wp,&rp,
+								&n,
+								&tet,
+								&fU, &fV))
 							{
-								for(int orypx2=0; orypx2<g_orhpx; ++orypx2)
+								unsigned char c[4];
+
+								//get wrappos map tex coord from pos intersection tet
+								//and assign that "island's" coord index at the RG(B) at the (tabx,taby) table lookup
+
+								//how do we know the pixi of the diffuse/positions maps?
+								//we make the diffuse/positions based on the wrappos angles.
+								//so orc = wrappos angle (lat,lon) on [0..1]
+								//maybe make wrapposan var's?
+
+								//GenTexC(txc[v],tri3[v],
+								//	tet->texc,tet->texcpos);
+
+								SurfPt *sp[3];
+								sp[0] = tet->neib[0];
+								sp[1] = tet->neib[1];
+								sp[2] = tet->neib[2];
+
+								//Vec2f orc = sp[0]->orc * (1 - fU - fV) + 
+								//	sp[1]->orc * (fU) + 
+								//	sp[2]->orc * (fV);
+
+								//get jump index from tabx,taby into diffuse and positions maps (of size bigtex,bigtex)
+
+								//is this texc. of original model diffuse texture's coordinates? or "bigtex" coords?
+								//we haven't placed the "bigtex" data yet into the positions/texture, so how do we
+								//know where to jump?
+								//Vec2f orc = tet->texc[0] * (1 - fU - fV) + 
+								//	tet->texc[1] * (fU) + 
+								//	tet->texc[2] * (fV);
+								//must TraceRay* into orig tri's and get that tet's globe wrappos's pix index
+								//Vec2f orc = 
+								//	sp[0]->wrappos * (1 - fU - fV) +
+								//	sp[1]->wrappos;
+								//get orc x,y ()
+								//Vec2f orc = sp[0]->wrapposan * (1 - fU - fV) + 
+								//	sp[1]->wrapposan * (fU) + 
+								//	sp[2]->wrapposan * (fV);
+								//Vec3f wrappos = Normalize(sp[0]->wrappos) * (1 - fU - fV) +
+								//	Normalize(sp[1]->wrappos) * (fU) +
+								//	Normalize(sp[2]->wrappos) * (fV);
+								//wrappos = Normalize(wrappos);
+								Vec3f wrappos = Normalize( wp );
+								Vec2f orc;
+								orc.x = GetLat(wrappos.y);
+								orc.y = GetLon(wrappos.x, wrappos.z);
+
+								while(orc.x < 0)
+									orc.x += 1;
+								while(orc.x >= 1)
+									orc.x -= 1;
+								while(orc.y < 0)
+									orc.y += 1;
+								while(orc.y >= 1)
+									orc.y -= 1;
+
+								//pixel index
+								unsigned int orci = (int)((g_bigtex-1+1) * orc.x) + 
+									int(g_bigtex * (g_bigtex-1+1) * orc.y);
+
+								//[1] = jump islands map of size (orlons*orwpx,orlats*orhpx)
+								unsigned char *outorc = 
+									(unsigned char*)&(out[1].data[ (tabx + taby * out[1].sizex) * 3 + 0]);
+
+								//*outorc = orci;
+								//assume little endian
+								*(outorc+0) = *(((unsigned char*)&orci)+0);
+								*(outorc+1) = *(((unsigned char*)&orci)+1);
+								*(outorc+2) = *(((unsigned char*)&orci)+2);
+
+								//out[1].data[ (tabx + taby * out[1].sizex) * 3 + 2] = 0;
+
+								//fill empty space indices with something most useful
+	#if 0
+								for(int orxpx2=0; orxpx2<g_orwpx; ++orxpx2)
 								{
-									//jump table (islands) index coords
-									int tabx2 = orxpx2 + orlon * g_orwpx;
-									int taby2 = orypx2 + orlat * g_orhpx;
+									for(int orypx2=0; orypx2<g_orhpx; ++orypx2)
+									{
+										//jump table (islands) index coords
+										int tabx2 = orxpx2 + orlon * g_orwpx;
+										int taby2 = orypx2 + orlat * g_orhpx;
 
-									unsigned char *outorc2 = 
-										(unsigned char*)&(out[1].data[ (tabx2 + taby2 * out[1].sizex) * 3 + 0]);
+										unsigned char *outorc2 = 
+											(unsigned char*)&(out[1].data[ (tabx2 + taby2 * out[1].sizex) * 3 + 0]);
 
-									if( *(outorc2+0) || *(outorc2+1) || *(outorc2+2) )
-										continue;
+										if( *(outorc2+0) || *(outorc2+1) || *(outorc2+2) )
+											continue;
 
-									*(outorc2+0) = *(((unsigned char*)&orci)+0);
-									*(outorc2+1) = *(((unsigned char*)&orci)+1);
-									*(outorc2+2) = *(((unsigned char*)&orci)+2);
+										*(outorc2+0) = *(((unsigned char*)&orci)+0);
+										*(outorc2+1) = *(((unsigned char*)&orci)+1);
+										*(outorc2+2) = *(((unsigned char*)&orci)+2);
+									}
 								}
+	#endif
+
+								//break;
 							}
-#endif
 						}
 					}
 				}
@@ -8693,7 +8709,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 	}
 #if 0
 			AllocTex(&outtex[0], g_bigtex, g_bigtex, 3);	//diffuse
-			AllocTex(&outtex[1], g_orwpx * g_orlons * g_orrolls, g_orhpx * g_orlats, 3);	//jump/islands map
+			AllocTex(&outtex[1], g_orwpx * g_orlons, g_orhpx * g_orlats * g_orrolls, 3);	//jump/islands map
 			AllocTex(&outtex[2], g_bigtex, g_bigtex, 3);	//posx
 			AllocTex(&outtex[3], g_bigtex, g_bigtex, 3);	//posy
 			AllocTex(&outtex[4], g_bigtex, g_bigtex, 3);	//posz
@@ -8802,7 +8818,7 @@ void OutTex2(Surf *surf, LoadedTex* out)
 				
 #if 0
 			AllocTex(&outtex[0], g_bigtex, g_bigtex, 3);	//diffuse
-			AllocTex(&outtex[1], g_orwpx * g_orlons * g_orrolls, g_orhpx * g_orlats, 3);	//jump/islands map
+			AllocTex(&outtex[1], g_orwpx * g_orlons, g_orhpx * g_orlats * g_orrolls, 3);	//jump/islands map
 			AllocTex(&outtex[2], g_bigtex, g_bigtex, 3);	//posx
 			AllocTex(&outtex[3], g_bigtex, g_bigtex, 3);	//posy
 			AllocTex(&outtex[4], g_bigtex, g_bigtex, 3);	//posz
@@ -13730,7 +13746,7 @@ with another triangle, there will be free floating vertices!
 	//	AllocTex(&outtex[i], BIGTEX, BIGTEX, 3);
 
 	AllocTex(&outtex[0], g_bigtex, g_bigtex, 3);	//diffuse
-	AllocTex(&outtex[1], g_orwpx * g_orlons * g_orrolls, g_orhpx * g_orlats, 3);	//jump/islands map
+	AllocTex(&outtex[1], g_orwpx * g_orlons, g_orhpx * g_orlats * g_orrolls, 3);	//jump/islands map
 	AllocTex(&outtex[2], g_bigtex, g_bigtex, 3);	//posx
 	AllocTex(&outtex[3], g_bigtex, g_bigtex, 3);	//posy
 	AllocTex(&outtex[4], g_bigtex, g_bigtex, 3);	//posz
@@ -13799,128 +13815,3 @@ with another triangle, there will be free floating vertices!
 	gui->hideall();
 	gui->show("editor");
 }
-
-#if 0
-void OrRender2(int rendstage, Vec3f offset)
-{
-	Surf surf;
-
-	surf.tets.push_back(Tet());
-	Tet* tet = &*surf.tets.rbegin();
-	tet->level = 0;
-	
-	
-//	StartRay(&surf, tet, Vec3f(0,-30000,30000));	//bottom far
-
-#if 1
-	SurfPt *p1, *p2, *p3, *p4;
-	StartRay(&surf, tet, Vec3f(-30000,30000,0), &p1);	//top left
-	StartRay(&surf, tet, Vec3f(0,-30000,30000), &p2);	//bottom far
-	StartRay(&surf, tet, Vec3f(0,-30000,-30000), &p3);	//bottom near
-	StartRay(&surf, tet, Vec3f(30000,30000,0), &p4);	//top right
-	
-	tet->level=0;
-	tet->neib[0] = p1;
-	tet->neib[1] = p2;
-	tet->neib[2] = p3;
-	tet->neib[3] = NULL;
-
-	surf.tets.push_back(Tet());
-	tet = &*surf.tets.rbegin();
-	tet->level=0;
-	tet->neib[0] = p1;
-	tet->neib[1] = p2;
-	tet->neib[2] = p4;
-	tet->neib[3] = NULL;
-	
-	surf.tets.push_back(Tet());
-	tet = &*surf.tets.rbegin();
-	tet->level=0;
-	tet->neib[0] = p1;
-	tet->neib[1] = p3;
-	tet->neib[2] = p4;
-	tet->neib[3] = NULL;
-
-	surf.tets.push_back(Tet());
-	tet = &*surf.tets.rbegin();
-	tet->level=0;
-	tet->neib[0] = p2;
-	tet->neib[1] = p3;
-	tet->neib[2] = p4;
-	tet->neib[3] = NULL;
-
-#if 0
-	surf.tets.push_back(Tet());
-	tet = &*surf.tets.rbegin();
-	tet->level = 0;
-	StartRay(&surf, tet, Vec3f(-30000,30000,0));	//top left
-	StartRay(&surf, tet, Vec3f(0,-30000,30000));	//bottom far
-	//StartRay(&surf, tet, Vec3f(0,-30000,-30000));	//bottom near
-	StartRay(&surf, tet, Vec3f(30000,30000,0));	//top right
-
-
-	surf.tets.push_back(Tet());
-	tet = &*surf.tets.rbegin();
-	tet->level = 0;
-	StartRay(&surf, tet, Vec3f(-30000,30000,0));	//top left
-	//StartRay(&surf, tet, Vec3f(0,-30000,30000));	//bottom far
-	StartRay(&surf, tet, Vec3f(0,-30000,-30000));	//bottom near
-	StartRay(&surf, tet, Vec3f(30000,30000,0));	//top right
-
-	surf.tets.push_back(Tet());
-	tet = &*surf.tets.rbegin();
-	tet->level = 0;
-	//StartRay(&surf, tet, Vec3f(-30000,30000,0));	//top left
-	StartRay(&surf, tet, Vec3f(30000,30000,0));	//top right
-	StartRay(&surf, tet, Vec3f(0,-30000,30000));	//bottom far
-	StartRay(&surf, tet, Vec3f(0,-30000,-30000));	//bottom near
-#endif
-
-	float fatlinew = 0;
-	float fattriw = 0, secfattriw = 0;
-
-	do
-	{
-		SurfPt* fatt[3] = {NULL,NULL,NULL};
-		SurfPt* secfatt[3] = {NULL,NULL,NULL};
-		fprintf(g_applog, "\r\fa0[0,1,2]=%d,%d,%d\r\n", (int)fatt[0], (int)fatt[1], (int)fatt[2]);
-		fflush(g_applog);
-		tet=NULL;
-		fattriw = 0;
-		secfattriw = 0;
-		if(!GetFatTri(&surf, &tet, fatt, secfatt, &fattriw, &secfattriw))
-		{
-			
-		fprintf(g_applog, "!%s %d", __FILE__, __LINE__);
-			return;
-		}
-		//SurfPt *fatl[2] = {NULL};
-		//GetFatLine(tet, &fatl, &fatlinew);
-
-		//if(!fatt[0])
-		//	ErrMess("!","!");
-		fprintf(g_applog, "\r\nr%f\r\nn%d t%d\r\n", fattriw, (int)surf.pts.size(), (int)surf.tets.size());
-		fprintf(g_applog, "\r\fa[0,1,2]=%d,%d,%d\r\n", (int)fatt[0], (int)fatt[1], (int)fatt[2]);
-		fflush(g_applog);
-
-		if(!SplitTri(&surf, tet, fatt))
-		{
-			
-		fprintf(g_applog, "!%s %d", __FILE__, __LINE__);
-			return;
-		}
-
-		fprintf(g_applog, "\r\nr%f\r\nn%d\r\nt%d\r\n", fattriw, (int)surf.pts.size(), (int)surf.tets.size());
-		fflush(g_applog);
-
-		if(fattriw <= 3)
-		{
-		fprintf(g_applog, "!%s %d", __FILE__, __LINE__);
-		fflush(g_applog);
-			return;
-		}
-
-	}while(1);
-#endif
-}
-#endif

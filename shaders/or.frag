@@ -42,8 +42,8 @@ varying vec4 cornerbout;
 varying vec4 cornercout;
 varying vec4 cornerdout;
 
-uniform float orjplwpx;
-uniform float orjplhpx;
+uniform int orjplwpx;
+uniform int orjplhpx;
 uniform int orjlons;
 uniform int orjlats;
 uniform int orjrolls;
@@ -163,7 +163,7 @@ vec3 SetLatLonAr(vec3 v, vec3 cen, float orlatrat, float orlonrat)
 
 vec3 SetLatLonRoll(vec3 v, float orlatrat, float orlonrat, float orrollrat)
 {
-	v = Rot(v, 2.0*3.14159*orrollrat, 0, 0, 1);
+	v = Rot(v, 2.0*3.14159*orrollrat-3.14159/2.0, 0, 0, 1);
 	v = SetLatLon(v, orlatrat, orlonrat);
 	return v;
 }
@@ -179,7 +179,7 @@ vec3 SetLatLonRollAr(vec3 v, vec3 cen, float orlatrat, float orlonrat, float orr
 
 float GetLon(float x, float z)
 {
-	float orlon = ( 1.0 - (0.25 - atan(x, z) / (2.0 * 3.14159)) );
+	float orlon = ( (0.25 + atan(x, z) / (2.0 * 3.14159)) );
 	if(orlon < 0)
 		orlon = orlon + 1;
 	return orlon;
@@ -187,7 +187,7 @@ float GetLon(float x, float z)
 
 float GetLat(float y)
 {
-	float orlat = (0.5 + asin(y)/3.14159 );
+	float orlat = (0.5 - asin(y)/3.14159 );
 	if(orlat < 0)
 		orlat = orlat + 1;
 	return orlat;
@@ -195,11 +195,11 @@ float GetLat(float y)
 
 float GetRoll(vec3 view, vec3 side)
 {
-	float orlatrat = -GetLat(view.y);
-	float orlonrat = -GetLon(view.x, view.z);
+	float orlatrat = 1-GetLat(view.y);
+	float orlonrat = 1-GetLon(view.x, view.z);
 	side = Rot(side, 2.0*3.14159*orlonrat-3.14159/2.0, 0, 1, 0);
 	side = Rot(side, 1.0*3.14159*orlatrat-3.14159/2.0, 1, 0, 0);
-	float orroll = ( 1.0 - (0.0 - atan(side.y, side.x) / (2.0 * 3.14159)) );
+	float orroll = ( (0.25 + atan(side.y, side.x) / (2.0 * 3.14159)) );
 	if(orroll < 0)
 		orroll = orroll + 1;
 	if(orroll >= 1)
@@ -210,6 +210,8 @@ float GetRoll(vec3 view, vec3 side)
 void main (void)
 {
 vec4 texel0;
+
+	//uint tes = uint(0);
 
 	vec3 cen = ( cornera.xyz + cornerc.xyz ) / 2.0;
 
@@ -233,7 +235,7 @@ vec4 texel0;
 	float totsidelen = length( sidedir );
 	updir = ( updir ) / totuplen;
 	sidedir = ( sidedir ) / totsidelen;
-	vec3 viewdir = - cross( sidedir, updir );
+	vec3 viewdir = cross(  updir, sidedir );
 	viewdir = normalize( viewdir );
 
 
@@ -288,18 +290,19 @@ vec4 texel0;
 	float inclon = GetLon(incview.x, incview.z);
 	float incroll = GetRoll(incview, incside);
 
-	int tabx = int(siderat*(orjplwpx-1)) + 
-		int(inclon*(orjlons-1)*orjplwpx) +
-		int(incroll*(orjrolls-1)*orjlons*orjplwpx);
+	int tabx = int(siderat*(orjplwpx)) + 
+		int(inclon*(orjlons))*orjplwpx ;
 
-	int taby = int((1.0-uprat)*(orjplhpx-1)) + 
-		int(inclat*(orjlats-1)*orjplhpx);
+	int taby = int((1.0-uprat)*(orjplhpx)) + 
+	//int taby = int((uprat)*(orjplhpx)) + 
+		int(inclat*(orjlats))*orjplhpx +
+		int(incroll*(orjrolls))*orjlats*orjplhpx;
 
 	//int tabx = int(siderat*(orjplwpx-1)) + int(orjlon*(orjlons-1)*orjplwpx);
 	////int taby = int(uprat*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
 	//int taby = int((1.0-uprat)*(orjplhpx-1)) + int(orjlat*(orjlats-1)*orjplhpx);
 	float tabxf = float(tabx)/(orjplwpx * orjlons);
-	float tabyf = float(taby)/(orjplhpx * orjlats);
+	float tabyf = float(taby)/(orjplhpx * orjlats * orjrolls);
 
 	//the angle of viewing of the object
 	//float lonrad = 3.14159 * 2.0 * orjlon - 3.14159/2.0;
@@ -318,8 +321,8 @@ vec4 texel0;
 
 	vec2 startjump = vec2( tabxf, tabyf );
 
-	startjump.x = 0.5;
-	startjump.y = 0.5;
+	//startjump.x = 0.5;
+	//startjump.y = 0.5;
 
 	vec4 jumpel = texture2D(jumptex, startjump);
 
@@ -335,10 +338,10 @@ vec4 texel0;
 			float( (jumpi%ormapsz) ) / float(ormapsz), 
 			float( (jumpi/ormapsz) ) / float(ormapsz) );
 
-	if(jumpi == 0)
+	//if(jumpi == 0)
 	{
-		jumpc.x = 0.5;
-		jumpc.y = 0.5;
+		//jumpc.x = 0.5;
+		//jumpc.y = 0.5;
 	}
 
 	vec4 diffel = texture2D(texture0, jumpc.xy);
@@ -346,7 +349,10 @@ vec4 texel0;
 	vec4 posyel = texture2D(posytex, jumpc.xy);
 	vec4 poszel = texture2D(posztex, jumpc.xy);
 
-	int steps = 90;//23;
+	gl_FragColor.xyz = diffel.xyz;
+	gl_FragColor.w = 1;
+
+	int steps = 0;//23;
 	int step = 0;
 
 	vec4 offpos;
@@ -458,8 +464,15 @@ vec4 texel0;
 		offlen = length( offpos.xyz - outpos2.xyz );
 	}
 
-	if( offlen > 20 )
-		discard;
+	//gl_FragColor.x = siderat;
+	//gl_FragColor.y = uprat;
+	//gl_FragColor.z = 0;
+	//gl_FragColor.x = inclat;
+	//gl_FragColor.y = inclon;
+	//gl_FragColor.z = incroll;
+
+	//if( offlen > 20 )
+	//	discard;
 
 	//gl_FragColor.xyz = outpos2.xyz;
 	//gl_FragColor.w = 1;
