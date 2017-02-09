@@ -545,8 +545,8 @@ void ResetOrRender()
 	g_orwpx = 256;	//orientability map plane width pixels
 	g_orhpx = 256;	//orientability map plane height pixels
 	g_orlons = 16;	//orientability map longitude slices (rotations)
-	g_orlats = 16;	//orientability map latitude slices (rotations)
-	g_orrolls = 16;	//orientability map roll slices (rotations)
+	g_orlats = 8;	//orientability map latitude slices (rotations)
+	g_orrolls = 8;	//orientability map roll slices (rotations)
 	g_bigtex = 4096;	//orientability diffuse colors and surface positions map size
 }
 
@@ -644,7 +644,7 @@ bool LoadOr(const char* fullpath)
 	g_orwpx = 256;	//orientability map plane width pixels
 	g_orhpx = 256;	//orientability map plane height pixels
 	g_orlons = 16;	//orientability map longitude slices
-	g_orlats = 16;	//orientability map latitude slices
+	g_orlats = 8;	//orientability map latitude slices
 	g_bigtex = 4096;	//orientability diffuse colors and surface positions map size
 #endif
 			else if(strcmp(a, "orjpwpx") == 0)
@@ -662,6 +662,10 @@ bool LoadOr(const char* fullpath)
 			else if(strcmp(a, "orjlats") == 0)
 			{
 				sscanf(b, "%d", &g_orlats);
+			}
+			else if(strcmp(a, "orjrolls") == 0)
+			{
+				sscanf(b, "%d", &g_orrolls);
 			}
 			else if(strcmp(a, "ormapsz") == 0)
 			{

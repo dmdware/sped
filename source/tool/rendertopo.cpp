@@ -36,8 +36,8 @@ bool g_rendtopo = false;
 int g_orwpx = 256;	//orientability map plane width pixels
 int g_orhpx = 256;	//orientability map plane height pixels
 int g_orlons = 16;	//orientability map longitude slices (rotation)
-int g_orlats = 16;	//orientability map latitude slices (rotation)
-int g_orrolls = 16;	//orientability map roll slices (rotation)
+int g_orlats = 8;	//orientability map latitude slices (rotation)
+int g_orrolls = 8;	//orientability map roll slices (rotation)
 
 int g_rendlon = 0;
 int g_rendlat = 0;
@@ -89,6 +89,7 @@ void PrepareTopo(const char* fullpath, int rendtype)
 	fprintf(fp, "orjphpx %d\r\n", g_orhpx);
 	fprintf(fp, "orjlons %d\r\n", g_orlons);
 	fprintf(fp, "orjlats %d\r\n", g_orlats);
+	fprintf(fp, "orjrolls %d\r\n", g_orrolls);
 	fprintf(fp, "ormapsz %d\r\n", g_bigtex);
 	if(fp)
 		fclose(fp);
@@ -8423,7 +8424,7 @@ float GetRoll(Vec3f view, Vec3f side)
 	side = Rotate(side, 1.0*M_PI*orlatrat-M_PI/2.0, 1, 0, 0);
 	//float orroll = ( (0.0 + atan2(side.y, side.x) / (2.0 * M_PI)) );
 	
-	side = Normalize(side);
+	//side = Normalize(side);
 
 	//float orlat = ( 0.5 - 
 	//	asin(y)/M_PI );

@@ -75,7 +75,18 @@
 #define SSLOT_IMVP				64
 #define SSLOT_ORJROLL			65
 #define SSLOT_ORJROLLS			66
-#define SSLOTS					67
+#define SSLOT_UPDIR				67
+#define SSLOT_SIDEDIR			68
+#define SSLOT_VIEWDIR			69
+#define SSLOT_UPLEN				70
+#define SSLOT_SIDELEN			71
+#define SSLOT_CAMLAT			72
+#define SSLOT_CAMLON			73
+#define SSLOT_CAMROLL			74
+#define SSLOT_INCIDLAT			75
+#define SSLOT_INCIDLON			76
+#define SSLOT_INCIDROLL			78
+#define SSLOTS					79
 
 
 #ifdef PLATFORM_MAC
