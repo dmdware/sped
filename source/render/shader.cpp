@@ -195,7 +195,7 @@ void InitGLSL()
 	LoadShader(SHADER_TEAM, "shaders/team.vert", "shaders/team.frag", true, true, true);
 	
 	LoadShader(SHADER_OR, "shaders/or.vert", "shaders/or.frag", true, true, false);
-	LoadShader(SHADER_ORPERSP, "shaders/orpersp.vert", "shaders/orpersp.frag", true, true, false);
+	LoadShader(SHADER_ORPERSP, "shaders/orpersp2.vert", "shaders/orpersp2.frag", true, true, false);
 
 	CHECKGLERROR();
 }

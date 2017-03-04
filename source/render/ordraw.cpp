@@ -15,6 +15,7 @@
 #include "../app/appmain.h"
 #include "../render/sortb.h"
 #include "../math/camera.h"
+#include "../app/seviewport.h"
 
 OrList g_orlist;
 
@@ -103,8 +104,16 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	//no model translation/rotation matrix needed
 	
 	Matrix mvp;
-	mvp.set(g_camproj.m_matrix);
-	mvp.postmult(g_camview);
+	//if(g_curS != SHADER_ORPERSP)
+	{
+		mvp.set(g_camproj.m_matrix);
+		mvp.postmult(g_camview);
+	}
+	//else
+	{
+	//	mvp.set(g_camproj.m_matrix);
+	//	mvp.postmult2(g_camview);
+	}
 	//mvp.postmult(modelmat);
 	glUniformMatrix4fv(s->m_slot[SSLOT_MVP], 1, 0, mvp.m_matrix);
 
@@ -115,6 +124,10 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	Vec3f viewdir = Normalize(g_cam.m_view - g_cam.m_pos);
 	Vec3f updir = g_cam.up2();
 	Vec3f sidedir = Normalize(g_cam.m_strafe);
+
+	
+	VpWrap* vp = &g_viewport[3];
+	Vec3f viewpos = vp->pos();
 
 	Vec3f v[6];
 	Vec2f t[6];
@@ -141,7 +154,8 @@ void DrawOr(OrList *ol, int frame, Vec3f pos,
 	glUniform4fv(s->m_slot[SSLOT_CORNERC], 1, (float*)&c4);
 	glUniform4fv(s->m_slot[SSLOT_CORNERD], 1, (float*)&d4);
 
-	glUniform3fv(s->m_slot[SSLOT_CAMCEN], 1, (float*)&g_cam.m_pos);
+	//glUniform3fv(s->m_slot[SSLOT_CAMCEN], 1, (float*)&g_cam.m_pos);
+	glUniform3fv(s->m_slot[SSLOT_CAMCEN], 1, (float*)&viewpos);
 
 	glUniform1i(s->m_slot[SSLOT_ORJPLWPX], (int)g_orwpx);
 	glUniform1i(s->m_slot[SSLOT_ORJPLHPX], (int)g_orhpx);

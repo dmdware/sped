@@ -5,7 +5,7 @@
 
 #include "../platform.h"
 
-#define APPVERSION				6
+#define APPVERSION				7
 #define TITLE				"DMD Sprite Editor"
 #define CONFIGFILE			"config.ini"
 

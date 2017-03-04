@@ -1,7 +1,7 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
-//#define USESTEAM			//uncomment this line for steam version
+#define USESTEAM			//uncomment this line for steam version
 
 #ifdef _WIN32
 #define PLATFORM_GL14

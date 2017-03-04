@@ -208,6 +208,9 @@ void DrawScene(Matrix projection, Matrix viewmat, Matrix modelmat, Matrix modelv
 		else
 		//g_projtype = PROJ_PERSP;
 			UseShadow(SHADER_ORPERSP, projection, viewmat, modelmat, modelviewinv, mvLightPos, lightDir);
+		//glActiveTexture(GL_TEXTURE4);
+		//glBindTexture(GL_TEXTURE_2D, g_depth);
+		//glUniform1i(g_shader[g_curS].m_slot[SSLOT_SHADOWMAP], 4);
 		DrawOr(&g_orlist, g_renderframe, Vec3f(0,0,0), 
 			0,0);
 		EndS();
